@@ -1,0 +1,7 @@
+ibapi==9.73.7
+numpy==1.15.3
+pandas==0.23.4
+pkg-resources==0.0.0
+python-dateutil==2.7.5
+pytz==2018.7
+six==1.11.0
