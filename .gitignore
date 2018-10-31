@@ -1,3 +1,4 @@
 /env*
 samples_link
 __pycache__/
+.ipynb_checkpoints/

@@ -17,6 +17,7 @@ from ContractSamples import ContractSamples
 
 
 MA_CROSS = True
+LAST_PROCESSED = 'CSCO'
 
 
 class TestWrapper(EWrapper):
@@ -190,7 +191,7 @@ class TestApp(TestWrapper, TestClient):
     @iswrapper
     def historicalDataEnd(self, reqId: int, start: str, end: str):
         super().historicalDataEnd(reqId, start, end)
-        print("HistoricalDataEnd ", reqId, "from", start, "to", end)
+        # print("HistoricalDataEnd ", reqId, "from", start, "to", end)
         dates = []
         prices = []
         while not self.hist_data_q.empty():
@@ -251,8 +252,8 @@ class TestApp(TestWrapper, TestClient):
         '''
         df_ma_50 = df.rolling(window=50).mean()
         df_ma_200 = df.rolling(window=200).mean()
-        print("50 day MA: ", df_ma_50.iloc[-1]['price'])
-        print("200 day MA: ", df_ma_200.iloc[-1]['price'])
+        # print("50 day MA: ", df_ma_50.iloc[-1]['price'])
+        # print("200 day MA: ", df_ma_200.iloc[-1]['price'])
         if df_ma_50.iloc[-1]['price'] > df_ma_200.iloc[-1]['price']:
             return True
         else:
@@ -276,10 +277,12 @@ if __name__ == '__main__':
     print('ORDERS:')
     print(app.orders_df)
 
-
     if MA_CROSS:
         with open('sp500.txt') as f:
             tickers = [line.rstrip('\n') for line in f]
+        if LAST_PROCESSED is not None:
+            start_index = tickers.index(LAST_PROCESSED)
+            tickers = tickers[start_index:]
 
         contract = Contract()
         contract.secType = "STK"
@@ -287,10 +290,12 @@ if __name__ == '__main__':
         contract.exchange = "SMART"
 
         for ticker in tickers:
+            if '.' in ticker:
+                ticker = ticker.replace('.', ' ')
             contract.symbol = ticker
         
             # Only process if no open orders with this ticker
-            if not app.orders_df['symbol'].str.contains(ticker).any():
+            if app.orders_df.empty or not app.orders_df['symbol'].str.contains(ticker).any():
                 app.get_historical_data(contract)
 
                 while app.hist_data_df is None:
@@ -298,7 +303,7 @@ if __name__ == '__main__':
                     time.sleep(1)
                 print("Symbol: " + ticker)
                 # Golden Cross and not in portfolio -> buy
-                if app.movingAvgCross(app.hist_data_df) and not app.positions_df['symbol'].str.contains(ticker).any():
+                if app.movingAvgCross(app.hist_data_df) and not app.positions_df['symbol'].str.match(ticker).any():
                     print('Placing Buy Order for: ' + ticker)
                     order = Order()
                     order.action = "BUY"
@@ -306,7 +311,8 @@ if __name__ == '__main__':
                     order.totalQuantity = 1
                     app.place_order(contract, order)
                 # Death cross and in portfolio -> sell
-                elif app.positions_df['symbol'].str.contains(ticker).any() and not app.movingAvgCross(app.hist_data_df):
+                elif (app.positions_df[app.positions_df['symbol'].str.match(ticker)]['secType'].str.match("STK").any() and not
+                        app.movingAvgCross(app.hist_data_df)):
                     print('Placing Sell Order for: ' + ticker)
                     order = Order()
                     order.action = "SELL"
@@ -330,10 +336,10 @@ if __name__ == '__main__':
 
 - ML not on stock data but rather on the market participants (e.g. volume, ask/bid spread)
 
-- test open order client id change to 1 or 2 
+- use more threads?
 
-- fix check if in portfolio (need to make sure its stock)
-    - BBT got sold because it has death cross and I own options (should check for STK)
-    - BK got sold because I had 'IBKR' in portfolio
-    - cannot use contains!
+- set stop loss mechanism?
+
+- mechanism to deal with "Waiting on historical data" when:
+    Error. Id:  2  Code:  200  Msg:  The contract description specified for CSCO is ambiguous.
 '''
