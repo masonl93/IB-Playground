@@ -33,17 +33,19 @@ class TestApp(TestWrapper, TestClient):
         self.connect(ip_addr, port, clientId)
 
         self.started = False
+        self.nextValidOrderId = None
 
+        # Historical Data
         self.hist_data_q = queue.Queue()
+        self.hist_data_df = None
+
+        # Portfolio
         self.positions_q = queue.Queue()
         self.positions_df = None
-        self.nextValidOrderId = None
-        self.df = None
-        self.FINISHED = False
-        self.contract_details = None
 
         thread = Thread(target=self.run)
         thread.start()
+
 
     @iswrapper
     def managedAccounts(self, accountsList: str):
@@ -51,6 +53,7 @@ class TestApp(TestWrapper, TestClient):
         print("Account list: ", accountsList)
 
         self.account = accountsList.split(",")[0]
+
 
     @iswrapper
     def nextValidId(self, orderId: int):
@@ -61,6 +64,7 @@ class TestApp(TestWrapper, TestClient):
         # we can start now
         self.start()
 
+
     def start(self):
         if self.started:
             return
@@ -69,7 +73,7 @@ class TestApp(TestWrapper, TestClient):
 
         print("Executing requests")
         ### Time ###
-        # self.reqCurrentTime()
+        self.reqCurrentTime()
 
         ### Account Summary ###
         # self.reqAccountSummary(1, "All", AccountSummaryTags.AllTags)
@@ -77,71 +81,32 @@ class TestApp(TestWrapper, TestClient):
         ### Positions ###
         self.reqPositionsMulti(self.nextValidOrderId, self.account, "")
 
-        ### Find matching contract ###
-        # self.get_contract_details(symbol="IBKR", secType="STK")
-        # self.get_contract_details("AAPL", secType="STK", currency="USD")
-        # self.get_contract_details("CL", secType="FUT", currency="USD")
-
         ### Historical data ###
-        self.get_historical_data(ContractSamples.USStock())
+        # self.get_historical_data(ContractSamples.USStock())
         # self.get_historical_data(ContractSamples.SimpleFuture())
         # self.place_order(ContractSamples.SimpleOilFuture())
-
-        ### Streaming data ###
-        # self.get_mkt_data()
 
         ### Placing order ###
         # self.place_order()
 
         print("Executing requests ... finished")
 
-        # while True:
-        #     if self.FINISHED:
-        #         print('QUITTING')
-        #         os._exit(1)
-        #     else:
-        #         print('Just loopin around')
-        #         time.sleep(5)
 
-    def get_historical_data(self, contract=None):
-        # queryTime = (datetime.datetime.today() - datetime.timedelta(days=180)).strftime("%Y%m%d %H:%M:%S")
+    def get_historical_data(self, contract):
         queryTime = datetime.datetime.today().strftime("%Y%m%d %H:%M:%S")
-        if contract is None:
-            contract = Contract()
-            contract.symbol = "DOV"
-            contract.secType = "STK"
-            contract.currency = "USD"
-            contract.exchange = "SMART"
-        self.contract_details = contract
         self.reqHistoricalData(2, contract, queryTime,
                                "1 Y", "1 day", "MIDPOINT", 1, 1, False, [])
 
-    # def get_mkt_data(self):
-    #     contract = Contract()
-    #     contract.symbol = "IBKR"
-    #     contract.secType = "STK"
-    #     contract.currency = "USD"
-    #     contract.exchange = "SMART"
-    #     self.reqMktData(3, contract, "", False, False, [])
 
-
-    def place_order(self, contract=None):
-        # contract = Contract()
-        # contract.symbol = "DOV"
-        # contract.secType = "STK"
-        # contract.currency = "USD"
-        # contract.exchange = "SMART"
+    def place_order(self, contract):
         order = Order()
         order.action = "BUY"
         order.orderType = "MKT"
         # order.orderType = "LMT"
         # order.lmtPrice = 55
         order.totalQuantity = 1
+        self.placeOrder(self.nextValidOrderId, contract, order)
 
-        if contract is None:
-            self.placeOrder(self.nextValidOrderId, self.contract_details, order)
-        else:
-            self.placeOrder(self.nextValidOrderId, contract, order)
 
     def get_contract_details(self, symbol, secType=None, currency=None, exchange=None):
         contract = Contract()
@@ -154,7 +119,8 @@ class TestApp(TestWrapper, TestClient):
         if exchange is not None:
             contract.exchange = exchange
         self.reqContractDetails(1, contract)
-        
+
+
     @iswrapper
     def execDetails(self, reqId, contract, execution):
         print('ExecDetails')
@@ -174,7 +140,6 @@ class TestApp(TestWrapper, TestClient):
         print(orderstate)
 
 
-
     @iswrapper
     def positionMulti(self, reqId: int, account: str, modelCode: str,
                       contract: Contract, pos: float, avgCost: float):
@@ -184,6 +149,7 @@ class TestApp(TestWrapper, TestClient):
         #       contract.secType, "Currency:", contract.currency, ",Position:",
         #       pos, "AvgCost:", avgCost)
         self.positions_q.put((contract, pos, avgCost))
+
 
     @iswrapper
     def positionMultiEnd(self, reqId: int):
@@ -204,8 +170,6 @@ class TestApp(TestWrapper, TestClient):
         data = {'symbol': symbols, 'secType': types, 'currency': currencies,
                 'pos': positions, 'avg_cost': avg_costs}
         self.positions_df = pandas.DataFrame(data=data)
-        print('POSITIONS:')
-        print(self.positions_df)
 
 
     @iswrapper
@@ -215,13 +179,12 @@ class TestApp(TestWrapper, TestClient):
         print("Acct Summary. ReqId:", reqId, "Acct:", account,
               "Tag: ", tag, "Value:", value, "Currency:", currency)
 
+
     @iswrapper
     def contractDetails(self, reqId: int, contractDetails):
-        # super().contractDetails(reqId, contractDetails)
-        # print(contractDetails)
-        if self.contract_details is None:
-            self.contract_details = contractDetails.contract
-        print(contractDetails.contract)
+        super().contractDetails(reqId, contractDetails)
+        print(contractDetails)
+
 
     @iswrapper
     def historicalData(self, reqId:int, bar):
@@ -230,11 +193,11 @@ class TestApp(TestWrapper, TestClient):
         #       "High:", bar.high, "Low:", bar.low, "Close:", bar.close, "Volume:", bar.volume,
         #       "Count:", bar.barCount, "WAP:", bar.average)
     
+
     @iswrapper
     def historicalDataEnd(self, reqId: int, start: str, end: str):
         super().historicalDataEnd(reqId, start, end)
         print("HistoricalDataEnd ", reqId, "from", start, "to", end)
-        print("Queue Contents")
         dates = []
         prices = []
         while not self.hist_data_q.empty():
@@ -242,25 +205,14 @@ class TestApp(TestWrapper, TestClient):
             dates.append(bar.date)
             prices.append(bar.close)
         data = {'date': dates, 'price': prices}
-        self.df = pandas.DataFrame(data=data)
-        # print("COMPLETE DF:")
-        # for ind, row in self.df.iterrows():
-        #     print(ind)
-        #     print(row['date'], row['price'])
-        # self.FINISHED = True
-        df_ma_50 = self.df.rolling(window=50).mean()
-        df_ma_200 = self.df.rolling(window=200).mean()
-        print("50 day MA: ", df_ma_50.iloc[-1]['price'])
-        print("200 day MA: ", df_ma_200.iloc[-1]['price'])
-        if df_ma_50.iloc[-1]['price'] > df_ma_200.iloc[-1]['price']:
-            self.place_order()
-
+        self.hist_data_df = pandas.DataFrame(data=data)
         
 
     @iswrapper
     def currentTime(self, time):
-        super().currentTime(time)
+        # super().currentTime(time)
         print("TIME: ", time)
+
 
     @iswrapper
     def error(self, reqId, errorCode: int, errorString: str):
@@ -269,27 +221,62 @@ class TestApp(TestWrapper, TestClient):
             print("Error. Id: ", reqId, " Code: ", errorCode, " Msg: ", errorString)
 
 
+    def movingAvgCross(self, df):
+        '''
+        
+        Output: Boolean
+            True if 50-day Moving Avg is greater than 200-day Moving Avg
+            False otherwise
+        '''
+        df_ma_50 = df.rolling(window=50).mean()
+        df_ma_200 = df.rolling(window=200).mean()
+        print("50 day MA: ", df_ma_50.iloc[-1]['price'])
+        print("200 day MA: ", df_ma_200.iloc[-1]['price'])
+        if df_ma_50.iloc[-1]['price'] > df_ma_200.iloc[-1]['price']:
+            return True
+        else:
+            return False
+
+
 
 if __name__ == '__main__':
     app = TestApp("127.0.0.1", 7497, clientId=0)
-    # app.connect("127.0.0.1", 7497, clientId=0)
     print("serverVersion:%s connectionTime:%s" % (app.serverVersion(),
                                                   app.twsConnectionTime()))
-    # app.run()
-    time.sleep(5)
+    while app.positions_df is None:
+        print("Waiting on Positions")
+        time.sleep(1)
+    print('POSITIONS:')
     print(app.positions_df)
-    print('hello')
+
+    # screen stocks for MA
+    # loop through each stock to get hist data
+    # if stock in portfolio, then look for death cross
+    # if not in portfolio, look for golden cross
+
+    contract = ContractSamples.USStock()
+    app.get_historical_data(contract)
+
+    while app.hist_data_df is None:
+        print("Waiting on historical data")
+        time.sleep(1)
+    if app.movingAvgCross(app.hist_data_df):  # and not in portfolio
+        print('Placing Order')
+        app.place_order(contract)
+    
+    
+    
 
 
 
 
 # TODO
 '''
-- Put positions in a nice list so we don't buy samething over and over
-
 - Create screener to find stocks to run Golden cross MA on
 
 - mostly stick to stocks since dont have futures data
 
 - move MA calc outside of histdataend func
+
+- setup while loop limits (e.g. 10 iterations)
 '''
