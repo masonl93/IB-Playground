@@ -16,6 +16,9 @@ from ibapi.account_summary_tags import AccountSummaryTags
 from ContractSamples import ContractSamples
 
 
+MA_CROSS = True
+
+
 class TestWrapper(EWrapper):
     pass
    
@@ -42,6 +45,10 @@ class TestApp(TestWrapper, TestClient):
         # Portfolio
         self.positions_q = queue.Queue()
         self.positions_df = None
+
+        # Orders
+        self.orders_q = queue.Queue()
+        self.orders_df = None
 
         thread = Thread(target=self.run)
         thread.start()
@@ -81,13 +88,8 @@ class TestApp(TestWrapper, TestClient):
         ### Positions ###
         self.reqPositionsMulti(self.nextValidOrderId, self.account, "")
 
-        ### Historical data ###
-        # self.get_historical_data(ContractSamples.USStock())
-        # self.get_historical_data(ContractSamples.SimpleFuture())
-        # self.place_order(ContractSamples.SimpleOilFuture())
-
-        ### Placing order ###
-        # self.place_order()
+        ### Requesting this API client's orders (determined by clientId) ###
+        self.reqOpenOrders()
 
         print("Executing requests ... finished")
 
@@ -98,14 +100,9 @@ class TestApp(TestWrapper, TestClient):
                                "1 Y", "1 day", "MIDPOINT", 1, 1, False, [])
 
 
-    def place_order(self, contract):
-        order = Order()
-        order.action = "BUY"
-        order.orderType = "MKT"
-        # order.orderType = "LMT"
-        # order.lmtPrice = 55
-        order.totalQuantity = 1
+    def place_order(self, contract, order):
         self.placeOrder(self.nextValidOrderId, contract, order)
+        self.nextValidOrderId += 1
 
 
     def get_contract_details(self, symbol, secType=None, currency=None, exchange=None):
@@ -123,21 +120,17 @@ class TestApp(TestWrapper, TestClient):
 
     @iswrapper
     def execDetails(self, reqId, contract, execution):
-        print('ExecDetails')
-        print(execution)
+        # print('ExecDetails')
+        # print(execution)
+        pass
 
 
     @iswrapper
     def orderStatus(self, orderId, status, filled, remaining, avgFillPrice, permid,
                     parentId, lastFillPrice, clientId, whyHeld, mktCapPrice):
-        print('Order Status')
-        print(status)
-
-
-    @iswrapper
-    def openOrder(self, orderId, contract, order, orderstate):
-        print('Order Open')
-        print(orderstate)
+        # print('Order Status')
+        # print(status)
+        pass
 
 
     @iswrapper
@@ -206,7 +199,35 @@ class TestApp(TestWrapper, TestClient):
             prices.append(bar.close)
         data = {'date': dates, 'price': prices}
         self.hist_data_df = pandas.DataFrame(data=data)
-        
+
+
+    @iswrapper
+    def openOrder(self, orderId, contract, order,
+                  orderState):
+        super().openOrder(orderId, contract, order, orderState)
+        self.orders_q.put((contract, order, orderState))
+
+
+    @iswrapper
+    def openOrderEnd(self):
+        super().openOrderEnd()
+        print("OpenOrderEnd")
+        symbols = []
+        types = []
+        actions = []
+        quantities = []
+        status = []
+        while not self.orders_q.empty():
+            contract, order, orderState = self.orders_q.get()
+            symbols.append(contract.symbol)
+            types.append(contract.secType)
+            actions.append(order.action)
+            quantities.append(order.totalQuantity)
+            status.append(orderState.status)
+        data = {'symbol': symbols, 'secType': types, 'action': actions,
+                'quantity': quantities, 'status': status}
+        self.orders_df = pandas.DataFrame(data=data)
+
 
     @iswrapper
     def currentTime(self, time):
@@ -240,7 +261,7 @@ class TestApp(TestWrapper, TestClient):
 
 
 if __name__ == '__main__':
-    app = TestApp("127.0.0.1", 7497, clientId=0)
+    app = TestApp("127.0.0.1", 7497, clientId=1)
     print("serverVersion:%s connectionTime:%s" % (app.serverVersion(),
                                                   app.twsConnectionTime()))
     while app.positions_df is None:
@@ -249,34 +270,70 @@ if __name__ == '__main__':
     print('POSITIONS:')
     print(app.positions_df)
 
-    # screen stocks for MA
-    # loop through each stock to get hist data
-    # if stock in portfolio, then look for death cross
-    # if not in portfolio, look for golden cross
-
-    contract = ContractSamples.USStock()
-    app.get_historical_data(contract)
-
-    while app.hist_data_df is None:
-        print("Waiting on historical data")
+    while app.orders_df is None:
+        print("Waiting on Open Orders")
         time.sleep(1)
-    if app.movingAvgCross(app.hist_data_df):  # and not in portfolio
-        print('Placing Order')
-        app.place_order(contract)
-    
-    
-    
+    print('ORDERS:')
+    print(app.orders_df)
 
 
+    if MA_CROSS:
+        with open('sp500.txt') as f:
+            tickers = [line.rstrip('\n') for line in f]
+
+        contract = Contract()
+        contract.secType = "STK"
+        contract.currency = "USD"
+        contract.exchange = "SMART"
+
+        for ticker in tickers:
+            contract.symbol = ticker
+        
+            # Only process if no open orders with this ticker
+            if not app.orders_df['symbol'].str.contains(ticker).any():
+                app.get_historical_data(contract)
+
+                while app.hist_data_df is None:
+                    print("Waiting on historical data")
+                    time.sleep(1)
+                print("Symbol: " + ticker)
+                # Golden Cross and not in portfolio -> buy
+                if app.movingAvgCross(app.hist_data_df) and not app.positions_df['symbol'].str.contains(ticker).any():
+                    print('Placing Buy Order for: ' + ticker)
+                    order = Order()
+                    order.action = "BUY"
+                    order.orderType = "MKT"
+                    order.totalQuantity = 1
+                    app.place_order(contract, order)
+                # Death cross and in portfolio -> sell
+                elif app.positions_df['symbol'].str.contains(ticker).any() and not app.movingAvgCross(app.hist_data_df):
+                    print('Placing Sell Order for: ' + ticker)
+                    order = Order()
+                    order.action = "SELL"
+                    order.orderType = "MKT"
+                    order.totalQuantity = 1
+                    app.place_order(contract, order)
+                app.hist_data_df = None
+
+    
+    
 
 
 # TODO
 '''
 - Create screener to find stocks to run Golden cross MA on
-
-- mostly stick to stocks since dont have futures data
-
-- move MA calc outside of histdataend func
+(mostly stick to stocks since dont have futures data)
 
 - setup while loop limits (e.g. 10 iterations)
+
+- analysis on fundamental data?
+
+- ML not on stock data but rather on the market participants (e.g. volume, ask/bid spread)
+
+- test open order client id change to 1 or 2 
+
+- fix check if in portfolio (need to make sure its stock)
+    - BBT got sold because it has death cross and I own options (should check for STK)
+    - BK got sold because I had 'IBKR' in portfolio
+    - cannot use contains!
 '''
