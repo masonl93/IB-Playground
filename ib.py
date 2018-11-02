@@ -1,10 +1,10 @@
-import time
+import argparse
 import datetime
-from threading import Thread
-import pandas
 import queue
-import sys
-import os
+import time
+from threading import Thread
+
+import pandas
 
 from ibapi.wrapper import EWrapper
 from ibapi.client import EClient
@@ -16,8 +16,6 @@ from ibapi.account_summary_tags import AccountSummaryTags
 from ContractSamples import ContractSamples
 
 
-MA_CROSS = False
-ARB = True
 LAST_PROCESSED = None
 ISSUE_TICKERS = ['PX']
 
@@ -317,6 +315,11 @@ class TestApp(TestWrapper, TestClient):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='IB Algo Trader')
+    parser.add_argument('-m', '--moving_avg', help='Moving Average Cross', action='store_true')
+    parser.add_argument('-o', '--other', help='Other Algo', action='store_true')
+    args = parser.parse_args()
+
     app = TestApp("127.0.0.1", 7497, clientId=1)
     print("serverVersion:%s connectionTime:%s" % (app.serverVersion(),
                                                   app.twsConnectionTime()))
@@ -333,7 +336,8 @@ if __name__ == '__main__':
     print(app.orders_df)
 
 
-    if MA_CROSS:
+    if args.moving_avg:
+        print('Performing Moving Avg Cross')
         with open('sp500.txt') as f:
             tickers = [line.rstrip('\n') for line in f]
         if LAST_PROCESSED is not None:
@@ -376,18 +380,20 @@ if __name__ == '__main__':
                 app.hist_data_df = None
         print("Completed MA Cross Daily Calculations")
     
-    if ARB:
-        print('we arbing brah')
-        contract = app.createContract("AAPL", "STK", "USD", "SMART")
+    if args.other:
+        print('Other Algo')
+        contract = app.createContract("AMZN", "STK", "USD", "SMART")
 
         # app.get_fin_data(contract, "ReportRatios")
-        app.reqFundamentalData(8001, ContractSamples.USStock(), "ReportRatios", [])
+        # app.reqFundamentalData(8001, contract, "ReportRatios", [])
+        app.get_historical_data(contract)
 
         while app.hist_data_df is None:
             print("Waiting on historical data")
             time.sleep(1)
         print(app.hist_data_df)
 
+    print('Shutting down!')
     app.disconnect()
 
     
@@ -424,4 +430,9 @@ if __name__ == '__main__':
     - Put-call parity
     - Microcap strategy
         - ensure we can get neccessary data - debt, ROIC, Net operating Assets
+
+- long dated option switch - when a later date option becomes a better deal automatically buy it
+  and sell the one expiring sooner, valued by BS
+
+- increase order size so commisions aren't killing us (do it dollar based, not order size)
 '''
