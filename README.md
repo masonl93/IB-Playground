@@ -15,7 +15,7 @@ A platform to automate trading through Interactive Brokers using their python AP
 `$ pip install -r requirements.txt`  
 4. Follow Interactive Brokers instructions on how to setup TWS and API connections. Ensure the port specified in TWS matches the port when instantiating the TestApp() (second argument)  
 You can find the port in TWS by File->Global Config->API->Settings  
-HIHGLY RECOMMENDED TO USE IN A PAPER ACCOUNT
+HIGHLY RECOMMENDED TO USE IN A PAPER ACCOUNT
 
 ## Algorithms  
 ### Moving Average Cross  

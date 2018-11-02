@@ -16,8 +16,10 @@ from ibapi.account_summary_tags import AccountSummaryTags
 from ContractSamples import ContractSamples
 
 
-MA_CROSS = True
-LAST_PROCESSED = 'CSCO'
+MA_CROSS = False
+ARB = True
+LAST_PROCESSED = None
+ISSUE_TICKERS = ['PX']
 
 
 class TestWrapper(EWrapper):
@@ -148,7 +150,8 @@ class TestApp(TestWrapper, TestClient):
     @iswrapper
     def positionMultiEnd(self, reqId: int):
         super().positionMultiEnd(reqId)
-        print("Position Multi End. Request:", reqId)
+        # 
+        # print("Position Multi End. Request:", reqId)
         symbols = []
         types = []
         currencies = []
@@ -178,6 +181,11 @@ class TestApp(TestWrapper, TestClient):
     def contractDetails(self, reqId: int, contractDetails):
         super().contractDetails(reqId, contractDetails)
         print(contractDetails)
+
+    @iswrapper
+    def contractDetailsEnd(self, reqId: int):
+        super().contractDetailsEnd(reqId)
+        print("ContractDetailsEnd. ", reqId, "\n")
 
 
     @iswrapper
@@ -212,7 +220,7 @@ class TestApp(TestWrapper, TestClient):
     @iswrapper
     def openOrderEnd(self):
         super().openOrderEnd()
-        print("OpenOrderEnd")
+        # print("OpenOrderEnd")
         symbols = []
         types = []
         actions = []
@@ -260,6 +268,53 @@ class TestApp(TestWrapper, TestClient):
             return False
 
 
+    def createContract(self, symbol, secType, currency, exchange, primaryExchange=None):
+        contract = Contract()
+        contract.symbol = symbol
+        contract.secType = secType
+        contract.currency = currency
+        contract.exchange = exchange
+        if primaryExchange:
+            contract.primaryExchange = primaryExchange
+        return contract
+
+
+    def createOptionContract(self, symbol, currency, exchange):
+        contract = Contract()
+        contract.symbol = symbol
+        contract.secType = "OPT"
+        contract.exchange = exchange
+        contract.currency = currency
+        contract.lastTradeDateOrContractMonth = "201901"
+        contract.strike = 150
+        contract.right = "C"
+        contract.multiplier = "100"
+        return contract
+
+
+    def maPortfolioCheck(self, ticker):
+        '''
+        Output: Boolean
+            True if ticker is in portfolio, is a stock, and position is > 0
+            False otherwise
+        '''
+        matching_ticker_df = app.positions_df[app.positions_df['symbol'].str.match("^%s$" % ticker)]
+        matching_type_df = matching_ticker_df[matching_ticker_df['secType'].str.match("^STK$")]
+        return ((matching_type_df['pos'] > 0).any())
+
+
+    def get_fin_data(self, contract, data_type):
+        self.reqFundamentalData(self.nextValidOrderId, ContractSamples.USStock(), data_type, [])
+        self.nextValidOrderId += 1
+
+
+    @iswrapper
+    # ! [fundamentaldata]
+    def fundamentalData(self, reqId, data: str):
+        super().fundamentalData(reqId, data)
+        print("FundamentalData. ", reqId, data)
+    # ! [fundamentaldata]
+
 
 if __name__ == '__main__':
     app = TestApp("127.0.0.1", 7497, clientId=1)
@@ -277,17 +332,17 @@ if __name__ == '__main__':
     print('ORDERS:')
     print(app.orders_df)
 
+
     if MA_CROSS:
         with open('sp500.txt') as f:
             tickers = [line.rstrip('\n') for line in f]
         if LAST_PROCESSED is not None:
             start_index = tickers.index(LAST_PROCESSED)
             tickers = tickers[start_index:]
+        if ISSUE_TICKERS:
+            tickers = [x for x in tickers if x not in ISSUE_TICKERS]
 
-        contract = Contract()
-        contract.secType = "STK"
-        contract.currency = "USD"
-        contract.exchange = "SMART"
+        contract = app.createContract(None, "STK", "USD", "SMART", "ISLAND")
 
         for ticker in tickers:
             if '.' in ticker:
@@ -303,7 +358,7 @@ if __name__ == '__main__':
                     time.sleep(1)
                 print("Symbol: " + ticker)
                 # Golden Cross and not in portfolio -> buy
-                if app.movingAvgCross(app.hist_data_df) and not app.positions_df['symbol'].str.match(ticker).any():
+                if app.movingAvgCross(app.hist_data_df) and not app.maPortfolioCheck(ticker):
                     print('Placing Buy Order for: ' + ticker)
                     order = Order()
                     order.action = "BUY"
@@ -311,8 +366,7 @@ if __name__ == '__main__':
                     order.totalQuantity = 1
                     app.place_order(contract, order)
                 # Death cross and in portfolio -> sell
-                elif (app.positions_df[app.positions_df['symbol'].str.match(ticker)]['secType'].str.match("STK").any() and not
-                        app.movingAvgCross(app.hist_data_df)):
+                elif (app.maPortfolioCheck(ticker) and not app.movingAvgCross(app.hist_data_df)):
                     print('Placing Sell Order for: ' + ticker)
                     order = Order()
                     order.action = "SELL"
@@ -320,6 +374,21 @@ if __name__ == '__main__':
                     order.totalQuantity = 1
                     app.place_order(contract, order)
                 app.hist_data_df = None
+        print("Completed MA Cross Daily Calculations")
+    
+    if ARB:
+        print('we arbing brah')
+        contract = app.createContract("AAPL", "STK", "USD", "SMART")
+
+        # app.get_fin_data(contract, "ReportRatios")
+        app.reqFundamentalData(8001, ContractSamples.USStock(), "ReportRatios", [])
+
+        while app.hist_data_df is None:
+            print("Waiting on historical data")
+            time.sleep(1)
+        print(app.hist_data_df)
+
+    app.disconnect()
 
     
     
@@ -327,19 +396,32 @@ if __name__ == '__main__':
 
 # TODO
 '''
-- Create screener to find stocks to run Golden cross MA on
-(mostly stick to stocks since dont have futures data)
-
 - setup while loop limits (e.g. 10 iterations)
 
 - analysis on fundamental data?
-
-- ML not on stock data but rather on the market participants (e.g. volume, ask/bid spread)
 
 - use more threads?
 
 - set stop loss mechanism?
 
-- mechanism to deal with "Waiting on historical data" when:
-    Error. Id:  2  Code:  200  Msg:  The contract description specified for CSCO is ambiguous.
+- integrate backtester, make my own - follow logic of open sourced one
+
+- test if hist data for TSE works during market hours.
+
+- separate non IB code (i.e. algo code) into own class/functions in other file
+
+- strategies:
+(https://www.investopedia.com/articles/active-trading/101014/basics-algorithmic-trading-concepts-and-examples.asp)
+    - Trend Following
+        - MA Cross
+    - Arbitrage
+        - OTC stocks tough since don't have foreign mkt data subscriptions
+    - ML
+        - not on stock data but rather on the market participants (e.g. volume, ask/bid spread)
+        - weighting different factors in a multi-factor model - instead of linear weighting, could use 
+          non-linear relationships from ML
+    - Taleb strategies? Barbell, etc
+    - Put-call parity
+    - Microcap strategy
+        - ensure we can get neccessary data - debt, ROIC, Net operating Assets
 '''
