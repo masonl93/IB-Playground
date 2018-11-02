@@ -300,6 +300,32 @@ class TestApp(TestWrapper, TestClient):
         matching_type_df = matching_ticker_df[matching_ticker_df['secType'].str.match("^STK$")]
         return ((matching_type_df['pos'] > 0).any())
 
+    
+    def calcOrderSize(self, price, size):
+        '''
+        Determines how large the order should be
+
+        Input:
+            price: Current share price (float)
+            size: How large we want our order to be, in dollar terms (int)
+
+        Output:
+            int: number of shares to buy
+            Will default to 1 if price > size
+        '''
+        if price > size:
+            return 1
+        else:
+            return int(size/price)
+
+
+    def getPosDetails(self, ticker, secType):
+        '''
+        Returns a dataframe of position details given a ticker and security type
+        '''
+        matching_ticker_df = app.positions_df[app.positions_df['symbol'].str.match("^%s$" % ticker)]
+        return matching_ticker_df[matching_ticker_df['secType'].str.match("^STK$")]
+
 
     def get_fin_data(self, contract, data_type):
         self.reqFundamentalData(self.nextValidOrderId, ContractSamples.USStock(), data_type, [])
@@ -364,18 +390,23 @@ if __name__ == '__main__':
                 # Golden Cross and not in portfolio -> buy
                 if app.movingAvgCross(app.hist_data_df) and not app.maPortfolioCheck(ticker):
                     print('Placing Buy Order for: ' + ticker)
+                    amt = app.calcOrderSize(float(app.hist_data_df.tail(1)['price']), 1000)
                     order = Order()
                     order.action = "BUY"
                     order.orderType = "MKT"
-                    order.totalQuantity = 1
+                    order.totalQuantity = amt
                     app.place_order(contract, order)
                 # Death cross and in portfolio -> sell
                 elif (app.maPortfolioCheck(ticker) and not app.movingAvgCross(app.hist_data_df)):
                     print('Placing Sell Order for: ' + ticker)
+                    pos = app.getPosDetails(ticker, 'STK')
+                    if pos.shape[0] > 1:
+                        print('Multiple matching positions, defaulting to first record')
+                        pos = pos.head(0)
                     order = Order()
                     order.action = "SELL"
                     order.orderType = "MKT"
-                    order.totalQuantity = 1
+                    order.totalQuantity = int(pos['pos'])
                     app.place_order(contract, order)
                 app.hist_data_df = None
         print("Completed MA Cross Daily Calculations")
@@ -391,7 +422,8 @@ if __name__ == '__main__':
         while app.hist_data_df is None:
             print("Waiting on historical data")
             time.sleep(1)
-        print(app.hist_data_df)
+        print(app.hist_data_df.tail(1))
+
 
     print('Shutting down!')
     app.disconnect()
@@ -410,9 +442,9 @@ if __name__ == '__main__':
 
 - set stop loss mechanism?
 
-- integrate backtester, make my own - follow logic of open sourced one
+- setup limit orders
 
-- test if hist data for TSE works during market hours.
+- integrate backtester, make my own - follow logic of open sourced one
 
 - separate non IB code (i.e. algo code) into own class/functions in other file
 
@@ -434,5 +466,8 @@ if __name__ == '__main__':
 - long dated option switch - when a later date option becomes a better deal automatically buy it
   and sell the one expiring sooner, valued by BS
 
-- increase order size so commisions aren't killing us (do it dollar based, not order size)
+- each algo should keep track of its own positions
+    - when order placed and successfully executed, save to file or sqllite db
+      so when we sell, we know how many to sell and multiple algo's don't get
+      mixed up
 '''
