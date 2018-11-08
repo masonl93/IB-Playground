@@ -1,5 +1,6 @@
 import argparse
 import datetime
+import pathlib
 import queue
 import time
 from threading import Thread
@@ -16,9 +17,14 @@ from ibapi.account_summary_tags import AccountSummaryTags
 
 from ContractSamples import ContractSamples
 
+# Constants
 
+# MA Cross
 LAST_PROCESSED = 'CA'
 ISSUE_TICKERS = ['PX', 'CHRW', 'BF.B']
+
+# Microcaps
+MICRO_RESULTS_F = 'microcap_results.pickle'
 
 
 class TestWrapper(EWrapper):
@@ -464,10 +470,20 @@ if __name__ == '__main__':
     if args.other:
         print('Other Algo')
 
-        # save microcap tickers to file, same way as SP500 
-        # mkt cap 15m to 200m
-        # reasonable vol filter?
-        tickers = ['AUTO', "ELMD", "ATXI", "CLBS", "MYO", "CDOR"]
+        with open('microcaps.txt') as f:
+            tickers = [line.rstrip('\n') for line in f]
+
+        tickers = tickers[0:30]
+
+        df_old = pandas.DataFrame()
+        previous_results_file = pathlib.Path(MICRO_RESULTS_F)
+        if previous_results_file.is_file():
+            df_old = pandas.read_pickle(MICRO_RESULTS_F)
+            tickers_to_skip = df_old['symbol'].tolist()
+            tickers = [x for x in tickers if x not in tickers_to_skip]
+
+        bad_tickers = []
+
         noas = []
         debts = []
         roics = []
@@ -476,6 +492,7 @@ if __name__ == '__main__':
         roic_vars = ['operating_profit', 'income_b4_taxes', 'taxes', 'total_assets', 'cash', 'revenue']
 
         for ticker in tickers:
+            print("Ticker: " + ticker)
             # Only initialize non-mandatory values to 0
             # All mandatory keys will be checked to see if they exist before calculating
             latest_val = {'acct_payable': 0, 'accrued_expense': 0, 'others': 0, 'payable': 0, 'deferred':0}
@@ -491,6 +508,12 @@ if __name__ == '__main__':
 
             tree = ET.fromstring(app.fundamental_data)
             financial_statements = tree.find('FinancialStatements')
+            if len(financial_statements) == 0:
+                with open('microcap_errors.txt', 'a+') as f:
+                    print("Error: %s has no fundamental data!" % ticker)
+                    f.write("%s\n" % ticker)
+                    bad_tickers.append(ticker)
+                    break
             # financial_statements = [coaMap, annuals, interims]
             # Using annual reports, could switch to interim results for more recent data
             annuals = financial_statements[1]
@@ -549,7 +572,13 @@ if __name__ == '__main__':
 
             # 1 year debt change
             if 'total_debt' in latest_val and 'total_debt' in prev_val:
-                change_debt = (latest_val['total_debt'] - prev_val['total_debt'])/prev_val['total_debt']
+                if prev_val['total_debt'] == 0:
+                    if latest_val['total_debt'] != 0:
+                        change_debt = "Divide by Zero"
+                    else:
+                        change_debt = 0
+                else:
+                    change_debt = (latest_val['total_debt'] - prev_val['total_debt'])/prev_val['total_debt']
             else:
                 change_debt = "Error"
 
@@ -580,10 +609,19 @@ if __name__ == '__main__':
             app.fundamental_data = None
             app.debt2equity = None
 
+        for tick in bad_tickers:
+            tickers.remove(tick)
         data = {'symbol': tickers, 'noa_change': noas, 'debt_change': debts,
                 'debt_to_equity': debt_to_equities, 'ROIC': roics}
         df = pandas.DataFrame(data=data)
-        print(df)
+
+        if df_old.empty:
+            print(df)
+        else:
+            frames = [df_old, df]
+            df = pandas.concat(frames)
+            print(df)
+        df.to_pickle(MICRO_RESULTS_F)
 
 
     print('Shutting down!')
@@ -597,6 +635,8 @@ if __name__ == '__main__':
 '''
 - Current:
     - finish microcap
+        - reset index for dataframe
+        - proof read code and add comments
     - separate code into own classes (IB, MA Cross, ROIC, Micro, etc)
     - DCF impl
     - create backtester (follow logic of open sourced one)
@@ -617,6 +657,7 @@ if __name__ == '__main__':
         - Stronger NIBCL calculation to include everything neccessary
         - excess cash -> dynamic required cash value. If operating losses,
           then require 5% of sales. If large operating profits, then require 1 to 2%.
+        - http://news.morningstar.com/classroom2/course.asp?docId=145095&page=9
 
 - analysis on fundamental data?
     - do a DCF valutation
@@ -645,7 +686,10 @@ Try to copy some of Soros trades from alchemy of finance In my paper account.
 Generalize ROIC and NOA calculation so we can rank stocks using these measures regardless
 if they are micro cap.
 
-Implement three osam articles - factors from scratch, micro cap, and new one 
+Implement three O'SAM articles
+    - Factors: https://www.osam.com/Commentary/factors-from-scratch
+    - Microcaps: https://www.osam.com/Commentary/microcaps-factor-spreads-structural-biases-and-the-institutional-imperative
+    - Alpha within Factors: https://www.osam.com/Commentary/alpha-within-factors
 
 
 Add to README how calculations are done:
