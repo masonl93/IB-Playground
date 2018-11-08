@@ -3,6 +3,7 @@ import datetime
 import queue
 import time
 from threading import Thread
+import xml.etree.ElementTree as ET
 
 import pandas
 
@@ -16,8 +17,8 @@ from ibapi.account_summary_tags import AccountSummaryTags
 from ContractSamples import ContractSamples
 
 
-LAST_PROCESSED = None
-ISSUE_TICKERS = ['PX']
+LAST_PROCESSED = 'CA'
+ISSUE_TICKERS = ['PX', 'CHRW', 'BF.B']
 
 
 class TestWrapper(EWrapper):
@@ -50,6 +51,10 @@ class TestApp(TestWrapper, TestClient):
         # Orders
         self.orders_q = queue.Queue()
         self.orders_df = None
+
+        # Fundamental
+        self.fundamental_data = None
+        self.debt2equity = None
 
         thread = Thread(target=self.run)
         thread.start()
@@ -328,25 +333,70 @@ class TestApp(TestWrapper, TestClient):
 
 
     def get_fin_data(self, contract, data_type):
-        self.reqFundamentalData(self.nextValidOrderId, ContractSamples.USStock(), data_type, [])
+        self.reqFundamentalData(self.nextValidOrderId, contract, data_type, [])
+        self.nextValidOrderId += 1
+
+        # Ratios
+        # Switch to live (1) frozen (2) delayed (3) delayed frozen (4).
+        # MarketDataTypeEnum.DELAYED
+        self.reqMarketDataType(3)
+        self.reqMktData(self.nextValidOrderId, contract, "258", False, False, [])
         self.nextValidOrderId += 1
 
 
     @iswrapper
-    # ! [fundamentaldata]
     def fundamentalData(self, reqId, data: str):
         super().fundamentalData(reqId, data)
-        print("FundamentalData. ", reqId, data)
-    # ! [fundamentaldata]
+        # print("FundamentalData. ", reqId, data)
+        self.fundamental_data = data
+
+
+    ######## mkt data wrappers
+    @iswrapper
+    def tickGeneric(self, reqId, tickType, value: float):
+        super().tickGeneric(reqId, tickType, value)
+        # print("Tick Generic. Ticker Id:", reqId, "tickType:", tickType, "Value:", value)
+        print('Tick: Generic')
+
+
+    @iswrapper
+    def tickPrice(self, reqId, tickType, price: float,
+                  attrib):
+        super().tickPrice(reqId, tickType, price, attrib)
+        # print("Tick Price. Ticker Id:", reqId, "tickType:", tickType,
+        #       "Price:", price, "CanAutoExecute:", attrib.canAutoExecute,
+        #       "PastLimit:", attrib.pastLimit, end=' ')
+        print('Tick: Price')
+
+
+    @iswrapper
+    def tickSize(self, reqId, tickType, size: int):
+        super().tickSize(reqId, tickType, size)
+        # print("Tick Size. Ticker Id:", reqId, "tickType:", tickType, "Size:", size)
+        print("Tick: Size")
+
+
+    @iswrapper
+    def tickString(self, reqId, tickType, value: str):
+        super().tickString(reqId, tickType, value)
+        # print("Tick string. Ticker Id:", reqId, "Type:", tickType, "Value:", value)
+        print('Tick: String')
+        for ratio in value.split(';'):
+            if 'QTOTD2EQ' in ratio:
+                self.debt2equity = ratio.split('=')[1]
+                self.cancelMktData(reqId)
+
+    ######################
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='IB Algo Trader')
     parser.add_argument('-m', '--moving_avg', help='Moving Average Cross', action='store_true')
     parser.add_argument('-o', '--other', help='Other Algo', action='store_true')
+    parser.add_argument('-p', '--port', help='Port of TWS (default=7497)', default=7497, type=int)
     args = parser.parse_args()
 
-    app = TestApp("127.0.0.1", 7497, clientId=1)
+    app = TestApp("127.0.0.1", args.port, clientId=1)
     print("serverVersion:%s connectionTime:%s" % (app.serverVersion(),
                                                   app.twsConnectionTime()))
     while app.positions_df is None:
@@ -367,7 +417,7 @@ if __name__ == '__main__':
         with open('sp500.txt') as f:
             tickers = [line.rstrip('\n') for line in f]
         if LAST_PROCESSED is not None:
-            start_index = tickers.index(LAST_PROCESSED)
+            start_index = tickers.index(LAST_PROCESSED) + 1
             tickers = tickers[start_index:]
         if ISSUE_TICKERS:
             tickers = [x for x in tickers if x not in ISSUE_TICKERS]
@@ -413,16 +463,127 @@ if __name__ == '__main__':
     
     if args.other:
         print('Other Algo')
-        contract = app.createContract("AMZN", "STK", "USD", "SMART")
 
-        # app.get_fin_data(contract, "ReportRatios")
-        # app.reqFundamentalData(8001, contract, "ReportRatios", [])
-        app.get_historical_data(contract)
+        # save microcap tickers to file, same way as SP500 
+        # mkt cap 15m to 200m
+        # reasonable vol filter?
+        tickers = ['AUTO', "ELMD", "ATXI", "CLBS", "MYO", "CDOR"]
+        noas = []
+        debts = []
+        roics = []
+        debt_to_equities = []
+        noa_vars = ['total_assets', 'cash', 'total_liabilities', 'total_debt']
+        roic_vars = ['operating_profit', 'income_b4_taxes', 'taxes', 'total_assets', 'cash', 'revenue']
 
-        while app.hist_data_df is None:
-            print("Waiting on historical data")
-            time.sleep(1)
-        print(app.hist_data_df.tail(1))
+        for ticker in tickers:
+            # Only initialize non-mandatory values to 0
+            # All mandatory keys will be checked to see if they exist before calculating
+            latest_val = {'acct_payable': 0, 'accrued_expense': 0, 'others': 0, 'payable': 0, 'deferred':0}
+            prev_val = {}
+
+            # Initate requests for data
+            contract = app.createContract(ticker, "STK", "USD", "SMART")
+            app.get_fin_data(contract, "ReportsFinStatements")
+
+            while app.fundamental_data is None:
+                print("Waiting on fundamental data")
+                time.sleep(1)
+
+            tree = ET.fromstring(app.fundamental_data)
+            financial_statements = tree.find('FinancialStatements')
+            # financial_statements = [coaMap, annuals, interims]
+            # Using annual reports, could switch to interim results for more recent data
+            annuals = financial_statements[1]
+            latest = annuals[0]
+            prev = annuals[1]
+
+            # Pulling values from latest annual report
+            if latest.find('.//lineItem[@coaCode="ATOT"]') != None:
+                latest_val['total_assets'] = float(latest.find('.//lineItem[@coaCode="ATOT"]').text)
+            if latest.find('.//lineItem[@coaCode="SCSI"]') != None:
+                latest_val['cash'] = float(latest.find('.//lineItem[@coaCode="SCSI"]').text)
+            if latest.find('.//lineItem[@coaCode="LTLL"]') != None:
+                latest_val['total_liabilities'] = float(latest.find('.//lineItem[@coaCode="LTLL"]').text)
+            if latest.find('.//lineItem[@coaCode="STLD"]') != None:
+                latest_val['total_debt'] = float(latest.find('.//lineItem[@coaCode="STLD"]').text)
+            if latest.find('.//lineItem[@coaCode="SOPI"]') != None:
+                latest_val['operating_profit'] = float(latest.find('.//lineItem[@coaCode="SOPI"]').text)
+            if latest.find('.//lineItem[@coaCode="EIBT"]') != None:
+                latest_val['income_b4_taxes'] = float(latest.find('.//lineItem[@coaCode="EIBT"]').text)
+            if latest.find('.//lineItem[@coaCode="TTAX"]') != None:
+                latest_val['taxes'] = float(latest.find('.//lineItem[@coaCode="TTAX"]').text)
+            if latest.find('.//lineItem[@coaCode="RTLR"]') != None:
+                latest_val['revenue'] = float(latest.find('.//lineItem[@coaCode="RTLR"]').text)
+            if latest.find('.//lineItem[@coaCode="LAPB"]') != None:
+                latest_val['acct_payable'] = float(latest.find('.//lineItem[@coaCode="LAPB"]').text)
+            if latest.find('.//lineItem[@coaCode="LAEX"]') != None:
+                latest_val['accrued_expense'] = float(latest.find('.//lineItem[@coaCode="LAEX"]').text)
+            if latest.find('.//lineItem[@coaCode="LPBA"]') != None:
+                latest_val['payable'] = float(latest.find('.//lineItem[@coaCode="LPBA"]').text)
+            if latest.find('.//lineItem[@coaCode="SBDT"]') != None:
+                latest_val['deferred'] = float(latest.find('.//lineItem[@coaCode="SBDT"]').text)
+            if latest.find('.//lineItem[@coaCode="SOCL"]') != None:
+                latest_val['others'] = float(latest.find('.//lineItem[@coaCode="SOCL"]').text)
+
+            # Pulling values from previous annual report
+            if prev.find('.//lineItem[@coaCode="ATOT"]') != None:
+                prev_val['total_assets'] = float(prev.find('.//lineItem[@coaCode="ATOT"]').text)
+            if prev.find('.//lineItem[@coaCode="SCSI"]') != None:
+                prev_val['cash'] = float(prev.find('.//lineItem[@coaCode="SCSI"]').text)
+            if prev.find('.//lineItem[@coaCode="LTLL"]') != None:
+                prev_val['total_liabilities'] = float(prev.find('.//lineItem[@coaCode="LTLL"]').text)
+            if prev.find('.//lineItem[@coaCode="STLD"]') != None:
+                prev_val['total_debt'] = float(prev.find('.//lineItem[@coaCode="STLD"]').text)
+
+            # Perform Calculations - ensure all variables are present
+
+            # Net Operating Assets
+            if all(var in latest_val for var in noa_vars) and all(var in prev_val for var in noa_vars):
+                noa = (latest_val['total_assets'] - latest_val['cash'] -
+                        latest_val['total_liabilities'] - latest_val['total_debt'])
+                noa_prev = (prev_val['total_assets'] - prev_val['cash'] -
+                             prev_val['total_liabilities'] - prev_val['total_debt'])
+                change_noa = (noa - noa_prev)/noa_prev
+            else:
+                change_noa = "Error"
+
+            # 1 year debt change
+            if 'total_debt' in latest_val and 'total_debt' in prev_val:
+                change_debt = (latest_val['total_debt'] - prev_val['total_debt'])/prev_val['total_debt']
+            else:
+                change_debt = "Error"
+
+            # ROIC
+            if all(var in latest_val for var in roic_vars):
+                tax_rate = latest_val['taxes']/latest_val['income_b4_taxes']
+                nopat = latest_val['operating_profit']*(1-tax_rate)
+                # TODO: Make this calculation smarter
+                excess_cash = latest_val['cash'] - .025*latest_val['revenue']
+                nibcl = (latest_val['acct_payable'] + latest_val['accrued_expense'] +
+                          latest_val['others'] + latest_val['payable'] + latest_val['deferred'])
+                invested_cap = latest_val['total_assets'] - nibcl - excess_cash
+                roic = nopat/invested_cap
+            else:
+                print(latest_val)
+                roic = "Error"
+
+            # Debt to Equity Ratio
+            while app.debt2equity is None:
+                print('Waiting on ratio data')
+                time.sleep(1)
+
+            # Append values to lists which we will insert into our dataframe
+            debt_to_equities.append(app.debt2equity)
+            noas.append(change_noa)
+            debts.append(change_debt)
+            roics.append(roic)
+            app.fundamental_data = None
+            app.debt2equity = None
+
+        data = {'symbol': tickers, 'noa_change': noas, 'debt_change': debts,
+                'debt_to_equity': debt_to_equities, 'ROIC': roics}
+        df = pandas.DataFrame(data=data)
+        print(df)
 
 
     print('Shutting down!')
@@ -434,24 +595,34 @@ if __name__ == '__main__':
 
 # TODO
 '''
-- setup while loop limits (e.g. 10 iterations)
+- Current:
+    - finish microcap
+    - separate code into own classes (IB, MA Cross, ROIC, Micro, etc)
+    - DCF impl
+    - create backtester (follow logic of open sourced one)
+    - ML project unrelated to finance and then ML algo strategy?
+
+
+- Enhancements
+    - setup while loop limits (e.g. 10 iterations)
+        - print tickers at end that gave us an issue
+    - use more threads
+    - set stop loss mechanism
+    - setup limit orders
+    - each algo should keep track of its own positions
+        - when order placed and successfully executed, save to file or sqllite db
+          so when we sell, we know how many to sell and multiple algo's don't get
+          mixed up
+    - ROIC Calculation
+        - Stronger NIBCL calculation to include everything neccessary
+        - excess cash -> dynamic required cash value. If operating losses,
+          then require 5% of sales. If large operating profits, then require 1 to 2%.
 
 - analysis on fundamental data?
-
-- use more threads?
-
-- set stop loss mechanism?
-
-- setup limit orders
-
-- integrate backtester, make my own - follow logic of open sourced one
-
-- separate non IB code (i.e. algo code) into own class/functions in other file
+    - do a DCF valutation
 
 - strategies:
 (https://www.investopedia.com/articles/active-trading/101014/basics-algorithmic-trading-concepts-and-examples.asp)
-    - Trend Following
-        - MA Cross
     - Arbitrage
         - OTC stocks tough since don't have foreign mkt data subscriptions
     - ML
@@ -459,15 +630,37 @@ if __name__ == '__main__':
         - weighting different factors in a multi-factor model - instead of linear weighting, could use 
           non-linear relationships from ML
     - Taleb strategies? Barbell, etc
-    - Put-call parity
-    - Microcap strategy
-        - ensure we can get neccessary data - debt, ROIC, Net operating Assets
+    - Put-call parity (https://www.investopedia.com/articles/optioninvestor/05/011905.asp)
+    - Factor-based strategy
+        - Microcap (ensure we can get neccessary data - debt, ROIC, Net operating Assets)
+    - long dated option switch - when a later date option becomes a better deal automatically buy it
+      and sell the one expiring sooner, valued by BS
 
-- long dated option switch - when a later date option becomes a better deal automatically buy it
-  and sell the one expiring sooner, valued by BS
 
-- each algo should keep track of its own positions
-    - when order placed and successfully executed, save to file or sqllite db
-      so when we sell, we know how many to sell and multiple algo's don't get
-      mixed up
+Try to copy some of Soros trades from alchemy of finance In my paper account.
+    - Equity for stocks, leverage/margin for commodities (futures, bonds, currencies)
+    - Hedging currency positions 
+
+
+Generalize ROIC and NOA calculation so we can rank stocks using these measures regardless
+if they are micro cap.
+
+Implement three osam articles - factors from scratch, micro cap, and new one 
+
+
+Add to README how calculations are done:
+# Change in Net Opearating Assets
+# NOA = OA - OL
+# operating assets = total assets(ATOT) - Cash and Short Term Investments(SCSI)
+# operating liabilites = total liabilities(LTLL) - Total debt(STLD)
+
+# ROIC
+# ROIC = NOPAT/IC
+# NOPAT = Operating Profit(SOPI) * (1-tax_rate)
+# Tax_rate = income taxes(TTAX)/net income before taxes(EIBT)
+# IC = Total Assets(ATOT) - Non-interest bearing current liabilities - Excess cash
+# NIBCL = accounts payable(LAPB) + accrued expenses(LAEX) + other current liabilities(SOCL) +
+#         accrued/payable(LPBA) + deferred income(SBDT)
+# Excess cash = Cash and Short Term Investments(SCSI) - required_cash
+# required_cash = .025*revenue
 '''
