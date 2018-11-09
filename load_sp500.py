@@ -14,8 +14,8 @@ def save_sp500_tickers():
         ticker = row.findAll('td')[0].text
         tickers.append(ticker)
         
-    with open(FILENAME+".pickle", "wb") as f:
-        pickle.dump(tickers,f)
+    # with open(FILENAME+".pickle", "wb") as f:
+    #     pickle.dump(tickers,f)
         
     return tickers
 
