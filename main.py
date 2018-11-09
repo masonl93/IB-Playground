@@ -97,7 +97,7 @@ if __name__ == '__main__':
         with open('microcaps.txt') as f:
             tickers = [line.rstrip('\n') for line in f]
 
-        tickers = tickers[0:30]
+        tickers = tickers[0:20]
 
         df_old = pandas.DataFrame()
         previous_results_file = pathlib.Path(MICRO_RESULTS_F)
@@ -127,7 +127,7 @@ if __name__ == '__main__':
             latest_val, prev_val = factors.parseFinancials(app.fundamental_data)
             if latest_val is None:
                 change_noa = "Error"
-                change_debt = "Error"
+                debt_change = "Error"
                 roic = "Error"
                 app.debt2equity = "Error"
             else:
@@ -143,7 +143,7 @@ if __name__ == '__main__':
                 if 'total_debt' in latest_val and 'total_debt' in prev_val:
                     debt_change = factors.calcDebtChange(latest_val['total_debt'], prev_val['total_debt'])
                 else:
-                    change_debt = "Error"
+                    debt_change = "Error"
 
                 # ROIC
                 roic = factors.calcROIC(latest_val)
@@ -158,7 +158,7 @@ if __name__ == '__main__':
             # Append values to lists which we will insert into our dataframe
             debt_to_equities.append(app.debt2equity)
             noas.append(change_noa)
-            debts.append(change_debt)
+            debts.append(debt_change)
             roics.append(roic)
             app.fundamental_data = None
             app.debt2equity = None

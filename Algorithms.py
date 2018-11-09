@@ -25,6 +25,9 @@ class Factors():
 
     def parseFinancials(self, data):
         '''
+        Parses Financial Data
+
+        See sample_financialStatement.xml for coaCodes and their corresponding values
         Input:
             data as xml string from returned from IB's reqFundamentalData
         '''
@@ -47,8 +50,12 @@ class Factors():
         # Pulling values from latest annual report
         if latest.find('.//lineItem[@coaCode="ATOT"]') != None:
             latest_val['total_assets'] = float(latest.find('.//lineItem[@coaCode="ATOT"]').text)
-        if latest.find('.//lineItem[@coaCode="SCSI"]') != None:
-            latest_val['cash'] = float(latest.find('.//lineItem[@coaCode="SCSI"]').text)
+        if latest.find('.//lineItem[@coaCode="ACAE"]') != None:
+            # Cash and equivalents
+            latest_val['cash'] = float(latest.find('.//lineItem[@coaCode="ACAE"]').text)
+        elif latest.find('.//lineItem[@coaCode="ACSH"]') != None:
+            # Just cash
+            latest_val['cash'] = float(latest.find('.//lineItem[@coaCode="ACSH"]').text)
         if latest.find('.//lineItem[@coaCode="LTLL"]') != None:
             latest_val['total_liabilities'] = float(latest.find('.//lineItem[@coaCode="LTLL"]').text)
         if latest.find('.//lineItem[@coaCode="STLD"]') != None:
@@ -131,11 +138,11 @@ class Factors():
         Calculating ROIC
         ROIC = NOPAT/IC
         NOPAT = Operating Profit * (1-tax_rate)
-        Tax_rate = income taxes(TTAX)/net income before taxes(EIBT)
-        IC = Total Assets(ATOT) - Non-interest bearing current liabilities - Excess cash
-        NIBCL = accounts payable(LAPB) + accrued expenses(LAEX) + other current liabilities(SOCL) +
-                accrued/payable(LPBA) + deferred income(SBDT)
-        Excess cash = Cash and Short Term Investments(SCSI) - required_cash
+        Tax_rate = income taxes/net income before taxes
+        IC = Total Assets - Non-interest bearing current liabilities - Excess cash
+        NIBCL = accounts payable + accrued expenses + other current liabilities +
+                accrued/payable + deferred income
+        Excess cash = Cash & Equivalents - required_cash
         required_cash = .025*revenue
 
         Input:
@@ -144,11 +151,14 @@ class Factors():
             None if data is missing keys needed to compute ROIC
             else ROIC as a float
         '''
-        roic_vars = ['operating_profit', 'income_b4_taxes', 'taxes', 'total_assets', 'cash', 'revenue']
+        roic_vars = ['operating_profit', 'income_b4_taxes', 'total_assets', 'cash', 'revenue']
 
         if all(var in data for var in roic_vars):
-            tax_rate = data['taxes']/data['income_b4_taxes']
-            nopat = data['operating_profit']*(1-tax_rate)
+            if 'taxes' in data:
+                tax_rate = data['taxes']/data['income_b4_taxes']
+                nopat = data['operating_profit']*(1-tax_rate)
+            else:
+                nopat = data['operating_profit']
             # TODO: Make this calculation smarter
             excess_cash = data['cash'] - .025*data['revenue']
             nibcl = (data['acct_payable'] + data['accrued_expense'] +

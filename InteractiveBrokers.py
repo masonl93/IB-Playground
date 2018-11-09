@@ -234,7 +234,7 @@ class TestApp(TestWrapper, TestClient):
     def tickString(self, reqId, tickType, value: str):
         super().tickString(reqId, tickType, value)
         # print("Tick string. Ticker Id:", reqId, "Type:", tickType, "Value:", value)
-        print('Tick: String')
+        # print('Tick: String')
         for ratio in value.split(';'):
             if 'QTOTD2EQ' in ratio:
                 self.debt2equity = ratio.split('=')[1]
