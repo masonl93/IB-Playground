@@ -1,6 +1,7 @@
 import datetime
 import queue
 from threading import Thread
+import time
 
 import pandas
 
@@ -16,7 +17,7 @@ from ContractSamples import ContractSamples
 
 class TestWrapper(EWrapper):
     pass
-   
+
 
 class TestClient(EClient):
     def __init__(self, wrapper):
@@ -142,7 +143,7 @@ class TestApp(TestWrapper, TestClient):
         # print("HistoricalData. ", reqId, " Date:", bar.date, "Open:", bar.open,
         #       "High:", bar.high, "Low:", bar.low, "Close:", bar.close, "Volume:", bar.volume,
         #       "Count:", bar.barCount, "WAP:", bar.average)
-    
+
 
     @iswrapper
     def historicalDataEnd(self, reqId: int, start: str, end: str):
@@ -325,7 +326,7 @@ class TestApp(TestWrapper, TestClient):
         matching_type_df = matching_ticker_df[matching_ticker_df['secType'].str.match("^STK$")]
         return ((matching_type_df['pos'] > 0).any())
 
-    
+
     def calcOrderSize(self, price, size):
         '''
         Determines how large the order should be
@@ -362,3 +363,46 @@ class TestApp(TestWrapper, TestClient):
         self.reqMarketDataType(3)
         self.reqMktData(self.nextValidOrderId, contract, "258", False, False, [])
         self.nextValidOrderId += 1
+
+
+    def duplicateOrder(self, ticker, secType, order):
+        return ((self.orders_df['symbol'] == ticker) & (self.orders_df['secType'] == secType) & (self.orders_df['action'] == order.action) & (self.orders_df['quantity'] == order.totalQuantity) & (self.orders_df['status'] == 'PreSubmitted')).any()
+
+
+    def sellPosition(self, ticker, secType):
+        pos = self.getPosDetails(ticker, secType)
+        if pos.shape[0] > 1:
+            print('Multiple matching positions, defaulting to first record')
+            pos = pos.head(0)
+        contract = self.createContract(ticker, secType, "USD", "SMART")
+        if int(pos['pos']) > 0:
+            order = Order()
+            order.action = "SELL"
+            order.orderType = "MKT"
+            order.totalQuantity = int(pos['pos'])
+            if not self.duplicateOrder(ticker, secType, order):
+                print('Placing SELL order for: ' + ticker)
+                self.place_order(contract, order)
+
+
+    def sellAllPositions(self, save_f=None):
+        save_tickers = {}
+        throttle_count = 0
+        if save_f:
+            with open(save_f, 'r') as f:
+                save_tickers_list = [line.rstrip('\n') for line in f]
+            for ticker in save_tickers_list:
+                symbol, secType = ticker.split(',')
+                save_tickers[symbol] = secType
+            for _ind, row in self.positions_df.iterrows():
+                if not (row['symbol'] in save_tickers.keys() and save_tickers[row['symbol']] == row['secType']):
+                    self.sellPosition(row['symbol'], row['secType'])
+                    throttle_count += 1
+                    if throttle_count % 50 == 0:
+                        time.sleep(1)
+        else:
+            for _ind, row in self.positions_df.iterrows():
+                self.sellPosition(row['symbol'], row['secType'])
+                throttle_count += 1
+                if throttle_count % 50 == 0:
+                    time.sleep(1)

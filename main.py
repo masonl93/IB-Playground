@@ -9,21 +9,28 @@ import InteractiveBrokers as ib
 import Algorithms as algo
 from Algorithms import Factors
 
+from ContractSamples import ContractSamples
 
 # Constants
 
+SAVE_FILE = 'save_from_sell.txt'
+
 # MA Cross
-LAST_PROCESSED = 'CA'
-ISSUE_TICKERS = ['PX', 'CHRW', 'BF.B', 'BR', 'AVGO']
+ISSUE_TICKERS = ['PX',]
+# 'CHRW', 'BF.B', 'BR', 'AVGO'
+
 
 # Microcaps
 MICRO_RESULTS_F = 'microcap_results.pickle'
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='IB Algo Trader')
+    parser.add_argument('-c', '--clear', help='Clear Positions (save positions from "save_from_sell.txt" file)', action='store_true')
     parser.add_argument('-m', '--moving_avg', help='Moving Average Cross', action='store_true')
+    parser.add_argument('-s', '--start', help='Ticker to start from', default=None)
     parser.add_argument('-o', '--other', help='Other Algo', action='store_true')
     parser.add_argument('-p', '--port', help='Port of TWS (default=7497)', default=7497, type=int)
+    parser.add_argument('--futures', help='',action='store_true')
     args = parser.parse_args()
 
     app = ib.TestApp("127.0.0.1", args.port, clientId=1)
@@ -42,17 +49,24 @@ if __name__ == '__main__':
     print(app.orders_df)
 
 
+    if args.clear:
+        resp = input("\nAre you sure you want to clear your positions?\n" +
+                     "Press 'y' to continue with selling positions or any other key to cancel\n")
+        if str(resp) == 'y':
+            print('Selling all Positions')
+            app.sellAllPositions(SAVE_FILE)
     if args.moving_avg:
         print('Performing Moving Avg Cross')
         with open('sp500.txt') as f:
             tickers = [line.rstrip('\n') for line in f]
-        if LAST_PROCESSED is not None:
-            start_index = tickers.index(LAST_PROCESSED) + 1
+        if args.start is not None:
+            start_index = tickers.index(args.start) + 1
             tickers = tickers[start_index:]
         if ISSUE_TICKERS:
             tickers = [x for x in tickers if x not in ISSUE_TICKERS]
 
-        contract = app.createContract(None, "STK", "USD", "SMART", "ISLAND")
+        # contract = app.createContract(None, "STK", "USD", "SMART", "ISLAND")
+        contract = app.createContract(None, "STK", "USD", "SMART")
 
         for ticker in tickers:
             if '.' in ticker:
@@ -79,15 +93,7 @@ if __name__ == '__main__':
                 # Death cross and in portfolio -> sell
                 elif (app.portfolioCheck(ticker) and not algo.movingAvgCross(app.hist_data_df)):
                     print('Placing Sell Order for: ' + ticker)
-                    pos = app.getPosDetails(ticker, 'STK')
-                    if pos.shape[0] > 1:
-                        print('Multiple matching positions, defaulting to first record')
-                        pos = pos.head(0)
-                    order = ib.Order()
-                    order.action = "SELL"
-                    order.orderType = "MKT"
-                    order.totalQuantity = int(pos['pos'])
-                    app.place_order(contract, order)
+                    app.sellPosition(ticker, 'STK')
                 app.hist_data_df = None
         print("Completed MA Cross Daily Calculations")
 
@@ -97,7 +103,7 @@ if __name__ == '__main__':
         with open('microcaps.txt') as f:
             tickers = [line.rstrip('\n') for line in f]
 
-        tickers = tickers[0:20]
+        tickers = tickers[0:100]
 
         df_old = pandas.DataFrame()
         previous_results_file = pathlib.Path(MICRO_RESULTS_F)
@@ -176,6 +182,46 @@ if __name__ == '__main__':
             print(df)
         df.to_pickle(MICRO_RESULTS_F)
 
+        print('Ranked Results - Top Decile for each Factor:')
+
+        # debt to equity
+        df = df[df.noa_change != 'Error']
+        df = df.sort_values('debt_to_equity')
+        cutoff = int(df.shape[0]/10)
+        df = df[:-cutoff]
+
+        # 1yr debt change
+        df = df[df.debt_change != 'Divide by Zero']
+        df = df.sort_values('debt_change')
+        cutoff = int(df.shape[0]/10)
+        df = df[:-cutoff]
+
+        # NOA
+        df = df[df.noa_change != 'Error']
+        df = df.sort_values('noa_change')
+        cutoff = int(df.shape[0]/10)
+        df = df[:-cutoff]
+
+        # ROIC
+        df = df[df.ROIC != 'Error']
+        df = df.sort_values('ROIC', ascending=False)
+        cutoff = int(df.shape[0]/10)
+        df = df[:-cutoff]
+
+        # Getting AVG
+        df['debt_to_equity'] = pandas.to_numeric(df['debt_to_equity'])  # Needed to convert 0's to floats
+        df.loc[-1] = ['Averages', df['noa_change'].mean(), df['debt_change'].mean(), df['debt_to_equity'].mean(), df['ROIC'].mean()]
+        print(df.reset_index(drop=True,))
+
+    if args.futures:
+        amt = 1
+        order = ib.Order()
+        order.action = "BUY"
+        order.orderType = "MKT"
+        order.totalQuantity = amt
+        app.place_order(ContractSamples.SimpleUraniumFuture(), order)
+        time.sleep(5)
+
 
     print('Shutting down!')
     app.disconnect()
@@ -189,7 +235,8 @@ if __name__ == '__main__':
 - Current:
     - finish microcap
         - proof read code and add comments
-    - algos should be ticker agnostic. Input should be a file containing tickers
+    - Algos should be ticker agnostic. Input should be a file containing tickers
+    - MA cross always gets stuck ~83rd ticker (AVGO), not ticker specific, what's the issue?
     - DCF impl
     - create backtester (follow logic of open sourced one)
     - ML project unrelated to finance and then ML algo strategy?

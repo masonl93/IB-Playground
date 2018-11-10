@@ -245,22 +245,34 @@ class ContractSamples:
     complicated than options."""
 
     @staticmethod
-    def SimpleFuture():
+    def SPFuture():
         #! [futcontract]
         contract = Contract()
         contract.symbol = "ES"
         contract.secType = "FUT"
         contract.exchange = "GLOBEX"
         contract.currency = "USD"
+        contract.lastTradeDateOrContractMonth = "201909"
+        #! [futcontract]
+        return contract
+
+    @staticmethod
+    def OilFuture():
+        #! [futcontract]
+        contract = Contract()
+        contract.symbol = "CL"
+        contract.secType = "FUT"
+        contract.exchange = "NYMEX"
+        contract.currency = "USD"
         contract.lastTradeDateOrContractMonth = "201903"
         #! [futcontract]
         return contract
 
     @staticmethod
-    def SimpleOilFuture():
+    def UraniumFuture():
         #! [futcontract]
         contract = Contract()
-        contract.symbol = "CL"
+        contract.symbol = "UX"
         contract.secType = "FUT"
         contract.exchange = "NYMEX"
         contract.currency = "USD"
