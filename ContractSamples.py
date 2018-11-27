@@ -10,7 +10,7 @@ from ibapi.contract import *
 
 class ContractSamples:
 
-    """ Usually, the easiest way to define a Stock/CASH contract is through 
+    """ Usually, the easiest way to define a Stock/CASH contract is through
     these four attributes.  """
 
     @staticmethod
@@ -118,7 +118,7 @@ class ContractSamples:
             contract.currency = "USD"
             #! [commoditycontract]
             return contract
-    
+
 
     @staticmethod
     def USStock():
@@ -141,13 +141,13 @@ class ContractSamples:
         contract.secType = "STK"
         contract.currency = "USD"
         contract.exchange = "SMART"
-        #Specify the Primary Exchange attribute to avoid contract ambiguity 
+        #Specify the Primary Exchange attribute to avoid contract ambiguity
 		#(there is an ambiguity because there is also a MSFT contract with primary exchange = "AEB")
         contract.primaryExchange = "ISLAND"
         #! [stkcontractwithprimary]
         return contract
 
-            
+
     @staticmethod
     def USStockAtSmart():
         contract = Contract()
@@ -190,9 +190,9 @@ class ContractSamples:
         return contract
 
 
-    """ Option contracts require far more information since there are many 
-    contracts having the exact same attributes such as symbol, currency, 
-    strike, etc. This can be overcome by adding more details such as the 
+    """ Option contracts require far more information since there are many
+    contracts having the exact same attributes such as symbol, currency,
+    strike, etc. This can be overcome by adding more details such as the
     trading class"""
 
     @staticmethod
@@ -227,9 +227,9 @@ class ContractSamples:
         #! [optcontract_localsymbol]
         return contract
 
-    """ Dutch Warrants (IOPTs) can be defined using the local symbol or conid 
+    """ Dutch Warrants (IOPTs) can be defined using the local symbol or conid
     """
-	
+
     @staticmethod
     def DutchWarrant():
         #! [ioptcontract]
@@ -240,7 +240,7 @@ class ContractSamples:
         contract.currency = "EUR"
         #! [ioptcontract]
         return contract
-		
+
     """ Future contracts also require an expiration date but are less
     complicated than options."""
 
@@ -264,7 +264,7 @@ class ContractSamples:
         contract.secType = "FUT"
         contract.exchange = "NYMEX"
         contract.currency = "USD"
-        contract.lastTradeDateOrContractMonth = "201903"
+        contract.lastTradeDateOrContractMonth = "201909"
         #! [futcontract]
         return contract
 
@@ -353,9 +353,9 @@ class ContractSamples:
 
 
     """ Or their conId (EUR.uSD sample).
-    Note: passing a contract containing the conId can cause problems if one of 
-    the other provided attributes does not match 100% with what is in IB's 
-    database. This is particularly important for contracts such as Bonds which 
+    Note: passing a contract containing the conId can cause problems if one of
+    the other provided attributes does not match 100% with what is in IB's
+    database. This is particularly important for contracts such as Bonds which
     may change their description from one day to another.
     If the conId is provided, it is best not to give too much information as
     in the example below. """
@@ -506,7 +506,7 @@ class ContractSamples:
     def InterCmdtyFuturesContract():
         #! [intcmdfutcontract]
         contract = Contract()
-        contract.symbol = "CL.BZ" #symbol is 'local symbol' of intercommodity spread. 
+        contract.symbol = "CL.BZ" #symbol is 'local symbol' of intercommodity spread.
         contract.secType = "BAG"
         contract.currency = "USD"
         contract.exchange = "NYMEX"

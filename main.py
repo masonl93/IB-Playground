@@ -1,5 +1,6 @@
 import argparse
 import pathlib
+import sys
 import time
 import xml.etree.ElementTree as ET
 
@@ -20,15 +21,16 @@ ISSUE_TICKERS = ['PX',]
 # 'CHRW', 'BF.B', 'BR', 'AVGO'
 
 
-# Microcaps
-MICRO_RESULTS_F = 'microcap_results.pickle'
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='IB Algo Trader')
     parser.add_argument('-c', '--clear', help='Clear Positions (save positions from "save_from_sell.txt" file)', action='store_true')
     parser.add_argument('-m', '--moving_avg', help='Moving Average Cross', action='store_true')
     parser.add_argument('-s', '--start', help='Ticker to start from', default=None)
-    parser.add_argument('-o', '--other', help='Other Algo', action='store_true')
+    parser.add_argument('-f', '--factor', help='Factors', action='store_true')
+    parser.add_argument('-i', '--input', help='Input File of Tickers', default=None)
+    parser.add_argument('-e', '--end', help='Index of last ticker to process. Useful for ' +
+                                            'large number of tickers', default=None, type=int)
+    parser.add_argument('-r', '--rank', help='Rank Factors', action='store_true')
     parser.add_argument('-p', '--port', help='Port of TWS (default=7497)', default=7497, type=int)
     parser.add_argument('--futures', help='',action='store_true')
     args = parser.parse_args()
@@ -55,10 +57,18 @@ if __name__ == '__main__':
         if str(resp) == 'y':
             print('Selling all Positions')
             app.sellAllPositions(SAVE_FILE)
+
+    tickers = None
+    if args.input:
+        with open(args.input) as f:
+            tickers = [line.rstrip('\n') for line in f]
+
     if args.moving_avg:
         print('Performing Moving Avg Cross')
-        with open('sp500.txt') as f:
-            tickers = [line.rstrip('\n') for line in f]
+        if tickers is None:
+            print("Error: Must provide file of tickers by '-i' option")
+            sys.exit(0)
+
         if args.start is not None:
             start_index = tickers.index(args.start) + 1
             tickers = tickers[start_index:]
@@ -68,6 +78,7 @@ if __name__ == '__main__':
         # contract = app.createContract(None, "STK", "USD", "SMART", "ISLAND")
         contract = app.createContract(None, "STK", "USD", "SMART")
 
+        # Replaces '.' with a space e.g. BRK.B should be BRK B
         for ticker in tickers:
             if '.' in ticker:
                 ticker = ticker.replace('.', ' ')
@@ -97,18 +108,22 @@ if __name__ == '__main__':
                 app.hist_data_df = None
         print("Completed MA Cross Daily Calculations")
 
-    if args.other:
+    if args.factor:
         print('Factor Sort')
 
-        with open('microcaps.txt') as f:
-            tickers = [line.rstrip('\n') for line in f]
+        if tickers is None:
+            print("Error: Must provide file of tickers by '-i' option")
+            sys.exit(0)
 
-        tickers = tickers[0:100]
+        results_file = args.input + '.pickle'
+
+        if args.end and args.end < len(tickers):
+            tickers = tickers[0:args.end]
 
         df_old = pandas.DataFrame()
-        previous_results_file = pathlib.Path(MICRO_RESULTS_F)
+        previous_results_file = pathlib.Path(args.input + '.pickle')
         if previous_results_file.is_file():
-            df_old = pandas.read_pickle(MICRO_RESULTS_F)
+            df_old = pandas.read_pickle(results_file)
             tickers_to_skip = df_old['symbol'].tolist()
             tickers = [x for x in tickers if x not in tickers_to_skip]
 
@@ -180,38 +195,39 @@ if __name__ == '__main__':
             df = pandas.concat(frames)
             df.reset_index(drop=True, inplace=True)
             print(df)
-        df.to_pickle(MICRO_RESULTS_F)
+        df.to_pickle(results_file)
 
-        print('Ranked Results - Top Decile for each Factor:')
+        if args.rank:
+            print('Ranked Results - Top Decile for each Factor:')
 
-        # debt to equity
-        df = df[df.noa_change != 'Error']
-        df = df.sort_values('debt_to_equity')
-        cutoff = int(df.shape[0]/10)
-        df = df[:-cutoff]
+            # debt to equity
+            df = df[df.noa_change != 'Error']
+            df = df.sort_values('debt_to_equity')
+            cutoff = int(df.shape[0]/10)
+            df = df[:-cutoff]
 
-        # 1yr debt change
-        df = df[df.debt_change != 'Divide by Zero']
-        df = df.sort_values('debt_change')
-        cutoff = int(df.shape[0]/10)
-        df = df[:-cutoff]
+            # 1yr debt change
+            df = df[df.debt_change != 'Divide by Zero']
+            df = df.sort_values('debt_change')
+            cutoff = int(df.shape[0]/10)
+            df = df[:-cutoff]
 
-        # NOA
-        df = df[df.noa_change != 'Error']
-        df = df.sort_values('noa_change')
-        cutoff = int(df.shape[0]/10)
-        df = df[:-cutoff]
+            # NOA
+            df = df[df.noa_change != 'Error']
+            df = df.sort_values('noa_change')
+            cutoff = int(df.shape[0]/10)
+            df = df[:-cutoff]
 
-        # ROIC
-        df = df[df.ROIC != 'Error']
-        df = df.sort_values('ROIC', ascending=False)
-        cutoff = int(df.shape[0]/10)
-        df = df[:-cutoff]
+            # ROIC
+            df = df[df.ROIC != 'Error']
+            df = df.sort_values('ROIC', ascending=False)
+            cutoff = int(df.shape[0]/10)
+            df = df[:-cutoff]
 
-        # Getting AVG
-        df['debt_to_equity'] = pandas.to_numeric(df['debt_to_equity'])  # Needed to convert 0's to floats
-        df.loc[-1] = ['Averages', df['noa_change'].mean(), df['debt_change'].mean(), df['debt_to_equity'].mean(), df['ROIC'].mean()]
-        print(df.reset_index(drop=True,))
+            # Getting AVG
+            df['debt_to_equity'] = pandas.to_numeric(df['debt_to_equity'])  # Needed to convert 0's to floats
+            df.loc[-1] = ['Averages', df['noa_change'].mean(), df['debt_change'].mean(), df['debt_to_equity'].mean(), df['ROIC'].mean()]
+            print(df.reset_index(drop=True,))
 
     if args.futures:
         amt = 1
@@ -219,7 +235,7 @@ if __name__ == '__main__':
         order.action = "BUY"
         order.orderType = "MKT"
         order.totalQuantity = amt
-        app.place_order(ContractSamples.SimpleUraniumFuture(), order)
+        app.place_order(ContractSamples.OilFuture(), order)
         time.sleep(5)
 
 
@@ -235,11 +251,16 @@ if __name__ == '__main__':
 - Current:
     - finish microcap
         - proof read code and add comments
-    - Algos should be ticker agnostic. Input should be a file containing tickers
     - MA cross always gets stuck ~83rd ticker (AVGO), not ticker specific, what's the issue?
+    - Bring in Valution/Black Scholes repo to this one. Can use Black Scholes class and IB class
+      to pull share count, share price, etc from fundamental data. Build DCF in with Valuation class
     - DCF impl
     - create backtester (follow logic of open sourced one)
     - ML project unrelated to finance and then ML algo strategy?
+    - factor rank my own portfolio
+    - Multiple Calculator:
+        - calc TTM multiples (P/R, P/E, EV/EBITDA, etc)
+        - watch Aswath's multiples valutations vid to ensure doing correctly
 
 
 - Enhancements
@@ -260,7 +281,7 @@ if __name__ == '__main__':
 
 
 - strategies:
-(https://www.investopedia.com/articles/active-trading/101014/basics-algorithmic-trading-concepts-and-examples.asp)
+        (https://www.investopedia.com/articles/active-trading/101014/basics-algorithmic-trading-concepts-and-examples.asp)
     - Arbitrage
         - OTC stocks tough since don't have foreign mkt data subscriptions
     - ML
@@ -278,7 +299,6 @@ if __name__ == '__main__':
 Try to copy some of Soros trades from alchemy of finance In my paper account.
     - Equity for stocks, leverage/margin for commodities (futures, bonds, currencies)
     - Hedging currency positions
-
 
 Generalize ROIC and NOA calculation so we can rank stocks using these measures regardless
 if they are micro cap. Would be useful for own portfolio
