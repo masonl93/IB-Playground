@@ -1,4 +1,5 @@
 import argparse
+import datetime
 import pathlib
 import sys
 import time
@@ -11,6 +12,7 @@ import Algorithms as algo
 from Algorithms import Factors
 
 from ContractSamples import ContractSamples
+from Black_Scholes import BlackScholes
 
 # Constants
 
@@ -33,6 +35,10 @@ if __name__ == '__main__':
     parser.add_argument('-r', '--rank', help='Rank Factors', action='store_true')
     parser.add_argument('-p', '--port', help='Port of TWS (default=7497)', default=7497, type=int)
     parser.add_argument('--futures', help='',action='store_true')
+    parser.add_argument('-w', '--warrants', help='Warrants Valuation', action='store_true')
+    parser.add_argument('-t', '--ticker', help='Underlying Ticker for warrant valuation', default=None)
+    parser.add_argument('-o', '--warrants_out', help='Number of warrants outstanding (in millions)', default=None, type=float)
+    parser.add_argument('--test', action='store_true')
     args = parser.parse_args()
 
     app = ib.TestApp("127.0.0.1", args.port, clientId=1)
@@ -140,6 +146,7 @@ if __name__ == '__main__':
             # Initate requests for data
             contract = app.createContract(ticker, "STK", "USD", "SMART")
             app.getFinancialData(contract, "ReportsFinStatements")
+            app.getMktData(contract)
 
             while app.fundamental_data is None:
                 print("Waiting on fundamental data")
@@ -238,6 +245,75 @@ if __name__ == '__main__':
         app.place_order(ContractSamples.OilFuture(), order)
         time.sleep(5)
 
+    if args.warrants:
+        print('Warrant Valuation')
+        if args.ticker is None:
+            print('Error: Must provide ticker for warrant valuation')
+            sys.exit(0)
+
+        ticker = args.ticker
+
+        if args.warrants_out is None:
+            print('Number of warrants outstanding was not provided. Will not calculate with share dilution.')
+
+        # find the warrant
+        app.get_contract_details(ticker, "WAR")
+        while not app.contract_details_flag:
+            print("Waiting on contract data")
+            time.sleep(1)
+
+        contract = app.contract_details[0].contract
+        strike = contract.strike
+        right = contract.right
+        warrants_per_share = (1/float(contract.multiplier))
+        expiry = datetime.datetime.strptime(contract.lastTradeDateOrContractMonth, '%Y%m%d').strftime('%m-%d-%Y')
+
+        # get underlying price
+        contract = app.createContract(ticker, "STK", "USD", "SMART")
+        app.getMktData(contract)
+        app.getFinancialData(contract, "ReportsFinStatements")
+
+        while app.contract_price is None:
+            print('Waiting for mkt data')
+            time.sleep(1)
+        underlying_price = float(app.contract_price)
+        div = app.contract_yield
+
+        while app.fundamental_data is None:
+            print("Waiting on fundamental data")
+            time.sleep(1)
+        factors = Factors()
+        latest_val, _prev_val = factors.parseFinancials(app.fundamental_data, quarterly=True)
+        shares_out = latest_val['shares']
+
+        # Get this from t-bill?
+        risk = .03
+
+
+        # Get implied vol? Or do a range of vol values? Or take user input for vol?
+        vols = [.2, .3, .35, .4, .5, .6]
+        prices = []
+        for vol in vols:
+            print(strike, app.contract_price, risk, vol,
+                            expiry, div, shares_out, args.warrants_out,
+                            warrants_per_share)
+            bs = BlackScholes(strike, underlying_price, risk, vol,
+                            expiry, div, shares_out, args.warrants_out,
+                            warrants_per_share)
+            prices.append('$' + str(round(bs.price_euro_call(), 5)))
+        data = {'Volatility': vols, 'Fair Price': prices}
+        df = pandas.DataFrame(data=data)
+        print(df)
+
+
+    if args.test:
+        contract = app.createContract('AAPL', "STK", "USD", "SMART")
+        app.getMktData(contract)
+        while app.contract_price is None:
+            print('Waiting for mkt data')
+            time.sleep(1)
+
+
 
     print('Shutting down!')
     app.disconnect()
@@ -251,16 +327,23 @@ if __name__ == '__main__':
 - Current:
     - finish microcap
         - proof read code and add comments
+        - try using quarterly reports?
+    - finish BS warrants
+        - any todos from old repo?
+        - add readme to this repo readme
+        - proper tests
+        - handle multiple warrants .e.g TDW A/B
+            - Value both and display in dataframe to easily determine better deals
     - MA cross always gets stuck ~83rd ticker (AVGO), not ticker specific, what's the issue?
-    - Bring in Valution/Black Scholes repo to this one. Can use Black Scholes class and IB class
-      to pull share count, share price, etc from fundamental data. Build DCF in with Valuation class
     - DCF impl
     - create backtester (follow logic of open sourced one)
-    - ML project unrelated to finance and then ML algo strategy?
-    - factor rank my own portfolio
+    - Add support for foreign stocks i.e. read exchange from ticker txt file
+        - if '-' in ticker, then extract second part which is exchange e.g. CTT-BVL
     - Multiple Calculator:
         - calc TTM multiples (P/R, P/E, EV/EBITDA, etc)
         - watch Aswath's multiples valutations vid to ensure doing correctly
+    - function to reset all member variables to None, or just reset app? This is important
+      for algos that loop e.g. factors & MA cross
 
 
 - Enhancements
@@ -269,6 +352,7 @@ if __name__ == '__main__':
     - use more threads
     - set stop loss mechanism
     - setup limit orders
+    - argparse make certain options dependant on others
     - each algo should keep track of its own positions
         - when order placed and successfully executed, save to file or sqllite db
           so when we sell, we know how many to sell and multiple algo's don't get
@@ -278,6 +362,8 @@ if __name__ == '__main__':
         - excess cash -> dynamic required cash value. If operating losses,
           then require 5% of sales. If large operating profits, then require 1 to 2%.
         - http://news.morningstar.com/classroom2/course.asp?docId=145095&page=9
+        - Aimia ROIC calc example:
+            - https://www.aimia.com/wp-content/uploads/2018/11/Aimia_Q3-2018-Highlights-FINAL.pdf
 
 
 - strategies:
@@ -295,13 +381,6 @@ if __name__ == '__main__':
     - long dated option switch - when a later date option becomes a better deal automatically buy it
       and sell the one expiring sooner, valued by BS
 
-
-Try to copy some of Soros trades from alchemy of finance In my paper account.
-    - Equity for stocks, leverage/margin for commodities (futures, bonds, currencies)
-    - Hedging currency positions
-
-Generalize ROIC and NOA calculation so we can rank stocks using these measures regardless
-if they are micro cap. Would be useful for own portfolio
 
 Implement three O'SAM articles
     - Factors: https://www.osam.com/Commentary/factors-from-scratch

@@ -28,6 +28,14 @@ Run the script (displaying input options):
 Simple Moving Average Cross Example:  
 `$ python main.py -m`  
 
+Factor Ranking Example:  
+`$ python main.py -f -i portfolio.txt`  
+This will calculate the various factors for all the tickers in the file (should be capitalized and each ticker on its own line). If '-r' option is provided, then it will rank based on the various factors and remove the bottom decile for each factor. This can be extra handy in screening a large list of stocks such as the entire microcap universe.
+
+Valuing a Warrant using Black Scholes and share dilution:  
+`$ python main.py -w -t DSKE -o 35.04`  
+This is to value DSKE warrants, and since we provided the number of warrants outstanding (35.04 mil), the valuation will incorporate the dilution.  
+
 Selling all Positions:
 1. Create a file 'save_from_sell.txt' with positions that you don't want to delete, formatted with ticker and type per line. For example:  
 `AAPL,STK`  
@@ -44,3 +52,4 @@ Description will be added soon
 
 ## Notes
 - If an error occurs when trying to retreive fundamental data, then restart TWS as this tends to solve the issue.
+- reqContractDetails seems to have a limit on one request a minute? This is used in warrant valuation so if you are facing issues on a subsequent run, waiting 60 seconds might resolve the issue

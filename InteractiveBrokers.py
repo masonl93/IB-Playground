@@ -49,6 +49,12 @@ class TestApp(TestWrapper, TestClient):
         # Fundamental
         self.fundamental_data = None
         self.debt2equity = None
+        self.contract_price = None
+        self.contract_yield = 0
+
+        # Contract Details
+        self.contract_details = []
+        self.contract_details_flag = False
 
         thread = Thread(target=self.run)
         thread.start()
@@ -129,12 +135,14 @@ class TestApp(TestWrapper, TestClient):
     @iswrapper
     def contractDetails(self, reqId: int, contractDetails):
         super().contractDetails(reqId, contractDetails)
-        print(contractDetails)
+        self.contract_details.append(contractDetails)
+        # print(contractDetails)
 
     @iswrapper
     def contractDetailsEnd(self, reqId: int):
         super().contractDetailsEnd(reqId)
-        print("ContractDetailsEnd. ", reqId, "\n")
+        # print("ContractDetailsEnd. ", reqId, "\n")
+        self.contract_details_flag = True
 
 
     @iswrapper
@@ -236,12 +244,36 @@ class TestApp(TestWrapper, TestClient):
         super().tickString(reqId, tickType, value)
         # print("Tick string. Ticker Id:", reqId, "Type:", tickType, "Value:", value)
         # print('Tick: String')
-        for ratio in value.split(';'):
-            if 'QTOTD2EQ' in ratio:
-                self.debt2equity = ratio.split('=')[1]
-                self.cancelMktData(reqId)
+        for val in value.split(';'):
+            if 'QTOTD2EQ' in val:
+                self.debt2equity = val.split('=')[1]
+            if 'NPRICE' in val:
+                self.contract_price = val.split('=')[1]
+            if 'YIELD' in val:
+                self.contract_yield = float(val.split('=')[1])/100
+        if ';' in value:
+            self.cancelMktData(reqId)
 
-    ###
+    @iswrapper
+    def symbolSamples(self, reqId: int,
+                      contractDescriptions):
+        super().symbolSamples(reqId, contractDescriptions)
+        print("Symbol Samples. Request Id: ", reqId)
+
+        for contractDescription in contractDescriptions:
+            derivSecTypes = ""
+            for derivSecType in contractDescription.derivativeSecTypes:
+                derivSecTypes += derivSecType
+                derivSecTypes += " "
+            print("Contract: conId:%s, symbol:%s, secType:%s primExchange:%s, "
+                  "currency:%s, derivativeSecTypes:%s" % (
+                contractDescription.contract.conId,
+                contractDescription.contract.symbol,
+                contractDescription.contract.secType,
+                contractDescription.contract.primaryExchange,
+                contractDescription.contract.currency, derivSecTypes))
+
+
 
     ### Wrapper Functions End ###
 
@@ -270,8 +302,14 @@ class TestApp(TestWrapper, TestClient):
 
     def get_historical_data(self, contract):
         queryTime = datetime.datetime.today().strftime("%Y%m%d %H:%M:%S")
-        self.reqHistoricalData(2, contract, queryTime,
+        self.reqHistoricalData(self.nextValidOrderId, contract, queryTime,
                                "1 Y", "1 day", "MIDPOINT", 1, 1, False, [])
+        self.nextValidOrderId += 1
+
+
+    def findContracts(self, sybmol):
+        self.reqMatchingSymbols(self.nextValidOrderId, sybmol)
+        self.nextValidOrderId += 1
 
 
     def place_order(self, contract, order):
@@ -279,20 +317,20 @@ class TestApp(TestWrapper, TestClient):
         self.nextValidOrderId += 1
 
 
-    def get_contract_details(self, symbol, secType=None, currency=None, exchange=None):
+    def get_contract_details(self, symbol, secType, currency=None, exchange=None):
         contract = Contract()
-        if symbol is not None:
-           contract.symbol = symbol
-        if secType is not None:
-            contract.secType = secType
+        contract.symbol = symbol
+        contract.secType = secType
         if currency is not None:
             contract.currency = currency
         if exchange is not None:
             contract.exchange = exchange
-        self.reqContractDetails(1, contract)
+        self.reqContractDetails(self.nextValidOrderId, contract)
+        self.nextValidOrderId += 1
 
 
-    def createContract(self, symbol, secType, currency, exchange, primaryExchange=None):
+    def createContract(self, symbol, secType, currency, exchange, primaryExchange=None,
+                       right=None, strike=None, expiry=None):
         contract = Contract()
         contract.symbol = symbol
         contract.secType = secType
@@ -300,6 +338,12 @@ class TestApp(TestWrapper, TestClient):
         contract.exchange = exchange
         if primaryExchange:
             contract.primaryExchange = primaryExchange
+        if right:
+            contract.right = right
+        if strike:
+            contract.strike = strike
+        if expiry:
+            contract.lastTradeDateOrContractMonth = expiry
         return contract
 
 
@@ -353,15 +397,17 @@ class TestApp(TestWrapper, TestClient):
         return matching_ticker_df[matching_ticker_df['secType'].str.match("^STK$")]
 
 
-    def getFinancialData(self, contract, data_type):
-        self.reqFundamentalData(self.nextValidOrderId, contract, data_type, [])
-        self.nextValidOrderId += 1
-
+    def getMktData(self, contract):
         # Ratios
         # Switch to live (1) frozen (2) delayed (3) delayed frozen (4).
         # MarketDataTypeEnum.DELAYED
         self.reqMarketDataType(3)
         self.reqMktData(self.nextValidOrderId, contract, "258", False, False, [])
+        self.nextValidOrderId += 1
+
+
+    def getFinancialData(self, contract, data_type):
+        self.reqFundamentalData(self.nextValidOrderId, contract, data_type, [])
         self.nextValidOrderId += 1
 
 

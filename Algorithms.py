@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 
 def movingAvgCross(df):
     '''
-    
+
     Output: Boolean
         True if 50-day Moving Avg is greater than 200-day Moving Avg
         False otherwise
@@ -23,13 +23,13 @@ class Factors():
         pass
 
 
-    def parseFinancials(self, data):
+    def parseFinancials(self, data, quarterly=False):
         '''
         Parses Financial Data
 
         See sample_financialStatement.xml for coaCodes and their corresponding values
         Input:
-            data as xml string from returned from IB's reqFundamentalData
+            data as xml string returned from IB's reqFundamentalData
         '''
 
         # Only initialize non-mandatory values to 0
@@ -43,9 +43,11 @@ class Factors():
             return None, None
         # financial_statements = [coaMap, annuals, interims]
         # Using annual reports, could switch to interim results for more recent data
-        annuals = financial_statements[1]
-        latest = annuals[0]
-        prev = annuals[1]
+        reports = financial_statements[1]
+        if quarterly:
+            reports = financial_statements[2]
+        latest = reports[0]
+        prev = reports[1]
 
         # Pulling values from latest annual report
         if latest.find('.//lineItem[@coaCode="ATOT"]') != None:
@@ -78,6 +80,9 @@ class Factors():
             latest_val['deferred'] = float(latest.find('.//lineItem[@coaCode="SBDT"]').text)
         if latest.find('.//lineItem[@coaCode="SOCL"]') != None:
             latest_val['others'] = float(latest.find('.//lineItem[@coaCode="SOCL"]').text)
+        if latest.find('.//lineItem[@coaCode="QTCO"]') != None:
+            latest_val['shares'] = float(latest.find('.//lineItem[@coaCode="QTCO"]').text)
+
 
         # Pulling values from previous annual report
         if prev.find('.//lineItem[@coaCode="ATOT"]') != None:
@@ -92,7 +97,7 @@ class Factors():
 
         return latest_val, prev_val
 
-    
+
     def calcNOA(self, data):
         '''
         Calculating Net Opearating Assets
@@ -114,7 +119,7 @@ class Factors():
         else:
             return None
 
-    
+
     def calcDebtChange(self, debt, prev_debt):
         '''
         Calculates the change between two periods of debt
