@@ -7,6 +7,7 @@ A platform to automate trading through Interactive Brokers using their python AP
     - [Algorithms](#algorithms)
         - [Moving Average Cross](#moving-average-cross)
         - [Factor Rankings](#factor-rankings)
+        - [Multiples](#multiples)
     - [Notes](#notes)
 
 
@@ -47,7 +48,20 @@ Selling all Positions:
 Using the SP500 stocks, buy shares when the 50-day moving average crosses the 200-day moving average (golden cross) and sell the shares when 200-day moving average crosses the 50-day moving average (death cross)
 
 ### Factor Rankings  
-Description will be added soon
+Description will be added soon  
+
+### Multiples
+Calculate numerous multiples for given stocks that can be used for relative valuation. The following multiples are calculated:  
+1. P/E (Price / Earnings)  
+   P/E = Share_Price/TTM_EPS  
+2. EV/EBITDA (Enterprise_Value/Earnings_Before_Interest_Taxes_Depreciation_Amortization)  
+   EV = market cap + debt - cash  
+   EBITDA = operating income + depreciation/amortization (Currently being used)  
+   Can also be calculated as:  
+   EBITDA = net income + depreciation/amortization + interest exp + income taxes  
+   EBITDA figures calculated over TTM. We subtract cash from numerator as income from cash is not part of EBITDA. Also need subtract any other assets that are not part of EBITDA such as:  
+        - minority holding market value of cross holdings, not book value  
+        - majority holding: market cap accounts for partial holding but cash, debt, and EBITDA are all   consolidated on balance sheet at 100% (Currently not being accounted for)
 
 
 ## Notes

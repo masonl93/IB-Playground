@@ -22,6 +22,369 @@ SAVE_FILE = 'save_from_sell.txt'
 ISSUE_TICKERS = ['PX',]
 
 
+
+def multiples(app, tickers):
+    mkt_caps = []
+    firm_vals = []
+    enterprise_vals = []
+    p_es = []
+    ev_ebitdas = []
+    tickers = tickers[5:]
+    for ticker in tickers:
+        contract = app.createContract(ticker, "STK", "USD", "SMART")
+        app.getMktData(contract)
+        while app.contract_price is None:
+            print("Waiting on Mkt data")
+            time.sleep(1)
+        app.getFinancialData(contract, "ReportsFinStatements")
+        while app.fundamental_data is None:
+            print("Waiting on fundamental data")
+            time.sleep(1)
+        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True, ttm=True)
+        mkt_cap = float(qtr1['shares']) * float(app.contract_price)
+        firm_val = mkt_cap + qtr1['total_debt']
+        if 'cash_investments' in qtr1:
+            ev = firm_val - qtr1['cash_investments']
+        else:
+            ev = firm_val - qtr1['cash']
+        ttm_eps = qtr1['eps'] + qtr2['eps'] + qtr3['eps'] + qtr4['eps']
+        if ttm_eps <= 0:
+            p_e = 'No Earnings'
+        else:
+            p_e = float(app.contract_price)/ttm_eps
+
+        ebitda = qtr1['op_income'] + qtr1['dep_amor'] + qtr2['op_income'] + qtr2['dep_amor'] + qtr3['op_income'] + qtr3['dep_amor'] + qtr4['op_income'] + qtr4['dep_amor']
+        if ebitda <= 0:
+            ev_ebitda = 'Negative EBITDA'
+        else:
+            ev_ebitda = ev / ebitda
+        print(ticker)
+        print(ebitda)
+
+        mkt_caps.append(mkt_cap)
+        firm_vals.append(firm_val)
+        enterprise_vals.append(ev)
+        p_es.append(p_e)
+        ev_ebitdas.append(ev_ebitda)
+        app.resetData()
+
+    data = {'Symbol': tickers, 'Market Cap': mkt_caps, 'Firm Value': firm_vals,
+            'Enterprise Value': enterprise_vals, 'P/E': p_es, 'EV/EBITDA': ev_ebitdas}
+    df = pandas.DataFrame(data=data)
+    print(df)
+
+
+def warrants(app, ticker, warrants_out):
+    if ticker is None:
+        print('Error: Must provide ticker for warrant valuation')
+        return
+
+    ticker = ticker
+
+    if warrants_out is None:
+        print('Number of warrants outstanding was not provided. Will not calculate with share dilution.')
+
+    # find the warrant
+    app.get_contract_details(ticker, "WAR")
+    while not app.contract_details_flag:
+        print("Waiting on contract data")
+        time.sleep(1)
+
+    contract = app.contract_details[0].contract
+    strike = contract.strike
+    right = contract.right
+    warrants_per_share = (1/float(contract.multiplier))
+    expiry = datetime.datetime.strptime(contract.lastTradeDateOrContractMonth, '%Y%m%d').strftime('%m-%d-%Y')
+
+    # get underlying price
+    contract = app.createContract(ticker, "STK", "USD", "SMART")
+    app.getMktData(contract)
+    app.getFinancialData(contract, "ReportsFinStatements")
+
+    while app.contract_price is None:
+        print('Waiting for mkt data')
+        time.sleep(1)
+    underlying_price = float(app.contract_price)
+    div = app.contract_yield
+
+    while app.fundamental_data is None:
+        print("Waiting on fundamental data")
+        time.sleep(1)
+    latest_val, _prev_val = app.parseFinancials(app.fundamental_data, quarterly=True)
+    shares_out = latest_val['shares']
+
+    # Get this from t-bill?
+    risk = .03
+
+
+    # Get implied vol? Or do a range of vol values? Or take user input for vol?
+    vols = [.2, .3, .35, .4, .5, .6]
+    prices = []
+    for vol in vols:
+        print(strike, app.contract_price, risk, vol,
+                        expiry, div, shares_out, warrants_out,
+                        warrants_per_share)
+        bs = BlackScholes(strike, underlying_price, risk, vol,
+                        expiry, div, shares_out, warrants_out,
+                        warrants_per_share)
+        prices.append('$' + str(round(bs.price_euro_call(), 5)))
+    data = {'Volatility': vols, 'Fair Price': prices}
+    df = pandas.DataFrame(data=data)
+    print(df)
+
+
+def factorSort(app, tickers, end, rank, input):
+    if tickers is None:
+        print("Error: Must provide file of tickers by '-i' option")
+        return
+
+    results_file = input + '.pickle'
+
+    if end and end < len(tickers):
+        tickers = tickers[0:end]
+
+    df_old = pandas.DataFrame()
+    previous_results_file = pathlib.Path(input + '.pickle')
+    if previous_results_file.is_file():
+        df_old = pandas.read_pickle(results_file)
+        tickers_to_skip = df_old['symbol'].tolist()
+        tickers = [x for x in tickers if x not in tickers_to_skip]
+
+    noas = []
+    debts = []
+    roics = []
+    debt_to_equities = []
+
+    factors = Factors()
+
+    for ticker in tickers:
+        print("Ticker: " + str(ticker))
+
+        # Initate requests for data
+        if type(ticker) is list:
+            contract = app.createContract(ticker[0], "STK", ticker[2], ticker[1])
+        else:
+            contract = app.createContract(ticker, "STK", "USD", "SMART")
+        app.getFinancialData(contract, "ReportsFinStatements")
+        app.getMktData(contract)
+
+        while app.fundamental_data is None:
+            print("Waiting on fundamental data")
+            time.sleep(1)
+
+        latest_val, prev_val = app.parseFinancials(app.fundamental_data)
+        if latest_val is None:
+            change_noa = "Error"
+            debt_change = "Error"
+            roic = "Error"
+            app.debt2equity = "Error"
+        else:
+            # Net Operating Assets
+            noa = factors.calcNOA(latest_val)
+            noa_prev = factors.calcNOA(prev_val)
+            if noa is None or noa_prev is None:
+                change_noa = "Error"
+            else:
+                change_noa = (noa - noa_prev)/noa_prev
+
+            # 1 year debt change
+            if 'total_debt' in latest_val and 'total_debt' in prev_val:
+                debt_change = factors.calcDebtChange(latest_val['total_debt'], prev_val['total_debt'])
+            else:
+                debt_change = "Error"
+
+            # ROIC
+            roic = factors.calcROIC(latest_val)
+            if roic is None:
+                roic = "Error"
+
+            # Debt to Equity Ratio
+            while app.debt2equity is None:
+                print('Waiting on ratio data')
+                time.sleep(1)
+
+        # Append values to lists which we will insert into our dataframe
+        debt_to_equities.append(app.debt2equity)
+        noas.append(change_noa)
+        debts.append(debt_change)
+        roics.append(roic)
+        app.resetData()
+
+    data = {'symbol': tickers, 'noa_change': noas, 'debt_change': debts,
+            'debt_to_equity': debt_to_equities, 'ROIC': roics}
+    df = pandas.DataFrame(data=data)
+
+    if df_old.empty:
+        print(df)
+    else:
+        frames = [df_old, df]
+        df = pandas.concat(frames)
+        df.reset_index(drop=True, inplace=True)
+        print(df)
+    df.to_pickle(results_file)
+
+    if rank:
+        print('Ranked Results - Top Decile for each Factor:')
+
+        # debt to equity
+        df = df[df.noa_change != 'Error']
+        df = df.sort_values('debt_to_equity')
+        cutoff = int(df.shape[0]/10)
+        df = df[:-cutoff]
+
+        # 1yr debt change
+        df = df[df.debt_change != 'Divide by Zero']
+        df = df.sort_values('debt_change')
+        cutoff = int(df.shape[0]/10)
+        df = df[:-cutoff]
+
+        # NOA
+        df = df[df.noa_change != 'Error']
+        df = df.sort_values('noa_change')
+        cutoff = int(df.shape[0]/10)
+        df = df[:-cutoff]
+
+        # ROIC
+        df = df[df.ROIC != 'Error']
+        df = df.sort_values('ROIC', ascending=False)
+        cutoff = int(df.shape[0]/10)
+        df = df[:-cutoff]
+
+        # Getting AVG
+        df['debt_to_equity'] = pandas.to_numeric(df['debt_to_equity'])  # Needed to convert 0's to floats
+        df.loc[-1] = ['Averages', df['noa_change'].mean(), df['debt_change'].mean(), df['debt_to_equity'].mean(), df['ROIC'].mean()]
+        print(df.reset_index(drop=True,))
+
+
+def movingAvgCross(app, tickers, start):
+    if tickers is None:
+        print("Error: Must provide file of tickers by '-i' option")
+        return
+
+    if start is not None:
+        start_index = tickers.index(start) + 1
+        tickers = tickers[start_index:]
+    if ISSUE_TICKERS:
+        tickers = [x for x in tickers if x not in ISSUE_TICKERS]
+
+    # contract = app.createContract(None, "STK", "USD", "SMART", "ISLAND")
+    contract = app.createContract(None, "STK", "USD", "SMART")
+
+    # Replaces '.' with a space e.g. BRK.B should be BRK B
+    for ticker in tickers:
+        if '.' in ticker:
+            ticker = ticker.replace('.', ' ')
+        contract.symbol = ticker
+
+        # Only process if no open orders with this ticker
+        if app.orders_df.empty or not app.orders_df['symbol'].str.contains(ticker).any():
+            app.get_historical_data(contract)
+
+            while app.hist_data_df is None:
+                print("Waiting on historical data")
+                time.sleep(1)
+            print("Symbol: " + ticker)
+            # Golden Cross and not in portfolio -> buy
+            if algo.movingAvgCross(app.hist_data_df) and not app.portfolioCheck(ticker):
+                print('Placing Buy Order for: ' + ticker)
+                amt = app.calcOrderSize(float(app.hist_data_df.tail(1)['price']), 1000)
+                order = ib.Order()
+                order.action = "BUY"
+                order.orderType = "MKT"
+                order.totalQuantity = amt
+                app.place_order(contract, order)
+            # Death cross and in portfolio -> sell
+            elif (app.portfolioCheck(ticker) and not algo.movingAvgCross(app.hist_data_df)):
+                print('Placing Sell Order for: ' + ticker)
+                app.sellPosition(ticker, 'STK')
+            app.resetData()
+
+
+def loadTickers(ticker_file):
+    with open(ticker_file) as f:
+            tickers = [line.rstrip('\n') for line in f]
+        # Handle Foreign Stocks
+        # for i, ticker in enumerate(tickers):
+        #     if '-' in ticker:
+        #         tickers[i] = ticker.split('-')
+        # tickers[:] = [ticker.split('-') for ticker in tickers if '-' in ticker]
+    return tickers
+
+
+def clear(app):
+    resp = input("\nAre you sure you want to clear your positions?\n" +
+                 "Press 'y' to continue with selling positions or any other key to cancel\n")
+    if str(resp) == 'y':
+        print('Selling all Positions')
+        app.sellAllPositions(SAVE_FILE)
+
+
+def main(args):
+    app = ib.TestApp("127.0.0.1", args.port, clientId=1)
+    print("serverVersion:%s connectionTime:%s" % (app.serverVersion(),
+                                                  app.twsConnectionTime()))
+    while app.positions_df is None:
+        print("Waiting on Positions")
+        time.sleep(1)
+    print('POSITIONS:')
+    print(app.positions_df)
+
+    while app.orders_df is None:
+        print("Waiting on Open Orders")
+        time.sleep(1)
+    print('ORDERS:')
+    print(app.orders_df)
+
+    if args.clear:
+        clear(app)
+
+    tickers = None
+    if args.input:
+        tickers = loadTickers(args.input)
+
+    if args.moving_avg:
+        print('Performing Moving Avg Cross')
+        movingAvgCross(app, tickers, args.start)
+        print("Completed MA Cross Daily Calculations")
+
+    if args.factor:
+        print('Factor Sort')
+        factorSort(app, tickers, args.end, args.rank, args.input)
+        print('Factor Sort Completed')
+
+    if args.futures:
+        amt = 1
+        order = ib.Order()
+        order.action = "BUY"
+        order.orderType = "MKT"
+        order.totalQuantity = amt
+        app.place_order(ContractSamples.OilFuture(), order)
+        time.sleep(5)
+
+    if args.warrants:
+        print('Warrant Valuation')
+        warrants(app, args.ticker, args.warrants_out)
+        print('Warrant Valuation Completed')
+
+    if args.multiples:
+        print('Calculating Multiples')
+        multiples(app, tickers)
+        print('Calculating Multiples Completed')
+
+    if args.test:
+        contract = app.createContract('AA.', "STK", "GBP", "LSE")
+        app.getFinancialData(contract, "ReportsFinStatements")
+        while app.fundamental_data is None:
+            print("Waiting on fundamental data")
+            time.sleep(1)
+        print(app.fundamental_data)
+
+
+    print('Shutting down!')
+    app.disconnect()
+
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='IB Algo Trader')
     parser.add_argument('-c', '--clear', help='Clear Positions (save positions from "save_from_sell.txt" file)', action='store_true')
@@ -39,365 +402,7 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--ticker', help='Underlying Ticker for warrant valuation', default=None)
     parser.add_argument('-o', '--warrants_out', help='Number of warrants outstanding (in millions)', default=None, type=float)
     parser.add_argument('--test', action='store_true')
-    args = parser.parse_args()
-
-    app = ib.TestApp("127.0.0.1", args.port, clientId=1)
-    print("serverVersion:%s connectionTime:%s" % (app.serverVersion(),
-                                                  app.twsConnectionTime()))
-    while app.positions_df is None:
-        print("Waiting on Positions")
-        time.sleep(1)
-    print('POSITIONS:')
-    print(app.positions_df)
-
-    while app.orders_df is None:
-        print("Waiting on Open Orders")
-        time.sleep(1)
-    print('ORDERS:')
-    print(app.orders_df)
-
-
-    if args.clear:
-        resp = input("\nAre you sure you want to clear your positions?\n" +
-                     "Press 'y' to continue with selling positions or any other key to cancel\n")
-        if str(resp) == 'y':
-            print('Selling all Positions')
-            app.sellAllPositions(SAVE_FILE)
-
-    tickers = None
-    if args.input:
-        with open(args.input) as f:
-            tickers = [line.rstrip('\n') for line in f]
-        # Handle Foreign Stocks
-        # for i, ticker in enumerate(tickers):
-        #     if '-' in ticker:
-        #         tickers[i] = ticker.split('-')
-        # tickers[:] = [ticker.split('-') for ticker in tickers if '-' in ticker]
-
-    if args.moving_avg:
-        print('Performing Moving Avg Cross')
-        if tickers is None:
-            print("Error: Must provide file of tickers by '-i' option")
-            sys.exit(0)
-
-        if args.start is not None:
-            start_index = tickers.index(args.start) + 1
-            tickers = tickers[start_index:]
-        if ISSUE_TICKERS:
-            tickers = [x for x in tickers if x not in ISSUE_TICKERS]
-
-        # contract = app.createContract(None, "STK", "USD", "SMART", "ISLAND")
-        contract = app.createContract(None, "STK", "USD", "SMART")
-
-        # Replaces '.' with a space e.g. BRK.B should be BRK B
-        for ticker in tickers:
-            if '.' in ticker:
-                ticker = ticker.replace('.', ' ')
-            contract.symbol = ticker
-
-            # Only process if no open orders with this ticker
-            if app.orders_df.empty or not app.orders_df['symbol'].str.contains(ticker).any():
-                app.get_historical_data(contract)
-
-                while app.hist_data_df is None:
-                    print("Waiting on historical data")
-                    time.sleep(1)
-                print("Symbol: " + ticker)
-                # Golden Cross and not in portfolio -> buy
-                if algo.movingAvgCross(app.hist_data_df) and not app.portfolioCheck(ticker):
-                    print('Placing Buy Order for: ' + ticker)
-                    amt = app.calcOrderSize(float(app.hist_data_df.tail(1)['price']), 1000)
-                    order = ib.Order()
-                    order.action = "BUY"
-                    order.orderType = "MKT"
-                    order.totalQuantity = amt
-                    app.place_order(contract, order)
-                # Death cross and in portfolio -> sell
-                elif (app.portfolioCheck(ticker) and not algo.movingAvgCross(app.hist_data_df)):
-                    print('Placing Sell Order for: ' + ticker)
-                    app.sellPosition(ticker, 'STK')
-                app.hist_data_df = None
-        print("Completed MA Cross Daily Calculations")
-
-    if args.factor:
-        print('Factor Sort')
-
-        if tickers is None:
-            print("Error: Must provide file of tickers by '-i' option")
-            sys.exit(0)
-
-        results_file = args.input + '.pickle'
-
-        if args.end and args.end < len(tickers):
-            tickers = tickers[0:args.end]
-
-        df_old = pandas.DataFrame()
-        previous_results_file = pathlib.Path(args.input + '.pickle')
-        if previous_results_file.is_file():
-            df_old = pandas.read_pickle(results_file)
-            tickers_to_skip = df_old['symbol'].tolist()
-            tickers = [x for x in tickers if x not in tickers_to_skip]
-
-        noas = []
-        debts = []
-        roics = []
-        debt_to_equities = []
-
-        factors = Factors()
-
-        for ticker in tickers:
-            print("Ticker: " + str(ticker))
-
-            # Initate requests for data
-            if type(ticker) is list:
-                contract = app.createContract(ticker[0], "STK", ticker[2], ticker[1])
-            else:
-                contract = app.createContract(ticker, "STK", "USD", "SMART")
-            app.getFinancialData(contract, "ReportsFinStatements")
-            app.getMktData(contract)
-
-            while app.fundamental_data is None:
-                print("Waiting on fundamental data")
-                time.sleep(1)
-
-            latest_val, prev_val = factors.parseFinancials(app.fundamental_data)
-            if latest_val is None:
-                change_noa = "Error"
-                debt_change = "Error"
-                roic = "Error"
-                app.debt2equity = "Error"
-            else:
-                # Net Operating Assets
-                noa = factors.calcNOA(latest_val)
-                noa_prev = factors.calcNOA(prev_val)
-                if noa is None or noa_prev is None:
-                    change_noa = "Error"
-                else:
-                    change_noa = (noa - noa_prev)/noa_prev
-
-                # 1 year debt change
-                if 'total_debt' in latest_val and 'total_debt' in prev_val:
-                    debt_change = factors.calcDebtChange(latest_val['total_debt'], prev_val['total_debt'])
-                else:
-                    debt_change = "Error"
-
-                # ROIC
-                roic = factors.calcROIC(latest_val)
-                if roic is None:
-                    roic = "Error"
-
-                # Debt to Equity Ratio
-                while app.debt2equity is None:
-                    print('Waiting on ratio data')
-                    time.sleep(1)
-
-            # Append values to lists which we will insert into our dataframe
-            debt_to_equities.append(app.debt2equity)
-            noas.append(change_noa)
-            debts.append(debt_change)
-            roics.append(roic)
-            app.fundamental_data = None
-            app.debt2equity = None
-
-        data = {'symbol': tickers, 'noa_change': noas, 'debt_change': debts,
-                'debt_to_equity': debt_to_equities, 'ROIC': roics}
-        df = pandas.DataFrame(data=data)
-
-        if df_old.empty:
-            print(df)
-        else:
-            frames = [df_old, df]
-            df = pandas.concat(frames)
-            df.reset_index(drop=True, inplace=True)
-            print(df)
-        df.to_pickle(results_file)
-
-        if args.rank:
-            print('Ranked Results - Top Decile for each Factor:')
-
-            # debt to equity
-            df = df[df.noa_change != 'Error']
-            df = df.sort_values('debt_to_equity')
-            cutoff = int(df.shape[0]/10)
-            df = df[:-cutoff]
-
-            # 1yr debt change
-            df = df[df.debt_change != 'Divide by Zero']
-            df = df.sort_values('debt_change')
-            cutoff = int(df.shape[0]/10)
-            df = df[:-cutoff]
-
-            # NOA
-            df = df[df.noa_change != 'Error']
-            df = df.sort_values('noa_change')
-            cutoff = int(df.shape[0]/10)
-            df = df[:-cutoff]
-
-            # ROIC
-            df = df[df.ROIC != 'Error']
-            df = df.sort_values('ROIC', ascending=False)
-            cutoff = int(df.shape[0]/10)
-            df = df[:-cutoff]
-
-            # Getting AVG
-            df['debt_to_equity'] = pandas.to_numeric(df['debt_to_equity'])  # Needed to convert 0's to floats
-            df.loc[-1] = ['Averages', df['noa_change'].mean(), df['debt_change'].mean(), df['debt_to_equity'].mean(), df['ROIC'].mean()]
-            print(df.reset_index(drop=True,))
-
-    if args.futures:
-        amt = 1
-        order = ib.Order()
-        order.action = "BUY"
-        order.orderType = "MKT"
-        order.totalQuantity = amt
-        app.place_order(ContractSamples.OilFuture(), order)
-        time.sleep(5)
-
-    if args.warrants:
-        print('Warrant Valuation')
-        if args.ticker is None:
-            print('Error: Must provide ticker for warrant valuation')
-            sys.exit(0)
-
-        ticker = args.ticker
-
-        if args.warrants_out is None:
-            print('Number of warrants outstanding was not provided. Will not calculate with share dilution.')
-
-        # find the warrant
-        app.get_contract_details(ticker, "WAR")
-        while not app.contract_details_flag:
-            print("Waiting on contract data")
-            time.sleep(1)
-
-        contract = app.contract_details[0].contract
-        strike = contract.strike
-        right = contract.right
-        warrants_per_share = (1/float(contract.multiplier))
-        expiry = datetime.datetime.strptime(contract.lastTradeDateOrContractMonth, '%Y%m%d').strftime('%m-%d-%Y')
-
-        # get underlying price
-        contract = app.createContract(ticker, "STK", "USD", "SMART")
-        app.getMktData(contract)
-        app.getFinancialData(contract, "ReportsFinStatements")
-
-        while app.contract_price is None:
-            print('Waiting for mkt data')
-            time.sleep(1)
-        underlying_price = float(app.contract_price)
-        div = app.contract_yield
-
-        while app.fundamental_data is None:
-            print("Waiting on fundamental data")
-            time.sleep(1)
-        factors = Factors()
-        latest_val, _prev_val = factors.parseFinancials(app.fundamental_data, quarterly=True)
-        shares_out = latest_val['shares']
-
-        # Get this from t-bill?
-        risk = .03
-
-
-        # Get implied vol? Or do a range of vol values? Or take user input for vol?
-        vols = [.2, .3, .35, .4, .5, .6]
-        prices = []
-        for vol in vols:
-            print(strike, app.contract_price, risk, vol,
-                            expiry, div, shares_out, args.warrants_out,
-                            warrants_per_share)
-            bs = BlackScholes(strike, underlying_price, risk, vol,
-                            expiry, div, shares_out, args.warrants_out,
-                            warrants_per_share)
-            prices.append('$' + str(round(bs.price_euro_call(), 5)))
-        data = {'Volatility': vols, 'Fair Price': prices}
-        df = pandas.DataFrame(data=data)
-        print(df)
-
-
-    if args.multiples:
-        # Notes
-        # Numerators
-        # market cap = shares*price
-        # Firm Value = market cap + debt
-        # Enterprise Value = market cap + debt - cash = Firm Value - cash
-        # P/E = share price / TTM EPS
-        # EV/EBITDA:
-        #   Subtract cash from numerator as income from cash is not part of EBITDA
-        #   Also need subtract any other assets that are not part of EBITDA
-        #       - minority holding: market value of cross holdings, not book value
-        #       - majority holding: mkt cap accounts for partial holding, but cash, debt, and EBITDA are all consolidated
-        #         on balance sheet at 100%
-        #   EBITDA1 = operating income + depreciation/amortization
-        #   EBITDA2 = net income + depreciation/amortization + interest exp + income taxes
-        print('Calculating Multiples')
-
-        mkt_caps = []
-        firm_vals = []
-        enterprise_vals = []
-        p_es = []
-        ev_ebitdas = []
-        # tickers = tickers[:1]
-        for ticker in tickers:
-            contract = app.createContract(ticker, "STK", "USD", "SMART")
-            app.getMktData(contract)
-            while app.contract_price is None:
-                print("Waiting on Mkt data")
-                time.sleep(1)
-            app.getFinancialData(contract, "ReportsFinStatements")
-            while app.fundamental_data is None:
-                print("Waiting on fundamental data")
-                time.sleep(1)
-            factors = Factors()
-            qtr1, qtr2, qtr3, qtr4 = factors.parseFinancials(app.fundamental_data, quarterly=True, ttm=True)
-            mkt_cap = float(qtr1['shares']) * float(app.contract_price)
-            firm_val = mkt_cap + qtr1['total_debt']
-            if 'cash_investments' in qtr1:
-                ev = firm_val - qtr1['cash_investments']
-            else:
-                ev = firm_val - qtr1['cash']
-            ttm_eps = qtr1['eps'] + qtr2['eps'] + qtr3['eps'] + qtr4['eps']
-            if ttm_eps <= 0:
-                p_e = 'No Earnings'
-            else:
-                p_e = float(app.contract_price)/ttm_eps
-
-            ebitda = qtr1['op_income'] + qtr1['dep_amor'] + qtr2['op_income'] + qtr2['dep_amor'] + qtr3['op_income'] + qtr3['dep_amor'] + qtr4['op_income'] + qtr4['dep_amor']
-            if ebitda <= 0:
-                ev_ebitda = 'Negative EBITDA'
-            else:
-                ev_ebitda = ev / ebitda
-            print(ticker)
-            print(ebitda)
-
-
-            mkt_caps.append(mkt_cap)
-            firm_vals.append(firm_val)
-            enterprise_vals.append(ev)
-            p_es.append(p_e)
-            ev_ebitdas.append(ev_ebitda)
-            app.contract_price = None
-            app.fundamental_data = None
-
-
-        data = {'Symbol': tickers, 'Market Cap': mkt_caps, 'Firm Value': firm_vals,
-                'Enterprise Value': enterprise_vals, 'P/E': p_es, 'EV/EBITDA': ev_ebitdas}
-        df = pandas.DataFrame(data=data)
-        print(df)
-
-
-    if args.test:
-        contract = app.createContract('AA.', "STK", "GBP", "LSE")
-        app.getFinancialData(contract, "ReportsFinStatements")
-        while app.fundamental_data is None:
-            print("Waiting on fundamental data")
-            time.sleep(1)
-        print(app.fundamental_data)
-
-
-    print('Shutting down!')
-    app.disconnect()
-
-
+    main(parser.parse_args())
 
 
 
@@ -415,11 +420,10 @@ if __name__ == '__main__':
         - handle multiple warrants .e.g TDW A/B
             - Value both and display in dataframe to easily determine better deals
     - Multiple/Relative Valuation Calculator
-        - figure out what depletion is and if its hurting our ev ebitda numbers as its
-          included when no depreciation in income statement
         - Finish Aswath vids - book value and revenue multiples
-        - smooth out, add comments, proof read, etc
-        - move notes comment to README
+        - smooth out, add comments, proof read, README usage and algo sections, etc
+        - For book value ratios, add README writeup detailing why book value sucks from OSAM
+            - https://osam.com/Commentary/negative-equity-veiled-value-and-the-erosion-of-price-to-book?_cldee=bWFzb25sZXZ5OTNAZ21haWwuY29t&recipientid=lead-5dd5adb38c96e8118159e0071b6a61e1-8d60ab4ef40c403796ec2203f1ba9f34&esid=1ba045d5-19f4-e811-a965-000d3a1d5264
     - MA Cross
         - always gets stuck ~83rd ticker (AVGO), not ticker specific, what's the issue?
     - DCF impl
@@ -428,17 +432,14 @@ if __name__ == '__main__':
         - if '-' in ticker, then extract second part which is exchange e.g. CTT-BVL
         - Only works for fundamental data, not mktdata since no subscription
             - Use fundamental data->ReportRatios to get debt to equity?
-    - function to reset all member variables to None, or just reset app? This is important
-      for algos that loop e.g. factors & MA cross
     - tests
-    - move code out of __main__ into own functions.
-    - move parsefinancials out of factors, move to IB?
 
 
 - Enhancements
     - setup while loop limits (e.g. 10 iterations)
         - print tickers at end that gave us an issue
     - use more threads
+    - Include example outputs in README usage section
     - set stop loss mechanism
     - setup limit orders
     - argparse make certain options dependant on others
