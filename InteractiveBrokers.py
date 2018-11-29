@@ -397,11 +397,11 @@ class TestApp(TestWrapper, TestClient):
         return matching_ticker_df[matching_ticker_df['secType'].str.match("^STK$")]
 
 
-    def getMktData(self, contract):
+    def getMktData(self, contract, data_type=3):
         # Ratios
         # Switch to live (1) frozen (2) delayed (3) delayed frozen (4).
         # MarketDataTypeEnum.DELAYED
-        self.reqMarketDataType(3)
+        self.reqMarketDataType(data_type)
         self.reqMktData(self.nextValidOrderId, contract, "258", False, False, [])
         self.nextValidOrderId += 1
 

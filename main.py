@@ -20,7 +20,6 @@ SAVE_FILE = 'save_from_sell.txt'
 
 # MA Cross
 ISSUE_TICKERS = ['PX',]
-# 'CHRW', 'BF.B', 'BR', 'AVGO'
 
 
 if __name__ == '__main__':
@@ -29,6 +28,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', '--moving_avg', help='Moving Average Cross', action='store_true')
     parser.add_argument('-s', '--start', help='Ticker to start from', default=None)
     parser.add_argument('-f', '--factor', help='Factors', action='store_true')
+    parser.add_argument('--multiples', help='Calculate Multiples for all tickers', action='store_true')
     parser.add_argument('-i', '--input', help='Input File of Tickers', default=None)
     parser.add_argument('-e', '--end', help='Index of last ticker to process. Useful for ' +
                                             'large number of tickers', default=None, type=int)
@@ -68,6 +68,11 @@ if __name__ == '__main__':
     if args.input:
         with open(args.input) as f:
             tickers = [line.rstrip('\n') for line in f]
+        # Handle Foreign Stocks
+        # for i, ticker in enumerate(tickers):
+        #     if '-' in ticker:
+        #         tickers[i] = ticker.split('-')
+        # tickers[:] = [ticker.split('-') for ticker in tickers if '-' in ticker]
 
     if args.moving_avg:
         print('Performing Moving Avg Cross')
@@ -141,10 +146,13 @@ if __name__ == '__main__':
         factors = Factors()
 
         for ticker in tickers:
-            print("Ticker: " + ticker)
+            print("Ticker: " + str(ticker))
 
             # Initate requests for data
-            contract = app.createContract(ticker, "STK", "USD", "SMART")
+            if type(ticker) is list:
+                contract = app.createContract(ticker[0], "STK", ticker[2], ticker[1])
+            else:
+                contract = app.createContract(ticker, "STK", "USD", "SMART")
             app.getFinancialData(contract, "ReportsFinStatements")
             app.getMktData(contract)
 
@@ -306,13 +314,84 @@ if __name__ == '__main__':
         print(df)
 
 
-    if args.test:
-        contract = app.createContract('AAPL', "STK", "USD", "SMART")
-        app.getMktData(contract)
-        while app.contract_price is None:
-            print('Waiting for mkt data')
-            time.sleep(1)
+    if args.multiples:
+        # Notes
+        # Numerators
+        # market cap = shares*price
+        # Firm Value = market cap + debt
+        # Enterprise Value = market cap + debt - cash = Firm Value - cash
+        # P/E = share price / TTM EPS
+        # EV/EBITDA:
+        #   Subtract cash from numerator as income from cash is not part of EBITDA
+        #   Also need subtract any other assets that are not part of EBITDA
+        #       - minority holding: market value of cross holdings, not book value
+        #       - majority holding: mkt cap accounts for partial holding, but cash, debt, and EBITDA are all consolidated
+        #         on balance sheet at 100%
+        #   EBITDA1 = operating income + depreciation/amortization
+        #   EBITDA2 = net income + depreciation/amortization + interest exp + income taxes
+        print('Calculating Multiples')
 
+        mkt_caps = []
+        firm_vals = []
+        enterprise_vals = []
+        p_es = []
+        ev_ebitdas = []
+        # tickers = tickers[:1]
+        for ticker in tickers:
+            contract = app.createContract(ticker, "STK", "USD", "SMART")
+            app.getMktData(contract)
+            while app.contract_price is None:
+                print("Waiting on Mkt data")
+                time.sleep(1)
+            app.getFinancialData(contract, "ReportsFinStatements")
+            while app.fundamental_data is None:
+                print("Waiting on fundamental data")
+                time.sleep(1)
+            factors = Factors()
+            qtr1, qtr2, qtr3, qtr4 = factors.parseFinancials(app.fundamental_data, quarterly=True, ttm=True)
+            mkt_cap = float(qtr1['shares']) * float(app.contract_price)
+            firm_val = mkt_cap + qtr1['total_debt']
+            if 'cash_investments' in qtr1:
+                ev = firm_val - qtr1['cash_investments']
+            else:
+                ev = firm_val - qtr1['cash']
+            ttm_eps = qtr1['eps'] + qtr2['eps'] + qtr3['eps'] + qtr4['eps']
+            if ttm_eps <= 0:
+                p_e = 'No Earnings'
+            else:
+                p_e = float(app.contract_price)/ttm_eps
+
+            ebitda = qtr1['op_income'] + qtr1['dep_amor'] + qtr2['op_income'] + qtr2['dep_amor'] + qtr3['op_income'] + qtr3['dep_amor'] + qtr4['op_income'] + qtr4['dep_amor']
+            if ebitda <= 0:
+                ev_ebitda = 'Negative EBITDA'
+            else:
+                ev_ebitda = ev / ebitda
+            print(ticker)
+            print(ebitda)
+
+
+            mkt_caps.append(mkt_cap)
+            firm_vals.append(firm_val)
+            enterprise_vals.append(ev)
+            p_es.append(p_e)
+            ev_ebitdas.append(ev_ebitda)
+            app.contract_price = None
+            app.fundamental_data = None
+
+
+        data = {'Symbol': tickers, 'Market Cap': mkt_caps, 'Firm Value': firm_vals,
+                'Enterprise Value': enterprise_vals, 'P/E': p_es, 'EV/EBITDA': ev_ebitdas}
+        df = pandas.DataFrame(data=data)
+        print(df)
+
+
+    if args.test:
+        contract = app.createContract('AA.', "STK", "GBP", "LSE")
+        app.getFinancialData(contract, "ReportsFinStatements")
+        while app.fundamental_data is None:
+            print("Waiting on fundamental data")
+            time.sleep(1)
+        print(app.fundamental_data)
 
 
     print('Shutting down!')
@@ -325,25 +404,35 @@ if __name__ == '__main__':
 # TODO
 '''
 - Current:
-    - finish microcap
+    - Microcap
         - proof read code and add comments
         - try using quarterly reports?
-    - finish BS warrants
+        - finish going through microcap list?
+    - BS warrants
         - any todos from old repo?
         - add readme to this repo readme
         - proper tests
         - handle multiple warrants .e.g TDW A/B
             - Value both and display in dataframe to easily determine better deals
-    - MA cross always gets stuck ~83rd ticker (AVGO), not ticker specific, what's the issue?
+    - Multiple/Relative Valuation Calculator
+        - figure out what depletion is and if its hurting our ev ebitda numbers as its
+          included when no depreciation in income statement
+        - Finish Aswath vids - book value and revenue multiples
+        - smooth out, add comments, proof read, etc
+        - move notes comment to README
+    - MA Cross
+        - always gets stuck ~83rd ticker (AVGO), not ticker specific, what's the issue?
     - DCF impl
     - create backtester (follow logic of open sourced one)
     - Add support for foreign stocks i.e. read exchange from ticker txt file
         - if '-' in ticker, then extract second part which is exchange e.g. CTT-BVL
-    - Multiple Calculator:
-        - calc TTM multiples (P/R, P/E, EV/EBITDA, etc)
-        - watch Aswath's multiples valutations vid to ensure doing correctly
+        - Only works for fundamental data, not mktdata since no subscription
+            - Use fundamental data->ReportRatios to get debt to equity?
     - function to reset all member variables to None, or just reset app? This is important
       for algos that loop e.g. factors & MA cross
+    - tests
+    - move code out of __main__ into own functions.
+    - move parsefinancials out of factors, move to IB?
 
 
 - Enhancements

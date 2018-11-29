@@ -23,7 +23,7 @@ class Factors():
         pass
 
 
-    def parseFinancials(self, data, quarterly=False):
+    def parseFinancials(self, data, quarterly=False, ttm=False):
         '''
         Parses Financial Data
 
@@ -48,6 +48,8 @@ class Factors():
             reports = financial_statements[2]
         latest = reports[0]
         prev = reports[1]
+        two_qtr_ago = reports[2]
+        three_qtr_ago = reports[3]
 
         # Pulling values from latest annual report
         if latest.find('.//lineItem[@coaCode="ATOT"]') != None:
@@ -82,17 +84,82 @@ class Factors():
             latest_val['others'] = float(latest.find('.//lineItem[@coaCode="SOCL"]').text)
         if latest.find('.//lineItem[@coaCode="QTCO"]') != None:
             latest_val['shares'] = float(latest.find('.//lineItem[@coaCode="QTCO"]').text)
+        if latest.find('.//lineItem[@coaCode="SDBF"]') != None:
+            latest_val['eps'] = float(latest.find('.//lineItem[@coaCode="SDBF"]').text)
+        if latest.find('.//lineItem[@coaCode="SCSI"]') != None:
+            latest_val['cash_investments'] = float(latest.find('.//lineItem[@coaCode="SCSI"]').text)
+        if latest.find('.//lineItem[@coaCode="SOPI"]') != None:
+            latest_val['op_income'] = float(latest.find('.//lineItem[@coaCode="SOPI"]').text)
+        if latest.find('.//lineItem[@coaCode="SDPR"]') != None:
+            # Income statement depreciation and amortization
+            latest_val['dep_amor'] = float(latest.find('.//lineItem[@coaCode="SDPR"]').text)
+        else:
+            latest_val['dep_amor'] = 0
+            if latest.find('.//lineItem[@coaCode="SDED"]') != None:
+                # Cash Flow statement depreciation
+                latest_val['dep_amor'] = float(latest.find('.//lineItem[@coaCode="SDED"]').text)
+            if latest.find('.//lineItem[@coaCode="SAMT"]') != None:
+                # Cash Flow statement amortization
+                latest_val['dep_amor'] += float(latest.find('.//lineItem[@coaCode="SAMT"]').text)
 
 
-        # Pulling values from previous annual report
+        # Pulling values from previous report
         if prev.find('.//lineItem[@coaCode="ATOT"]') != None:
             prev_val['total_assets'] = float(prev.find('.//lineItem[@coaCode="ATOT"]').text)
+        if prev.find('.//lineItem[@coaCode="ACAE"]') != None:
+            # Cash and equivalents
+            prev_val['cash'] = float(prev.find('.//lineItem[@coaCode="ACAE"]').text)
+        elif prev.find('.//lineItem[@coaCode="ACSH"]') != None:
+            # Just cash
+            prev_val['cash'] = float(prev.find('.//lineItem[@coaCode="ACSH"]').text)
         if prev.find('.//lineItem[@coaCode="SCSI"]') != None:
-            prev_val['cash'] = float(prev.find('.//lineItem[@coaCode="SCSI"]').text)
+            prev_val['cash_investments'] = float(prev.find('.//lineItem[@coaCode="SCSI"]').text)
         if prev.find('.//lineItem[@coaCode="LTLL"]') != None:
             prev_val['total_liabilities'] = float(prev.find('.//lineItem[@coaCode="LTLL"]').text)
         if prev.find('.//lineItem[@coaCode="STLD"]') != None:
             prev_val['total_debt'] = float(prev.find('.//lineItem[@coaCode="STLD"]').text)
+        if prev.find('.//lineItem[@coaCode="SDBF"]') != None:
+            prev_val['eps'] = float(prev.find('.//lineItem[@coaCode="SDBF"]').text)
+        if prev.find('.//lineItem[@coaCode="SOPI"]') != None:
+            prev_val['op_income'] = float(prev.find('.//lineItem[@coaCode="SOPI"]').text)
+        if prev.find('.//lineItem[@coaCode="SDPR"]') != None:
+            prev_val['dep_amor'] = float(prev.find('.//lineItem[@coaCode="SDPR"]').text)
+        else:
+            prev_val['dep_amor'] = 0
+            if prev.find('.//lineItem[@coaCode="SDED"]') != None:
+                prev_val['dep_amor'] = float(prev.find('.//lineItem[@coaCode="SDED"]').text)
+            if prev.find('.//lineItem[@coaCode="SAMT"]') != None:
+                prev_val['dep_amor'] += float(prev.find('.//lineItem[@coaCode="SAMT"]').text)
+
+        if ttm:
+            two_qtr = {}
+            three_qtr = {}
+            if two_qtr_ago.find('.//lineItem[@coaCode="SDBF"]') != None:
+                two_qtr['eps'] = float(two_qtr_ago.find('.//lineItem[@coaCode="SDBF"]').text)
+            if two_qtr_ago.find('.//lineItem[@coaCode="SOPI"]') != None:
+                two_qtr['op_income'] = float(two_qtr_ago.find('.//lineItem[@coaCode="SOPI"]').text)
+            if two_qtr_ago.find('.//lineItem[@coaCode="SDPR"]') != None:
+                two_qtr['dep_amor'] = float(two_qtr_ago.find('.//lineItem[@coaCode="SDPR"]').text)
+            else:
+                two_qtr['dep_amor'] = 0
+                if two_qtr_ago.find('.//lineItem[@coaCode="SDED"]') != None:
+                    two_qtr['dep_amor'] = float(two_qtr_ago.find('.//lineItem[@coaCode="SDED"]').text)
+                if two_qtr_ago.find('.//lineItem[@coaCode="SAMT"]') != None:
+                    two_qtr['dep_amor'] += float(two_qtr_ago.find('.//lineItem[@coaCode="SAMT"]').text)
+            if three_qtr_ago.find('.//lineItem[@coaCode="SDBF"]') != None:
+                three_qtr['eps'] = float(three_qtr_ago.find('.//lineItem[@coaCode="SDBF"]').text)
+            if three_qtr_ago.find('.//lineItem[@coaCode="SOPI"]') != None:
+                three_qtr['op_income'] = float(three_qtr_ago.find('.//lineItem[@coaCode="SOPI"]').text)
+            if three_qtr_ago.find('.//lineItem[@coaCode="SDPR"]') != None:
+                three_qtr['dep_amor'] = float(three_qtr_ago.find('.//lineItem[@coaCode="SDPR"]').text)
+            else:
+                three_qtr['dep_amor'] = 0
+                if three_qtr_ago.find('.//lineItem[@coaCode="SDED"]') != None:
+                    three_qtr['dep_amor'] = float(three_qtr_ago.find('.//lineItem[@coaCode="SDED"]').text)
+                if three_qtr_ago.find('.//lineItem[@coaCode="SAMT"]') != None:
+                    three_qtr['dep_amor'] += float(three_qtr_ago.find('.//lineItem[@coaCode="SAMT"]').text)
+
+            return latest_val, prev_val, two_qtr, three_qtr
 
 
         return latest_val, prev_val
