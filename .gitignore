@@ -4,3 +4,4 @@ __pycache__/
 .ipynb_checkpoints/
 save_from_sell.txt
 playground.ipynb
+*.pickle
