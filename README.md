@@ -54,6 +54,7 @@ Description will be added soon
 Calculate numerous multiples for given stocks that can be used for relative valuation. The following multiples are calculated:  
 1. P/E (Price / Earnings)  
    P/E = Share_Price/TTM_EPS  
+   Drivers: Payout ratio(dividend), Cost of equity, Expected growth rate  
 2. EV/EBITDA (Enterprise_Value/Earnings_Before_Interest_Taxes_Depreciation_Amortization)  
    EV = market cap + debt - cash  
    EBITDA = operating income + depreciation/amortization (Currently being used)  
@@ -61,7 +62,16 @@ Calculate numerous multiples for given stocks that can be used for relative valu
    EBITDA = net income + depreciation/amortization + interest exp + income taxes  
    EBITDA figures calculated over TTM. We subtract cash from numerator as income from cash is not part of EBITDA. Also need subtract any other assets that are not part of EBITDA such as:  
         - minority holding market value of cross holdings, not book value  
-        - majority holding: market cap accounts for partial holding but cash, debt, and EBITDA are all   consolidated on balance sheet at 100% (Currently not being accounted for)
+        - majority holding: market cap accounts for partial holding but cash, debt, and EBITDA are all   consolidated on balance sheet at 100% (Currently not being accounted for)  
+    Drivers: Tax rate, expected growth rate, cost of capital, reinvestment rate
+3. P/BV (Price / Book_Value)  
+   BV = (Total_Equity - Redeemable_Preferred_Shares - Nonredeemable_Preferred_Shares) / Shares  
+   This has historically been a very useful ratio to determine cheapness of a stock but as of late, the usefulness has been dwindling. This is a growing portion of stocks that have a negative equity or have what seems to be an expensive P/B ratio but are on the cheaper side when looking at all other ratios. This can be accounted for with some general changes that have been occuring: Increase of intangible assets that are not represented on the balance sheet (e.g. brand name, human capital, advertising, etc), long term assets depreciating faster than their useful lives, and buybacks/dividends that cause decreases in equity when they exceed net income. See more here: https://osam.com/Commentary/negative-equity-veiled-value-and-the-erosion-of-price-to-book 
+   Drivers: Return on equity  
+4. EV/S (Enterprise_Value / Sales)  
+   S = TTM_Revenue
+   The more common ratio is P/S but this is inconsistent since revenue is to the whole firm and not only the equity owners i.e. market cap. These ratios can be handy if one lacks trust in the assumptions made in the accounting or a company is pre-earnings, hence no P/E.  
+   Drivers: Margins
 
 
 ## Notes

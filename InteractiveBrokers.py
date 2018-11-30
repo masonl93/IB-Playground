@@ -536,6 +536,12 @@ class TestApp(TestWrapper, TestClient):
             if latest.find('.//lineItem[@coaCode="SAMT"]') != None:
                 # Cash Flow statement amortization
                 latest_val['dep_amor'] += float(latest.find('.//lineItem[@coaCode="SAMT"]').text)
+        if latest.find('.//lineItem[@coaCode="QTLE"]') != None:
+            latest_val['total_equity'] = float(latest.find('.//lineItem[@coaCode="QTLE"]').text)
+        if latest.find('.//lineItem[@coaCode="SRPR"]') != None:
+            latest_val['redeemable_preferred'] = float(latest.find('.//lineItem[@coaCode="SRPR"]').text)
+        if latest.find('.//lineItem[@coaCode="SPRS"]') != None:
+            latest_val['preferred'] = float(latest.find('.//lineItem[@coaCode="SPRS"]').text)
 
 
         # Pulling values from previous report
@@ -565,6 +571,8 @@ class TestApp(TestWrapper, TestClient):
                 prev_val['dep_amor'] = float(prev.find('.//lineItem[@coaCode="SDED"]').text)
             if prev.find('.//lineItem[@coaCode="SAMT"]') != None:
                 prev_val['dep_amor'] += float(prev.find('.//lineItem[@coaCode="SAMT"]').text)
+        if prev.find('.//lineItem[@coaCode="RTLR"]') != None:
+            prev_val['revenue'] = float(prev.find('.//lineItem[@coaCode="RTLR"]').text)
 
         if ttm:
             two_qtr = {}
@@ -581,6 +589,9 @@ class TestApp(TestWrapper, TestClient):
                     two_qtr['dep_amor'] = float(two_qtr_ago.find('.//lineItem[@coaCode="SDED"]').text)
                 if two_qtr_ago.find('.//lineItem[@coaCode="SAMT"]') != None:
                     two_qtr['dep_amor'] += float(two_qtr_ago.find('.//lineItem[@coaCode="SAMT"]').text)
+            if two_qtr_ago.find('.//lineItem[@coaCode="RTLR"]') != None:
+                two_qtr['revenue'] = float(two_qtr_ago.find('.//lineItem[@coaCode="RTLR"]').text)
+
             if three_qtr_ago.find('.//lineItem[@coaCode="SDBF"]') != None:
                 three_qtr['eps'] = float(three_qtr_ago.find('.//lineItem[@coaCode="SDBF"]').text)
             if three_qtr_ago.find('.//lineItem[@coaCode="SOPI"]') != None:
@@ -593,6 +604,8 @@ class TestApp(TestWrapper, TestClient):
                     three_qtr['dep_amor'] = float(three_qtr_ago.find('.//lineItem[@coaCode="SDED"]').text)
                 if three_qtr_ago.find('.//lineItem[@coaCode="SAMT"]') != None:
                     three_qtr['dep_amor'] += float(three_qtr_ago.find('.//lineItem[@coaCode="SAMT"]').text)
+            if three_qtr_ago.find('.//lineItem[@coaCode="RTLR"]') != None:
+                three_qtr['revenue'] = float(three_qtr_ago.find('.//lineItem[@coaCode="RTLR"]').text)
 
             return latest_val, prev_val, two_qtr, three_qtr
 

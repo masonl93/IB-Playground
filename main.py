@@ -29,7 +29,9 @@ def multiples(app, tickers):
     enterprise_vals = []
     p_es = []
     ev_ebitdas = []
-    tickers = tickers[5:]
+    p_bvs = []
+    ev_ss = []
+    tickers = tickers[:9]
     for ticker in tickers:
         contract = app.createContract(ticker, "STK", "USD", "SMART")
         app.getMktData(contract)
@@ -41,35 +43,56 @@ def multiples(app, tickers):
             print("Waiting on fundamental data")
             time.sleep(1)
         qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True, ttm=True)
+        # Numerators
         mkt_cap = float(qtr1['shares']) * float(app.contract_price)
         firm_val = mkt_cap + qtr1['total_debt']
         if 'cash_investments' in qtr1:
             ev = firm_val - qtr1['cash_investments']
         else:
             ev = firm_val - qtr1['cash']
+
+        # P/E
         ttm_eps = qtr1['eps'] + qtr2['eps'] + qtr3['eps'] + qtr4['eps']
         if ttm_eps <= 0:
             p_e = 'No Earnings'
         else:
             p_e = float(app.contract_price)/ttm_eps
 
+        # EV/EBITDA
         ebitda = qtr1['op_income'] + qtr1['dep_amor'] + qtr2['op_income'] + qtr2['dep_amor'] + qtr3['op_income'] + qtr3['dep_amor'] + qtr4['op_income'] + qtr4['dep_amor']
         if ebitda <= 0:
             ev_ebitda = 'Negative EBITDA'
         else:
             ev_ebitda = ev / ebitda
-        print(ticker)
-        print(ebitda)
+
+        # P/B
+        bv = qtr1['total_equity']
+        if 'redeemable_preferred' in qtr1:
+            bv = bv - qtr1['redeemable_preferred']
+        if 'preferred' in qtr1:
+            bv = bv - qtr1['preferred']
+        bv_per_share = bv/float(qtr1['shares'])
+        p_b = float(app.contract_price)/bv_per_share
+
+        # EV/S
+        ttm_rev = qtr1['revenue'] + qtr2['revenue'] + qtr3['revenue'] + qtr4['revenue']
+        if ttm_rev <= 0:
+            ev_s = 'No Revenue'
+        else:
+            ev_s = ev / ttm_rev
 
         mkt_caps.append(mkt_cap)
         firm_vals.append(firm_val)
         enterprise_vals.append(ev)
         p_es.append(p_e)
         ev_ebitdas.append(ev_ebitda)
+        p_bvs.append(p_b)
+        ev_ss.append(ev_s)
         app.resetData()
 
     data = {'Symbol': tickers, 'Market Cap': mkt_caps, 'Firm Value': firm_vals,
-            'Enterprise Value': enterprise_vals, 'P/E': p_es, 'EV/EBITDA': ev_ebitdas}
+            'Enterprise Value': enterprise_vals, 'P/E': p_es, 'EV/EBITDA': ev_ebitdas,
+            'P/B': p_bvs, 'EV/S': ev_ss}
     df = pandas.DataFrame(data=data)
     print(df)
 
@@ -91,6 +114,12 @@ def warrants(app, ticker, warrants_out):
         time.sleep(1)
 
     contract = app.contract_details[0].contract
+
+    # Finding other warrrants
+    # for c in app.contract_details:
+    #     if c.contract.strike != contract.strike:
+    #         print(c.contract.strike)
+
     strike = contract.strike
     right = contract.right
     warrants_per_share = (1/float(contract.multiplier))
@@ -411,8 +440,9 @@ if __name__ == '__main__':
 - Current:
     - Microcap
         - proof read code and add comments
-        - try using quarterly reports?
+        - try using quarterly reports? Depends on when we would rebalance
         - finish going through microcap list?
+        - add old README to this README under algos
     - BS warrants
         - any todos from old repo?
         - add readme to this repo readme
@@ -420,14 +450,12 @@ if __name__ == '__main__':
         - handle multiple warrants .e.g TDW A/B
             - Value both and display in dataframe to easily determine better deals
     - Multiple/Relative Valuation Calculator
-        - Finish Aswath vids - book value and revenue multiples
         - smooth out, add comments, proof read, README usage and algo sections, etc
-        - For book value ratios, add README writeup detailing why book value sucks from OSAM
-            - https://osam.com/Commentary/negative-equity-veiled-value-and-the-erosion-of-price-to-book?_cldee=bWFzb25sZXZ5OTNAZ21haWwuY29t&recipientid=lead-5dd5adb38c96e8118159e0071b6a61e1-8d60ab4ef40c403796ec2203f1ba9f34&esid=1ba045d5-19f4-e811-a965-000d3a1d5264
     - MA Cross
         - always gets stuck ~83rd ticker (AVGO), not ticker specific, what's the issue?
     - DCF impl
-    - create backtester (follow logic of open sourced one)
+    - Backtester
+        - follow logic of open sourced one
     - Add support for foreign stocks i.e. read exchange from ticker txt file
         - if '-' in ticker, then extract second part which is exchange e.g. CTT-BVL
         - Only works for fundamental data, not mktdata since no subscription
@@ -438,6 +466,8 @@ if __name__ == '__main__':
 - Enhancements
     - setup while loop limits (e.g. 10 iterations)
         - print tickers at end that gave us an issue
+        - if hit IB request limit, then wait some seconds and try again
+        - smartly solve when stuck in loops
     - use more threads
     - Include example outputs in README usage section
     - set stop loss mechanism
@@ -467,9 +497,13 @@ if __name__ == '__main__':
     - Taleb strategies? Barbell, etc
     - Put-call parity (https://www.investopedia.com/articles/optioninvestor/05/011905.asp)
     - Factor-based strategy
-        - Microcap (ensure we can get neccessary data - debt, ROIC, Net operating Assets)
+        - Microcap
     - long dated option switch - when a later date option becomes a better deal automatically buy it
       and sell the one expiring sooner, valued by BS
+    - Relative valuation screener
+        - Use screener to find similar companies to do a relative valuation on. Something similar to Aswath's
+          videos of finding mismatches i.e. ROE over the median but book value under the median would be cheap.
+          Can apply to all the various multiples and their drivers
 
 
 Implement three O'SAM articles
