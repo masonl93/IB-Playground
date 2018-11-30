@@ -31,7 +31,7 @@ def multiples(app, tickers):
     ev_ebitdas = []
     p_bvs = []
     ev_ss = []
-    tickers = tickers[:9]
+    tickers = tickers[:10]
     for ticker in tickers:
         contract = app.createContract(ticker, "STK", "USD", "SMART")
         app.getMktData(contract)
@@ -102,30 +102,20 @@ def warrants(app, ticker, warrants_out):
         print('Error: Must provide ticker for warrant valuation')
         return
 
-    ticker = ticker
-
     if warrants_out is None:
         print('Number of warrants outstanding was not provided. Will not calculate with share dilution.')
 
+    # Take user input for vol?
+    vols = [.2, .3, .35, .4, .5, .6]
+    data = {'Volatility': vols}
+
     # find the warrant
-    app.get_contract_details(ticker, "WAR")
+    app.get_contract_details(ticker, "WAR", exchange='SMART', currency='USD')
     while not app.contract_details_flag:
         print("Waiting on contract data")
         time.sleep(1)
 
-    contract = app.contract_details[0].contract
-
-    # Finding other warrrants
-    # for c in app.contract_details:
-    #     if c.contract.strike != contract.strike:
-    #         print(c.contract.strike)
-
-    strike = contract.strike
-    right = contract.right
-    warrants_per_share = (1/float(contract.multiplier))
-    expiry = datetime.datetime.strptime(contract.lastTradeDateOrContractMonth, '%Y%m%d').strftime('%m-%d-%Y')
-
-    # get underlying price
+    # get underlying price and div yield
     contract = app.createContract(ticker, "STK", "USD", "SMART")
     app.getMktData(contract)
     app.getFinancialData(contract, "ReportsFinStatements")
@@ -136,28 +126,36 @@ def warrants(app, ticker, warrants_out):
     underlying_price = float(app.contract_price)
     div = app.contract_yield
 
+    # get share count
     while app.fundamental_data is None:
         print("Waiting on fundamental data")
         time.sleep(1)
     latest_val, _prev_val = app.parseFinancials(app.fundamental_data, quarterly=True)
     shares_out = latest_val['shares']
 
-    # Get this from t-bill?
-    risk = .03
+    for c in app.contract_details:
+        contract = c.contract
+        strike = contract.strike
+        right = contract.right
+        warrants_per_share = (1/float(contract.multiplier))
+        expiry = datetime.datetime.strptime(contract.lastTradeDateOrContractMonth, '%Y%m%d').strftime('%m-%d-%Y')
+
+        # Get this from t-bill near expiry date?
+        risk = .03
 
 
-    # Get implied vol? Or do a range of vol values? Or take user input for vol?
-    vols = [.2, .3, .35, .4, .5, .6]
-    prices = []
-    for vol in vols:
-        print(strike, app.contract_price, risk, vol,
-                        expiry, div, shares_out, warrants_out,
-                        warrants_per_share)
-        bs = BlackScholes(strike, underlying_price, risk, vol,
-                        expiry, div, shares_out, warrants_out,
-                        warrants_per_share)
-        prices.append('$' + str(round(bs.price_euro_call(), 5)))
-    data = {'Volatility': vols, 'Fair Price': prices}
+        prices = []
+        for vol in vols:
+            print(strike, app.contract_price, risk, vol,
+                            expiry, div, shares_out, warrants_out,
+                            warrants_per_share)
+            bs = BlackScholes(strike, underlying_price, risk, vol,
+                            expiry, div, shares_out, warrants_out,
+                            warrants_per_share)
+            prices.append('$' + str(round(bs.price_euro_call(), 5)))
+        header = ('%s %s' % (str(strike), expiry))
+        data[header] = prices
+
     df = pandas.DataFrame(data=data)
     print(df)
 
@@ -447,10 +445,10 @@ if __name__ == '__main__':
         - any todos from old repo?
         - add readme to this repo readme
         - proper tests
-        - handle multiple warrants .e.g TDW A/B
-            - Value both and display in dataframe to easily determine better deals
+        - Use yield of T-bill closest to expiry date as risk value
     - Multiple/Relative Valuation Calculator
         - smooth out, add comments, proof read, README usage and algo sections, etc
+        - multithread mkt data and fundamental data requests (10 threads)
     - MA Cross
         - always gets stuck ~83rd ticker (AVGO), not ticker specific, what's the issue?
     - DCF impl
