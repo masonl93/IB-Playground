@@ -7,7 +7,7 @@ A platform to automate trading through Interactive Brokers using their python AP
     - [Algorithms](#algorithms)
         - [Moving Average Cross](#moving-average-cross)
         - [Factor Rankings](#factor-rankings)
-        - [Multiples](#multiples)
+        - [Ratios](#ratios)
     - [Notes](#notes)
 
 
@@ -48,10 +48,10 @@ Selling all Positions:
 Using the SP500 stocks, buy shares when the 50-day moving average crosses the 200-day moving average (golden cross) and sell the shares when 200-day moving average crosses the 50-day moving average (death cross)
 
 ### Factor Rankings  
-Description will be added soon  
+Ranks a list of stocks based on 4 main factors: Change in Net Operating Assets, One Year Change in Debt, Debt to Equity, and Return on Invested Capital. This section was inspired by and based off of an O'Shaughnessy Asset Management research paper titled "Microcaps — Factor Spreads, Structural Biases, and the Institutional Imperative" by Ehren Stanhope (https://www.osam.com/Commentary/microcaps-factor-spreads-structural-biases-and-the-institutional-imperative). While this was origianlly for screening quality microcap companies, the functionality has been expanded to factor rank any given list of tickers. 
 
-### Multiples
-Calculate numerous multiples for given stocks that can be used for relative valuation. The following multiples are calculated:  
+### Ratios
+Calculate numerous ratios for given stocks that can be used for relative valuation. While one can find many of these ratios precalculated somewhere online, it is not clear how those values are calculated making it difficult to compare and have confidence in the figures. The main purpose here is to have full control over how the values are calculated so we can, with confidence, compare these values. The following are calculated:  
 1. P/E (Price / Earnings)  
      P/E = Share_Price/TTM_EPS  
    Drivers: Payout ratio(dividend), Cost of equity, Expected growth rate  
@@ -66,7 +66,7 @@ Calculate numerous multiples for given stocks that can be used for relative valu
     Drivers: Tax rate, expected growth rate, cost of capital, reinvestment rate
 3. P/BV (Price / Book_Value)  
    BV = (Total_Equity - Redeemable_Preferred_Shares - Nonredeemable_Preferred_Shares) / Shares  
-   This has historically been a very useful ratio to determine cheapness of a stock but as of late, the usefulness has been dwindling. This is a growing portion of stocks that have a negative equity or have what seems to be an expensive P/B ratio but are on the cheaper side when looking at all other ratios. This can be accounted for with some general changes that have been occuring: Increase of intangible assets that are not represented on the balance sheet (e.g. brand name, human capital, advertising, etc), long term assets depreciating faster than their useful lives, and buybacks/dividends that cause decreases in equity when they exceed net income. See more here: https://osam.com/Commentary/negative-equity-veiled-value-and-the-erosion-of-price-to-book   
+   This has historically been a very useful ratio to determine cheapness of a stock but as of late, the usefulness might be dwindling. There is a growing portion of stocks that have a negative equity or have what seems to be an expensive P/B ratio but are on the cheaper side when looking at all other ratios. This can be accounted for with some general changes that have been occuring: Increase of intangible assets that are not represented on the balance sheet (e.g. brand name, human capital, advertising, etc), long term assets depreciating faster than their useful lives, and buybacks/dividends that cause decreases in equity when they exceed net income. See more here: https://osam.com/Commentary/negative-equity-veiled-value-and-the-erosion-of-price-to-book   
    Drivers: Return on equity  
 4. EV/S (Enterprise_Value / Sales)  
    S = TTM_Revenue

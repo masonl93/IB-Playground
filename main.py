@@ -10,7 +10,7 @@ import pandas
 import InteractiveBrokers as ib
 import Algorithms as algo
 from Algorithms import Factors
-
+from Ratios import Ratio
 from ContractSamples import ContractSamples
 from Black_Scholes import BlackScholes
 
@@ -22,8 +22,54 @@ SAVE_FILE = 'save_from_sell.txt'
 ISSUE_TICKERS = ['PX',]
 
 
+"""
+Alpha within Factors
+    We know the value factor works because the market re-rates a company as it believes it will have declining earnings.
+    This pricing causes the company to trade at a discount to their current earnings. Over the short-term, the market tends
+    to be correct and earnings do slow down. The issue is that the market tends to underestimate the likelihood and extent
+    of the company's eventual recovery. Once the earnings exceed expectations, the market once again re-rates the company
+    and provides excess returns to the shareholders who bought at the beginning of the process.
+    This works on average, so there are companies that have low expectations and come back to outperform. But there are also
+    many value traps where even the market gets it wrong and their earnings deteriorate even worse than priced. It is here
+    that we try to find clues of future earnings so we can get rid of value traps and improve on the value factor.
+    This is based off an O'Shaughnessy Asset Management research paper titled "Alpha within Factors" by Jesse Livermore, Chris Meredith, and Patrick O’Shaughnessy
+    (https://www.osam.com/Commentary/alpha-within-factors).
+    1) New value factor, instead of just using P/E, will use a composite index of:
+        - P/E
+        - EV/EBITDA
+        - EV/FCF (use op cash flow-CAPEX, can make more sophisticated later on, minus divy?)
+        - EV/S
+        Form a composite score:
+            - Stock in lowest 1% of P/E, will receive rank of 100. If in highest 1%, will receive rank of 1.
+                If missing a score, then assign score of 50.
+        The top quintile will be the starting point, or the value factor
+        Later on, can add in buyback yield and/or shareholder yield
+    2) Remove value traps: Remove the bottom decile for each scoring:
+        - Momentum: trailing 6-months total return (higher is better)
+        - Growth: trailing change in earnings (higher is better)
+        - Earnings quality: measure of accruals (lower is better), Using change in NOA since we have it,
+            could also use acruals-to-assets.
+        - Financial Strength: measure of leverage (lower is better), debt to equity and/or change in debt?
+    3) Select the best
+        - Select the top half, equally weighted.
+    Run on SP500? Would rebalance once a year. Could try in different spaces i.e. microcap where factors are
+    more pronounced.
+"""
+def alphaInFactors(app, tickers):
+    pass
 
-def multiples(app, tickers):
+
+"""
+Ratio Calculator
+    - Why is connection closing after 10 names?! mktdata and/or fundamental data causing an issue
+        - args.test fails on 20th iter, regardless if calling both or just one of fundData and mktData
+    - smooth out, add comments, proof read, README usage and algo sections, etc
+    - multithread mkt data and fundamental data requests (10 threads)
+    - Sketchy Accounting detection: Use Beneish's M-Score or Montier's C-Score (see gmtresearch.com)
+    - Bankruptcy Risk: Altman Z-Score
+    - Create a final row in dataframe for averages
+"""
+def ratios(app, tickers):
     mkt_caps = []
     firm_vals = []
     enterprise_vals = []
@@ -31,10 +77,14 @@ def multiples(app, tickers):
     ev_ebitdas = []
     p_bvs = []
     ev_ss = []
-    tickers = tickers[:10]
+    ev_fcfs = []
+    # tickers = tickers[7:]
+    tickers = tickers[:7]
     for ticker in tickers:
         contract = app.createContract(ticker, "STK", "USD", "SMART")
         app.getMktData(contract)
+
+        # Get data
         while app.contract_price is None:
             print("Waiting on Mkt data")
             time.sleep(1)
@@ -43,43 +93,25 @@ def multiples(app, tickers):
             print("Waiting on fundamental data")
             time.sleep(1)
         qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True, ttm=True)
+        ratio = Ratio()
+
         # Numerators
-        mkt_cap = float(qtr1['shares']) * float(app.contract_price)
-        firm_val = mkt_cap + qtr1['total_debt']
-        if 'cash_investments' in qtr1:
-            ev = firm_val - qtr1['cash_investments']
-        else:
-            ev = firm_val - qtr1['cash']
+        mkt_cap, firm_val, ev = ratio.getCompanyValues(app.contract_price, qtr1)
 
         # P/E
-        ttm_eps = qtr1['eps'] + qtr2['eps'] + qtr3['eps'] + qtr4['eps']
-        if ttm_eps <= 0:
-            p_e = 'No Earnings'
-        else:
-            p_e = float(app.contract_price)/ttm_eps
+        p_e = ratio.getP_E(app.contract_price, qtr1, qtr2, qtr3, qtr4)
 
         # EV/EBITDA
-        ebitda = qtr1['op_income'] + qtr1['dep_amor'] + qtr2['op_income'] + qtr2['dep_amor'] + qtr3['op_income'] + qtr3['dep_amor'] + qtr4['op_income'] + qtr4['dep_amor']
-        if ebitda <= 0:
-            ev_ebitda = 'Negative EBITDA'
-        else:
-            ev_ebitda = ev / ebitda
+        ev_ebitda = ratio.getEV_EBITDA(ev, qtr1, qtr2, qtr3, qtr4)
 
         # P/B
-        bv = qtr1['total_equity']
-        if 'redeemable_preferred' in qtr1:
-            bv = bv - qtr1['redeemable_preferred']
-        if 'preferred' in qtr1:
-            bv = bv - qtr1['preferred']
-        bv_per_share = bv/float(qtr1['shares'])
-        p_b = float(app.contract_price)/bv_per_share
+        p_b = ratio.getP_B(app.contract_price, qtr1)
 
         # EV/S
-        ttm_rev = qtr1['revenue'] + qtr2['revenue'] + qtr3['revenue'] + qtr4['revenue']
-        if ttm_rev <= 0:
-            ev_s = 'No Revenue'
-        else:
-            ev_s = ev / ttm_rev
+        ev_s = ratio.getEV_S(ev, qtr1, qtr2, qtr3, qtr4)
+
+        # EV/FCF
+        ev_fcf = ratio.getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4)
 
         mkt_caps.append(mkt_cap)
         firm_vals.append(firm_val)
@@ -88,15 +120,23 @@ def multiples(app, tickers):
         ev_ebitdas.append(ev_ebitda)
         p_bvs.append(p_b)
         ev_ss.append(ev_s)
+        ev_fcfs.append(ev_fcf)
         app.resetData()
 
     data = {'Symbol': tickers, 'Market Cap': mkt_caps, 'Firm Value': firm_vals,
             'Enterprise Value': enterprise_vals, 'P/E': p_es, 'EV/EBITDA': ev_ebitdas,
-            'P/B': p_bvs, 'EV/S': ev_ss}
+            'P/B': p_bvs, 'EV/S': ev_ss, 'EV/FCF': ev_fcfs}
     df = pandas.DataFrame(data=data)
     print(df)
 
 
+"""
+BS warrants
+    - any todos from old repo?
+    - add readme to this repo readme
+    - proper tests
+    - Use yield of T-bill closest to expiry date as risk value
+"""
 def warrants(app, ticker, warrants_out):
     if ticker is None:
         print('Error: Must provide ticker for warrant valuation')
@@ -160,6 +200,19 @@ def warrants(app, ticker, warrants_out):
     print(df)
 
 
+"""
+Factors
+    - proof read code and add comments
+    - try using quarterly reports? Depends on when we would rebalance?
+    - finish going through microcap list?
+    - ROIC Calculation
+        - Stronger NIBCL calculation to include everything neccessary
+        - excess cash -> dynamic required cash value. If operating losses,
+          then require 5% of sales. If large operating profits, then require 1 to 2%.
+        - http://news.morningstar.com/classroom2/course.asp?docId=145095&page=9
+        - Aimia ROIC calc example:
+            - https://www.aimia.com/wp-content/uploads/2018/11/Aimia_Q3-2018-Highlights-FINAL.pdf
+"""
 def factorSort(app, tickers, end, rank, input):
     if tickers is None:
         print("Error: Must provide file of tickers by '-i' option")
@@ -283,6 +336,10 @@ def factorSort(app, tickers, end, rank, input):
         print(df.reset_index(drop=True,))
 
 
+"""
+MA Cross
+    - always gets stuck ~83rd ticker (AVGO), not ticker specific, what's the issue?
+"""
 def movingAvgCross(app, tickers, start):
     if tickers is None:
         print("Error: Must provide file of tickers by '-i' option")
@@ -385,7 +442,7 @@ def main(args):
         order.action = "BUY"
         order.orderType = "MKT"
         order.totalQuantity = amt
-        app.place_order(ContractSamples.OilFuture(), order)
+        app.place_order(ContractSamples.GasFuture(), order)
         time.sleep(5)
 
     if args.warrants:
@@ -393,18 +450,32 @@ def main(args):
         warrants(app, args.ticker, args.warrants_out)
         print('Warrant Valuation Completed')
 
-    if args.multiples:
+    if args.ratios:
         print('Calculating Multiples')
-        multiples(app, tickers)
+        ratios(app, tickers)
         print('Calculating Multiples Completed')
 
+    if args.factor_alpha:
+        print('Performing Alpha within Factors')
+        alphaInFactors(app, tickers)
+        print('Alpha within Factors Completed')
+
     if args.test:
-        contract = app.createContract('AA.', "STK", "GBP", "LSE")
-        app.getFinancialData(contract, "ReportsFinStatements")
-        while app.fundamental_data is None:
-            print("Waiting on fundamental data")
-            time.sleep(1)
-        print(app.fundamental_data)
+        app.reqMarketDataType(3)
+        for i in range (0,21):
+            print(i)
+            contract = app.createContract('TRIP', "STK", "USD", "SMART")
+            # app.reqMktData(1000+i, contract, "258", False, False, [])
+            # while app.contract_price is None:
+            #     print("Waiting on Mkt data")
+            #     time.sleep(1)
+            app.getFinancialData(contract, "ReportsFinStatements")
+            while app.fundamental_data is None:
+                print("Waiting on fundamental data")
+                time.sleep(1)
+            print(app.contract_price)
+            app.contract_price = None
+            app.fundamental_data = None
 
 
     print('Shutting down!')
@@ -414,18 +485,21 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='IB Algo Trader')
-    parser.add_argument('-c', '--clear', help='Clear Positions (save positions from "save_from_sell.txt" file)', action='store_true')
-    parser.add_argument('-m', '--moving_avg', help='Moving Average Cross', action='store_true')
-    parser.add_argument('-s', '--start', help='Ticker to start from', default=None)
-    parser.add_argument('-f', '--factor', help='Factors', action='store_true')
-    parser.add_argument('--multiples', help='Calculate Multiples for all tickers', action='store_true')
-    parser.add_argument('-i', '--input', help='Input File of Tickers', default=None)
-    parser.add_argument('-e', '--end', help='Index of last ticker to process. Useful for ' +
-                                            'large number of tickers', default=None, type=int)
-    parser.add_argument('-r', '--rank', help='Rank Factors', action='store_true')
-    parser.add_argument('-p', '--port', help='Port of TWS (default=7497)', default=7497, type=int)
+    # Functions
+    parser.add_argument('--clear', help='Clear Positions (save positions from "save_from_sell.txt" file)', action='store_true')
+    parser.add_argument('--moving_avg', help='Moving Average Cross', action='store_true')
+    parser.add_argument('--factor', help='Factors', action='store_true')
+    parser.add_argument('--ratios', help='Calculate Ratios for all tickers', action='store_true')
+    parser.add_argument('--warrants', help='Warrants Valuation', action='store_true')
     parser.add_argument('--futures', help='',action='store_true')
-    parser.add_argument('-w', '--warrants', help='Warrants Valuation', action='store_true')
+    parser.add_argument('--factor_alpha', help='Alpha within Factors',action='store_true')
+    # Options
+    parser.add_argument('-i', '--input', help='Input File of Tickers', default=None)
+    parser.add_argument('-s', '--start', help='Ticker to start from (for Moving Avg Cross)', default=None)
+    parser.add_argument('-e', '--end', help='Index of last ticker to process. Useful for ' +
+                                            'large number of tickers (for Factor)', default=None, type=int)
+    parser.add_argument('-r', '--rank', help='Rank Factors (for Factor)', action='store_true')
+    parser.add_argument('-p', '--port', help='Port of TWS (default=7497)', default=7497, type=int)
     parser.add_argument('-t', '--ticker', help='Underlying Ticker for warrant valuation', default=None)
     parser.add_argument('-o', '--warrants_out', help='Number of warrants outstanding (in millions)', default=None, type=float)
     parser.add_argument('--test', action='store_true')
@@ -436,24 +510,12 @@ if __name__ == '__main__':
 # TODO
 '''
 - Current:
-    - Microcap
-        - proof read code and add comments
-        - try using quarterly reports? Depends on when we would rebalance
-        - finish going through microcap list?
-        - add old README to this README under algos
-    - BS warrants
-        - any todos from old repo?
-        - add readme to this repo readme
-        - proper tests
-        - Use yield of T-bill closest to expiry date as risk value
-    - Multiple/Relative Valuation Calculator
-        - smooth out, add comments, proof read, README usage and algo sections, etc
-        - multithread mkt data and fundamental data requests (10 threads)
-    - MA Cross
-        - always gets stuck ~83rd ticker (AVGO), not ticker specific, what's the issue?
+    - Speed up fundamental data request for quicker factor sort/alpha within factor
+        - Need a dict of reqId and its corresponding fundamental data
     - DCF impl
     - Backtester
         - follow logic of open sourced one
+        - Only do if we can get sufficient data to use
     - Add support for foreign stocks i.e. read exchange from ticker txt file
         - if '-' in ticker, then extract second part which is exchange e.g. CTT-BVL
         - Only works for fundamental data, not mktdata since no subscription
@@ -475,16 +537,10 @@ if __name__ == '__main__':
         - when order placed and successfully executed, save to file or sqllite db
           so when we sell, we know how many to sell and multiple algo's don't get
           mixed up
-    - ROIC Calculation
-        - Stronger NIBCL calculation to include everything neccessary
-        - excess cash -> dynamic required cash value. If operating losses,
-          then require 5% of sales. If large operating profits, then require 1 to 2%.
-        - http://news.morningstar.com/classroom2/course.asp?docId=145095&page=9
-        - Aimia ROIC calc example:
-            - https://www.aimia.com/wp-content/uploads/2018/11/Aimia_Q3-2018-Highlights-FINAL.pdf
+    - More elegant parseFinancials function
 
 
-- strategies:
+- Possible Strategies:
         (https://www.investopedia.com/articles/active-trading/101014/basics-algorithmic-trading-concepts-and-examples.asp)
     - Arbitrage
         - OTC stocks tough since don't have foreign mkt data subscriptions
@@ -494,19 +550,11 @@ if __name__ == '__main__':
           non-linear relationships from ML
     - Taleb strategies? Barbell, etc
     - Put-call parity (https://www.investopedia.com/articles/optioninvestor/05/011905.asp)
-    - Factor-based strategy
-        - Microcap
     - long dated option switch - when a later date option becomes a better deal automatically buy it
       and sell the one expiring sooner, valued by BS
     - Relative valuation screener
         - Use screener to find similar companies to do a relative valuation on. Something similar to Aswath's
           videos of finding mismatches i.e. ROE over the median but book value under the median would be cheap.
           Can apply to all the various multiples and their drivers
-
-
-Implement three O'SAM articles
-    - Factors: https://www.osam.com/Commentary/factors-from-scratch
-    - Microcaps: https://www.osam.com/Commentary/microcaps-factor-spreads-structural-biases-and-the-institutional-imperative
-    - Alpha within Factors: https://www.osam.com/Commentary/alpha-within-factors
 
 '''

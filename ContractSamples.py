@@ -269,6 +269,18 @@ class ContractSamples:
         return contract
 
     @staticmethod
+    def GasFuture():
+        #! [futcontract]
+        contract = Contract()
+        contract.symbol = "NG"
+        contract.secType = "FUT"
+        contract.exchange = "NYMEX"
+        contract.currency = "USD"
+        contract.lastTradeDateOrContractMonth = "201909"
+        #! [futcontract]
+        return contract
+
+    @staticmethod
     def UraniumFuture():
         #! [futcontract]
         contract = Contract()

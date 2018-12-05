@@ -211,11 +211,18 @@ class TestApp(TestWrapper, TestClient):
         if 'farm connection is OK' not in errorString:
             print("Error. Id: ", reqId, " Code: ", errorCode, " Msg: ", errorString)
 
+
+    @iswrapper
+    def connectionClosed(self):
+        print('CONNECTION HAS CLOSED')
+
+
     @iswrapper
     def fundamentalData(self, reqId, data: str):
         super().fundamentalData(reqId, data)
         # print("FundamentalData. ", reqId, data)
         self.fundamental_data = data
+        self.cancelFundamentalData(reqId)
 
 
     ### mkt data wrappers
@@ -252,7 +259,7 @@ class TestApp(TestWrapper, TestClient):
             if 'QTOTD2EQ' in val:
                 self.debt2equity = val.split('=')[1]
             if 'NPRICE' in val:
-                self.contract_price = val.split('=')[1]
+                self.contract_price = float(val.split('=')[1])
             if 'YIELD' in val:
                 self.contract_yield = float(val.split('=')[1])/100
         if ';' in value:
@@ -542,6 +549,12 @@ class TestApp(TestWrapper, TestClient):
             latest_val['redeemable_preferred'] = float(latest.find('.//lineItem[@coaCode="SRPR"]').text)
         if latest.find('.//lineItem[@coaCode="SPRS"]') != None:
             latest_val['preferred'] = float(latest.find('.//lineItem[@coaCode="SPRS"]').text)
+        if latest.find('.//lineItem[@coaCode="OTLO"]') != None:
+            latest_val['op_cash_flow'] = float(latest.find('.//lineItem[@coaCode="OTLO"]').text)
+        if latest.find('.//lineItem[@coaCode="SCEX"]') != None:
+            latest_val['capex'] = float(latest.find('.//lineItem[@coaCode="SCEX"]').text)
+        else:
+            latest_val['capex'] = 0
 
 
         # Pulling values from previous report
@@ -573,6 +586,12 @@ class TestApp(TestWrapper, TestClient):
                 prev_val['dep_amor'] += float(prev.find('.//lineItem[@coaCode="SAMT"]').text)
         if prev.find('.//lineItem[@coaCode="RTLR"]') != None:
             prev_val['revenue'] = float(prev.find('.//lineItem[@coaCode="RTLR"]').text)
+        if prev.find('.//lineItem[@coaCode="OTLO"]') != None:
+            prev_val['op_cash_flow'] = float(prev.find('.//lineItem[@coaCode="OTLO"]').text)
+        if prev.find('.//lineItem[@coaCode="SCEX"]') != None:
+            prev_val['capex'] = float(prev.find('.//lineItem[@coaCode="SCEX"]').text)
+        else:
+            prev_val['capex'] = 0
 
         if ttm:
             two_qtr = {}
@@ -591,6 +610,12 @@ class TestApp(TestWrapper, TestClient):
                     two_qtr['dep_amor'] += float(two_qtr_ago.find('.//lineItem[@coaCode="SAMT"]').text)
             if two_qtr_ago.find('.//lineItem[@coaCode="RTLR"]') != None:
                 two_qtr['revenue'] = float(two_qtr_ago.find('.//lineItem[@coaCode="RTLR"]').text)
+            if two_qtr_ago.find('.//lineItem[@coaCode="OTLO"]') != None:
+                two_qtr['op_cash_flow'] = float(two_qtr_ago.find('.//lineItem[@coaCode="OTLO"]').text)
+            if two_qtr_ago.find('.//lineItem[@coaCode="SCEX"]') != None:
+                two_qtr['capex'] = float(two_qtr_ago.find('.//lineItem[@coaCode="SCEX"]').text)
+            else:
+                two_qtr['capex'] = 0
 
             if three_qtr_ago.find('.//lineItem[@coaCode="SDBF"]') != None:
                 three_qtr['eps'] = float(three_qtr_ago.find('.//lineItem[@coaCode="SDBF"]').text)
@@ -606,6 +631,12 @@ class TestApp(TestWrapper, TestClient):
                     three_qtr['dep_amor'] += float(three_qtr_ago.find('.//lineItem[@coaCode="SAMT"]').text)
             if three_qtr_ago.find('.//lineItem[@coaCode="RTLR"]') != None:
                 three_qtr['revenue'] = float(three_qtr_ago.find('.//lineItem[@coaCode="RTLR"]').text)
+            if three_qtr_ago.find('.//lineItem[@coaCode="OTLO"]') != None:
+                three_qtr['op_cash_flow'] = float(three_qtr_ago.find('.//lineItem[@coaCode="OTLO"]').text)
+            if three_qtr_ago.find('.//lineItem[@coaCode="SCEX"]') != None:
+                three_qtr['capex'] = float(three_qtr_ago.find('.//lineItem[@coaCode="SCEX"]').text)
+            else:
+                three_qtr['capex'] = 0
 
             return latest_val, prev_val, two_qtr, three_qtr
 
