@@ -42,7 +42,7 @@ def alphaInFactors(app, tickers, input_f):
         return
 
     # Remove me later!
-    tickers = tickers[:70]
+    tickers = tickers[:75]
 
     tickers, df_cache = loadCacheData(tickers, input_f, 'alpha_in_factor')
 
@@ -61,10 +61,11 @@ def alphaInFactors(app, tickers, input_f):
         # Need to use BRK.A instead of B for data
         if contract.symbol == 'BRK B':
             contract.symbol = 'BRK A'
-        app.getMktData(contract)
-        while app.contract_price is None:
-            print("Waiting on Mkt data")
+        app.getPrice(contract)
+        while app.hist_data_df is None:
+            print("Waiting on price data")
             time.sleep(1)
+        contract_price = app.hist_data_df.at[0,'price']
         app.getFinancialData(contract, "ReportsFinStatements")
         while app.fundamental_data is None:
             print("Waiting on fundamental data")
@@ -73,16 +74,16 @@ def alphaInFactors(app, tickers, input_f):
         ratio = Ratio()
 
         # Numerators
-        mkt_cap, _firm_val, ev = ratio.getCompanyValues(app.contract_price, qtr1)
+        mkt_cap, _firm_val, ev = ratio.getCompanyValues(contract_price, qtr1)
 
         # P/E
-        p_e = ratio.getP_E(app.contract_price, qtr1, qtr2, qtr3, qtr4)
+        p_e = ratio.getP_E(contract_price, qtr1, qtr2, qtr3, qtr4)
 
         # EV/EBITDA
         ev_ebitda = ratio.getEV_EBITDA(ev, qtr1, qtr2, qtr3, qtr4)
 
         # # P/B
-        # p_b = ratio.getP_B(app.contract_price, qtr1)
+        # p_b = ratio.getP_B(contract_price, qtr1)
 
         # EV/S
         ev_s = ratio.getEV_S(ev, qtr1, qtr2, qtr3, qtr4)
@@ -144,10 +145,18 @@ def ratios(app, tickers):
     p_bvs = []
     ev_ss = []
     ev_fcfs = []
-    # tickers = tickers[7:]
-    tickers = tickers[:7]
+    # tickers = tickers[7:14]
+    # tickers = tickers[:7]
+    tickers = tickers[14:]
     for ticker in tickers:
-        contract = app.createContract(ticker, "STK", "USD", "SMART")
+        print(ticker)
+
+        # Handle Foreign Stocks
+        if '$' in ticker:
+            ticker, currency = ticker.split('$')
+            contract = app.createContract(ticker, "STK", currency, "SMART")
+        else:
+            contract = app.createContract(ticker, "STK", "USD", "SMART")
         app.getMktData(contract)
 
         # Get data
@@ -223,13 +232,13 @@ def warrants(app, ticker, warrants_out):
 
     # get underlying price and div yield
     contract = app.createContract(ticker, "STK", "USD", "SMART")
-    app.getMktData(contract)
+    app.getPrice(contract)
     app.getFinancialData(contract, "ReportsFinStatements")
 
-    while app.contract_price is None:
-        print('Waiting for mkt data')
+    while app.hist_data_df is None:
+        print('Waiting for price data')
         time.sleep(1)
-    underlying_price = float(app.contract_price)
+    underlying_price = float(app.hist_data_df.at[0,'price'])
     div = app.contract_yield
 
     # get share count
@@ -473,16 +482,10 @@ def loadTickers(ticker_file):
     with open(ticker_file) as f:
         tickers = [line.rstrip('\n') for line in f]
 
-    # Handle Foreign Stocks
-    # for i, ticker in enumerate(tickers):
-    #     if '-' in ticker:
-    #         tickers[i] = ticker.split('-')
-    # tickers[:] = [ticker.split('-') for ticker in tickers if '-' in ticker]
-
     # Replaces '.' and '-' with a space e.g. BRK.B should be BRK B
     ticker_cp = tickers
     for i, ticker in enumerate(ticker_cp):
-        if '.' in ticker:
+        if '.' in ticker and '$' not in ticker:
             tickers[i] = ticker.replace('.', ' ')
         if '-' in ticker:
             tickers[i] = ticker.replace('-', ' ')
@@ -555,21 +558,26 @@ def main(args):
         print('Alpha within Factors Completed')
 
     if args.test:
-        app.reqMarketDataType(3)
-        for i in range (0,21):
-            print(i)
-            contract = app.createContract('TRIP', "STK", "USD", "SMART")
-            # app.reqMktData(1000+i, contract, "258", False, False, [])
-            # while app.contract_price is None:
-            #     print("Waiting on Mkt data")
-            #     time.sleep(1)
-            app.getFinancialData(contract, "ReportsFinStatements")
-            while app.fundamental_data is None:
-                print("Waiting on fundamental data")
-                time.sleep(1)
-            print(app.contract_price)
-            app.contract_price = None
-            app.fundamental_data = None
+        '''
+        Temporary Option to help debug/test the API
+        '''
+        contract = app.createContract('TRIP', "STK", "USD", "SMART")
+        start = time.time()
+        app.getPrice(contract)
+        while app.hist_data_df is None:
+            pass
+            # print("Waiting on price data")
+            # time.sleep(1)
+        print(app.hist_data_df.at[0,'price'])
+        print(time.time()-start)
+        start = time.time()
+        app.getMktData(contract)
+        while app.contract_price is None:
+            pass
+            # print("Waiting on price data")
+            # time.sleep(1)
+        print(app.contract_price)
+        print(time.time()-start)
 
 
     print('Shutting down!')
@@ -610,11 +618,9 @@ if __name__ == '__main__':
     - Backtester
         - follow logic of open sourced one
         - Only do if we can get sufficient data to use
-    - Add support for foreign stocks i.e. read exchange from ticker txt file
-        - if '-' in ticker, then extract second part which is exchange e.g. CTT-BVL
-        - Only works for fundamental data, not mktdata since no subscription
-            - Use fundamental data->ReportRatios to get debt to equity?
     - tests
+    - Set up sql lite db to store fundamental data?
+      Need to update every 3 months and gets over 60 request per min limit
 
 
 - Enhancements

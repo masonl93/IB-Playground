@@ -95,3 +95,4 @@ Calculate numerous ratios for given stocks that can be used for relative valuati
 ## Notes
 - If an error occurs when trying to retreive fundamental data, then restart TWS as this tends to solve the issue.
 - reqContractDetails() is throttled when searching contracts and not providing an expiry date. Since this is what we need to use to smartly find all warrants given a stock symbol, one might need to wait 60 seconds in order to run warrant valuation a subsequent time. (TODO: Look into reqSecDefOptParams() as this is not throttled and is used to find option chains, not sure if it will work for warrants)
+- Some issues might arise if you do not have the neccessary market data subscriptions. For example, I do not have any foreign market data subscriptions so when my input file has foreign stocks, it is hit or miss on if I can successfully get a price back from the API.

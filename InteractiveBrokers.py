@@ -312,9 +312,23 @@ class TestApp(TestWrapper, TestClient):
 
 
     def get_historical_data(self, contract):
+        '''
+        Requests daily prices for 1 year back from today
+        '''
         queryTime = datetime.datetime.today().strftime("%Y%m%d %H:%M:%S")
         self.reqHistoricalData(self.nextValidOrderId, contract, queryTime,
                                "1 Y", "1 day", "MIDPOINT", 1, 1, False, [])
+        self.nextValidOrderId += 1
+
+
+    def getPrice(self, contract):
+        '''
+        Requests daily prices for 1 day. Can be useful for getting a price instead
+        of using reqMktData() as it will be a more up to date price
+        '''
+        queryTime = datetime.datetime.today().strftime("%Y%m%d %H:%M:%S")
+        self.reqHistoricalData(self.nextValidOrderId, contract, queryTime,
+                               "1 D", "1 day", "MIDPOINT", 1, 1, False, [])
         self.nextValidOrderId += 1
 
 
