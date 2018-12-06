@@ -43,7 +43,7 @@ class Ratio():
     def getP_E(self, price, qtr1, qtr2, qtr3, qtr4):
         ttm_eps = qtr1['eps'] + qtr2['eps'] + qtr3['eps'] + qtr4['eps']
         if ttm_eps <= 0:
-            return 'No Earnings'
+            return 'N/A'
         else:
             return price/ttm_eps
 
@@ -58,9 +58,12 @@ class Ratio():
             - dep_amor
     '''
     def getEV_EBITDA(self, ev, qtr1, qtr2, qtr3, qtr4):
+        if 'op_income' not in qtr1:
+            # No operating income on income statement, probably a bank
+            return 'N/A'
         ebitda = qtr1['op_income'] + qtr1['dep_amor'] + qtr2['op_income'] + qtr2['dep_amor'] + qtr3['op_income'] + qtr3['dep_amor'] + qtr4['op_income'] + qtr4['dep_amor']
         if ebitda <= 0:
-            return 'Negative EBITDA'
+            return 'N/A'
         else:
             return ev / ebitda
 
@@ -93,9 +96,12 @@ class Ratio():
             - revenue
     '''
     def getEV_S(self, ev, qtr1, qtr2, qtr3, qtr4):
+        if 'revenue' not in qtr1:
+            # No revenue on income statement, probably a bank
+            return 'N/A'
         ttm_rev = qtr1['revenue'] + qtr2['revenue'] + qtr3['revenue'] + qtr4['revenue']
         if ttm_rev <= 0:
-            return 'No Revenue'
+            return 'N/A'
         else:
             return ev / ttm_rev
 
@@ -114,6 +120,6 @@ class Ratio():
         ttm_capex = qtr1['capex'] + qtr2['capex'] + qtr3['capex'] + qtr4['capex']
         ttm_fcf = ttm_cf + ttm_capex
         if ttm_fcf <= 0:
-            return 'No FCF'
+            return 'N/A'
         else:
             return ev / ttm_fcf
