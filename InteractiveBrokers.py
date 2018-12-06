@@ -483,8 +483,10 @@ class TestApp(TestWrapper, TestClient):
         financial_statements = tree.find('FinancialStatements')
         if len(financial_statements) == 0:
             return None, None
+
         # financial_statements = [coaMap, annuals, interims]
-        # Using annual reports, could switch to interim results for more recent data
+        # TODO: Check xml report <Source> and ensure not type "PRESS",
+        # then remove share count check below (example see: AZO)
         reports = financial_statements[1]
         if quarterly:
             reports = financial_statements[2]
@@ -492,6 +494,18 @@ class TestApp(TestWrapper, TestClient):
             three_qtr_ago = reports[3]
         latest = reports[0]
         prev = reports[1]
+
+        if latest.find('.//lineItem[@coaCode="QTCO"]') != None:
+            latest_val['shares'] = float(latest.find('.//lineItem[@coaCode="QTCO"]').text)
+        # Latest report doesn't have share count. Let's check previous report to see if it has it
+        # If it does, then the first report is probably a PRESS report and missing lots
+        elif prev.find('.//lineItem[@coaCode="QTCO"]') != None:
+            # Update which reports we look at
+            if quarterly:
+                two_qtr_ago = reports[3]
+                three_qtr_ago = reports[4]
+            latest = reports[1]
+            prev = reports[2]
 
         # Pulling values from latest annual report
         if latest.find('.//lineItem[@coaCode="ATOT"]') != None:
@@ -502,6 +516,9 @@ class TestApp(TestWrapper, TestClient):
         elif latest.find('.//lineItem[@coaCode="ACSH"]') != None:
             # Just cash
             latest_val['cash'] = float(latest.find('.//lineItem[@coaCode="ACSH"]').text)
+        elif latest.find('.//lineItem[@coaCode="ACDB"]') != None:
+            # Cash & Due from Bank
+            latest_val['cash'] = float(latest.find('.//lineItem[@coaCode="ACDB"]').text)
         if latest.find('.//lineItem[@coaCode="LTLL"]') != None:
             latest_val['total_liabilities'] = float(latest.find('.//lineItem[@coaCode="LTLL"]').text)
         if latest.find('.//lineItem[@coaCode="STLD"]') != None:
