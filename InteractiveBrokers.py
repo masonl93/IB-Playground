@@ -78,7 +78,7 @@ class TestApp(TestWrapper, TestClient):
 
         # Contract Details
         self.contract_details = []
-        self.contract_details_flag = False
+        self.contract_details_flag = None
 
 
     ### Wrapper Functions ###

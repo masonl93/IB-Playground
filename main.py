@@ -42,7 +42,7 @@ def alphaInFactors(app, tickers, input_f):
         return
 
     # Remove me later!
-    tickers = tickers[:85]
+    tickers = tickers[:100]
 
     tickers, df_cache = loadCacheData(tickers, input_f, 'alpha_in_factor')
 
@@ -62,14 +62,10 @@ def alphaInFactors(app, tickers, input_f):
         if contract.symbol == 'BRK B':
             contract.symbol = 'BRK A'
         app.getPrice(contract)
-        while app.contract_price is None:
-            print("Waiting on price data")
-            time.sleep(1)
+        waitForData(app, 'price')
         contract_price = app.contract_price
         app.getFinancialData(contract, "ReportsFinStatements")
-        while app.fundamental_data is None:
-            print("Waiting on fundamental data")
-            time.sleep(1)
+        waitForData(app, 'fundamental')
         qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True, ttm=True)
         ratio = Ratio()
 
@@ -125,14 +121,12 @@ def alphaInFactors(app, tickers, input_f):
 
 """
 Ratio Calculator
-    - Why is connection closing after 10 names?! mktdata and/or fundamental data causing an issue
-        - args.test fails on 20th iter, regardless if calling both or just one of fundData and mktData
     - smooth out, add comments, proof read, README usage and algo sections, etc
     - multithread mkt data and fundamental data requests (10 threads)
     - Sketchy Accounting detection: Use Beneish's M-Score or Montier's C-Score (see gmtresearch.com)
     - Bankruptcy Risk: Altman Z-Score
     - Create a final row in dataframe for averages
-    - Use WWOWS cash flow definitions or GuruFocus:
+    - Use WWOWS cash flow definitions (or GuruFocus):
         (cash flow = net income + depreciation + non cash expenses,
          fcf = cash flow - capex - dividends(including prefered))
 """
@@ -146,8 +140,8 @@ def ratios(app, tickers):
     ev_ss = []
     ev_fcfs = []
     # tickers = tickers[7:14]
-    # tickers = tickers[:7]
-    tickers = tickers[14:]
+    tickers = tickers[:14]
+    # tickers = tickers[14:]
     for ticker in tickers:
         print(ticker)
 
@@ -157,16 +151,12 @@ def ratios(app, tickers):
             contract = app.createContract(ticker, "STK", currency, "SMART")
         else:
             contract = app.createContract(ticker, "STK", "USD", "SMART")
-        app.getPrice(contract)
 
         # Get data
-        while app.contract_price is None:
-            print("Waiting on price data")
-            time.sleep(1)
+        app.getPrice(contract)
+        waitForData(app, 'price')
         app.getFinancialData(contract, "ReportsFinStatements")
-        while app.fundamental_data is None:
-            print("Waiting on fundamental data")
-            time.sleep(1)
+        waitForData(app, 'fundamental')
         qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True, ttm=True)
         ratio = Ratio()
 
@@ -226,25 +216,20 @@ def warrants(app, ticker, warrants_out):
 
     # find the warrant
     app.get_contract_details(ticker, "WAR", exchange='SMART', currency='USD')
-    while not app.contract_details_flag:
-        print("Waiting on contract data")
-        time.sleep(1)
+
+    waitForData(app, 'contract')
 
     # get underlying price and div yield
     contract = app.createContract(ticker, "STK", "USD", "SMART")
     app.getPrice(contract)
     app.getFinancialData(contract, "ReportsFinStatements")
 
-    while app.contract_price is None:
-        print('Waiting for price data')
-        time.sleep(1)
+    waitForData(app, 'price')
     underlying_price = float(app.contract_price)
     div = app.contract_yield
 
     # get share count
-    while app.fundamental_data is None:
-        print("Waiting on fundamental data")
-        time.sleep(1)
+    waitForData(app, 'fundamental')
     latest_val, _prev_val = app.parseFinancials(app.fundamental_data, quarterly=True)
     shares_out = latest_val['shares']
 
@@ -280,6 +265,7 @@ Factors
     - proof read code and add comments
     - try using quarterly reports? Depends on when we would rebalance?
     - finish going through microcap list?
+    - Use fundamental data to calc debt/equity myself, remove getMktData() call
     - ROIC Calculation
         - Stronger NIBCL calculation to include everything neccessary
         - excess cash -> dynamic required cash value. If operating losses,
@@ -309,16 +295,15 @@ def factorSort(app, tickers, end, rank, input_f):
         print("Ticker: " + str(ticker))
 
         # Initate requests for data
-        if type(ticker) is list:
-            contract = app.createContract(ticker[0], "STK", ticker[2], ticker[1])
+        if '$' in ticker:
+            ticker, currency = ticker.split('$')
+            contract = app.createContract(ticker, "STK", currency, "SMART")
         else:
             contract = app.createContract(ticker, "STK", "USD", "SMART")
         app.getFinancialData(contract, "ReportsFinStatements")
         app.getMktData(contract)
 
-        while app.fundamental_data is None:
-            print("Waiting on fundamental data")
-            time.sleep(1)
+        waitForData(app, 'fundamental')
 
         latest_val, prev_val = app.parseFinancials(app.fundamental_data)
         if latest_val is None:
@@ -430,10 +415,8 @@ def movingAvgCross(app, tickers, start, buy):
         if app.orders_df.empty or not app.orders_df['symbol'].str.contains(ticker).any():
             app.get_historical_data(contract)
 
-            while app.hist_data_df is None:
-                print("Waiting on historical data")
-                time.sleep(1)
             print("Symbol: " + ticker)
+            waitForData(app, 'hist')
             # Golden Cross and not in portfolio -> buy
             if algo.movingAvgCross(app.hist_data_df) and not app.portfolioCheck(ticker):
                 print('Placing Buy Order for: ' + ticker)
@@ -512,6 +495,11 @@ Wait for Data
         app: TestApp connected to IB
         data: str denoting which data to wait for worker thread to update
             'price': app.contract_price
+            'portfolio': app.positions_df
+            'orders': app.orders_df
+            'hist': app.hist_data_df
+            'fundamental': app.fundamental_data
+            'contract': app.contract_details_flag
         timeout: How long to wait for the data before giving up
 
     Output: Int
@@ -524,7 +512,16 @@ def waitForData(app, data, timeout=5):
     while True:
         if data == 'price':
             app_data = app.contract_price
-        # elif data == '':
+        elif data == 'portfolio':
+            app_data = app.positions_df
+        elif data == 'orders':
+            app_data = app.orders_df
+        elif data == 'hist':
+            app_data = app.hist_data_df
+        elif data == 'fundamental':
+            app_data = app.fundamental_data
+        elif data == 'contract':
+            app_data = app.contract_details_flag
 
         if app_data is not None:
             return 0
@@ -545,15 +542,11 @@ def main(args):
     app = ib.TestApp("127.0.0.1", args.port, clientId=1)
     print("serverVersion:%s connectionTime:%s" % (app.serverVersion(),
                                                   app.twsConnectionTime()))
-    while app.positions_df is None:
-        print("Waiting on Positions")
-        time.sleep(1)
+    waitForData(app, 'portfolio')
     print('POSITIONS:')
     print(app.positions_df)
 
-    while app.orders_df is None:
-        print("Waiting on Open Orders")
-        time.sleep(1)
+    waitForData(app, 'orders')
     print('ORDERS:')
     print(app.orders_df)
 
@@ -650,7 +643,7 @@ if __name__ == '__main__':
 '''
 - Current:
     - Speed up fundamental data request for quicker factor sort/alpha within factor
-        - Need a dict of reqId and its corresponding fundamental data
+        - Need a dict of reqId and its corresponding fundamental data for multithreaded approach
     - DCF impl
     - Backtester
         - follow logic of open sourced one
@@ -661,10 +654,6 @@ if __name__ == '__main__':
 
 
 - Enhancements
-    - setup while loop limits (e.g. 10 iterations)
-        - print tickers at end that gave us an issue
-        - if hit IB request limit, then wait some seconds and try again
-        - smartly solve when stuck in loops
     - use more threads
     - Include example outputs in README usage section
     - set stop loss mechanism
