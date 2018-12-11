@@ -42,7 +42,7 @@ def alphaInFactors(app, tickers, input_f):
         return
 
     # Remove me later!
-    tickers = tickers[:75]
+    tickers = tickers[:85]
 
     tickers, df_cache = loadCacheData(tickers, input_f, 'alpha_in_factor')
 
@@ -62,10 +62,10 @@ def alphaInFactors(app, tickers, input_f):
         if contract.symbol == 'BRK B':
             contract.symbol = 'BRK A'
         app.getPrice(contract)
-        while app.hist_data_df is None:
+        while app.contract_price is None:
             print("Waiting on price data")
             time.sleep(1)
-        contract_price = app.hist_data_df.at[0,'price']
+        contract_price = app.contract_price
         app.getFinancialData(contract, "ReportsFinStatements")
         while app.fundamental_data is None:
             print("Waiting on fundamental data")
@@ -157,11 +157,11 @@ def ratios(app, tickers):
             contract = app.createContract(ticker, "STK", currency, "SMART")
         else:
             contract = app.createContract(ticker, "STK", "USD", "SMART")
-        app.getMktData(contract)
+        app.getPrice(contract)
 
         # Get data
         while app.contract_price is None:
-            print("Waiting on Mkt data")
+            print("Waiting on price data")
             time.sleep(1)
         app.getFinancialData(contract, "ReportsFinStatements")
         while app.fundamental_data is None:
@@ -235,10 +235,10 @@ def warrants(app, ticker, warrants_out):
     app.getPrice(contract)
     app.getFinancialData(contract, "ReportsFinStatements")
 
-    while app.hist_data_df is None:
+    while app.contract_price is None:
         print('Waiting for price data')
         time.sleep(1)
-    underlying_price = float(app.hist_data_df.at[0,'price'])
+    underlying_price = float(app.contract_price)
     div = app.contract_yield
 
     # get share count
@@ -406,9 +406,10 @@ def factorSort(app, tickers, end, rank, input_f):
 
 """
 MA Cross
-    - always gets stuck ~83rd ticker (AVGO), not ticker specific, what's the issue?
+    - Fix "The contract description specified for CSCO is ambiguous" (SMART to ISLAND)
+    - histData limits: 60 req/10min?
 """
-def movingAvgCross(app, tickers, start):
+def movingAvgCross(app, tickers, start, buy):
     if tickers is None:
         print("Error: Must provide file of tickers by '-i' option")
         return
@@ -436,16 +437,18 @@ def movingAvgCross(app, tickers, start):
             # Golden Cross and not in portfolio -> buy
             if algo.movingAvgCross(app.hist_data_df) and not app.portfolioCheck(ticker):
                 print('Placing Buy Order for: ' + ticker)
-                amt = app.calcOrderSize(float(app.hist_data_df.tail(1)['price']), 1000)
-                order = ib.Order()
-                order.action = "BUY"
-                order.orderType = "MKT"
-                order.totalQuantity = amt
-                app.place_order(contract, order)
+                if buy:
+                    amt = app.calcOrderSize(float(app.hist_data_df.tail(1)['price']), 1000)
+                    order = ib.Order()
+                    order.action = "BUY"
+                    order.orderType = "MKT"
+                    order.totalQuantity = amt
+                    app.place_order(contract, order)
             # Death cross and in portfolio -> sell
             elif (app.portfolioCheck(ticker) and not algo.movingAvgCross(app.hist_data_df)):
                 print('Placing Sell Order for: ' + ticker)
-                app.sellPosition(ticker, 'STK')
+                if buy:
+                    app.sellPosition(ticker, 'STK')
             app.resetData()
 
 
@@ -500,6 +503,44 @@ def clear(app):
         app.sellAllPositions(SAVE_FILE)
 
 
+"""
+Wait for Data
+
+    A custom loop with a timeout and some checks
+
+    Input:
+        app: TestApp connected to IB
+        data: str denoting which data to wait for worker thread to update
+            'price': app.contract_price
+        timeout: How long to wait for the data before giving up
+
+    Output: Int
+        -1: App has been disconnected
+        0: Data is ready
+        1: Reached timeout
+"""
+def waitForData(app, data, timeout=5):
+    start = time.time()
+    while True:
+        if data == 'price':
+            app_data = app.contract_price
+        # elif data == '':
+
+        if app_data is not None:
+            return 0
+        if time.time()-start > timeout:
+            print('TIMEOUT: waiting for data')
+            return 1
+        if app.disconnected:
+            print("DISCONNECTED")
+            # Check for thread errors
+            if not app.thread_errors_q.empty():
+                exception = app.thread_errors_q.get()
+                print('THREAD EXCEPTION:')
+                print(exception)
+            return -1
+
+
 def main(args):
     app = ib.TestApp("127.0.0.1", args.port, clientId=1)
     print("serverVersion:%s connectionTime:%s" % (app.serverVersion(),
@@ -525,7 +566,7 @@ def main(args):
 
     if args.moving_avg:
         print('Performing Moving Avg Cross')
-        movingAvgCross(app, tickers, args.start)
+        movingAvgCross(app, tickers, args.start, args.buy)
         print("Completed MA Cross Daily Calculations")
 
     if args.factor:
@@ -561,23 +602,18 @@ def main(args):
         '''
         Temporary Option to help debug/test the API
         '''
-        contract = app.createContract('TRIP', "STK", "USD", "SMART")
-        start = time.time()
-        app.getPrice(contract)
-        while app.hist_data_df is None:
-            pass
-            # print("Waiting on price data")
-            # time.sleep(1)
-        print(app.hist_data_df.at[0,'price'])
-        print(time.time()-start)
-        start = time.time()
-        app.getMktData(contract)
-        while app.contract_price is None:
-            pass
-            # print("Waiting on price data")
-            # time.sleep(1)
-        print(app.contract_price)
-        print(time.time()-start)
+        tickers = tickers[400:]
+        for i, ticker in enumerate(tickers):
+            print(ticker)
+            print(i+1)
+            contract = app.createContract(ticker, "STK", "USD", "SMART")
+            app.getPrice(contract)
+            ret = waitForData(app, 'price')
+            if ret:
+                sys.exit()
+            print(app.contract_price)
+            app.contract_price = None
+
 
 
     print('Shutting down!')
@@ -604,6 +640,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--port', help='Port of TWS (default=7497)', default=7497, type=int)
     parser.add_argument('-t', '--ticker', help='Underlying Ticker for warrant valuation', default=None)
     parser.add_argument('-o', '--warrants_out', help='Number of warrants outstanding (in millions)', default=None, type=float)
+    parser.add_argument('--buy', help='Actually Buy/Sell for an alorithm, instead of a dry run', action='store_true')
     parser.add_argument('--test', action='store_true')
     main(parser.parse_args())
 
@@ -659,4 +696,6 @@ if __name__ == '__main__':
 
 - Notes
     - Collapse all: ctrl-k ctrl-0, open all: ctrl-k ctrl-j
+    - Ctrl-Alt-R resets the account server connection
+    - Ctrl-Alt-F resets the market data connections
 '''

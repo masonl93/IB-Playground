@@ -1,6 +1,7 @@
 import datetime
 import queue
 from threading import Thread
+import sys
 import time
 import xml.etree.ElementTree as ET
 
@@ -17,7 +18,8 @@ from ContractSamples import ContractSamples
 
 
 class TestWrapper(EWrapper):
-    pass
+    def __init__(self):
+        EWrapper.__init__(self)
 
 
 class TestClient(EClient):
@@ -31,9 +33,13 @@ class TestApp(TestWrapper, TestClient):
         TestClient.__init__(self, wrapper=self)
 
         self.connect(ip_addr, port, clientId)
+        self.ip_addr = ip_addr
+        self.my_port = port
+        self.my_clientId = clientId
 
         self.started = False
         self.nextValidOrderId = None
+        self.disconnected = False
 
         # Portfolio
         self.positions_q = queue.Queue()
@@ -43,10 +49,21 @@ class TestApp(TestWrapper, TestClient):
         self.orders_q = queue.Queue()
         self.orders_df = None
 
+        # Errors
+        self.thread_errors_q = queue.Queue()
+
         self.resetData()
 
-        thread = Thread(target=self.run)
+        thread = Thread(target=self.threadRun)
         thread.start()
+
+
+    def threadRun(self):
+        try:
+            self.run()
+        except:
+            self.thread_errors_q.put(sys.exc_info())
+
 
     def resetData(self):
         # Historical Data
@@ -78,6 +95,7 @@ class TestApp(TestWrapper, TestClient):
         super().nextValidId(orderId)
         self.nextValidOrderId = orderId
         # we can start now
+        print("NextValidID: " + str(orderId))
         self.start()
 
 
@@ -111,6 +129,7 @@ class TestApp(TestWrapper, TestClient):
     def positionMultiEnd(self, reqId: int):
         super().positionMultiEnd(reqId)
         # print("Position Multi End. Request:", reqId)
+        self.cancelPositionsMulti(reqId)
         symbols = []
         types = []
         currencies = []
@@ -208,13 +227,15 @@ class TestApp(TestWrapper, TestClient):
     @iswrapper
     def error(self, reqId, errorCode: int, errorString: str):
         # super().error(reqId, errorCode, errorString)
-        if 'farm connection is OK' not in errorString:
+        if errorCode != 2104 and errorCode != 2106:
             print("Error. Id: ", reqId, " Code: ", errorCode, " Msg: ", errorString)
 
 
     @iswrapper
     def connectionClosed(self):
         print('CONNECTION HAS CLOSED')
+        self.disconnected = True
+
 
 
     @iswrapper
@@ -241,6 +262,9 @@ class TestApp(TestWrapper, TestClient):
         #       "Price:", price, "CanAutoExecute:", attrib.canAutoExecute,
         #       "PastLimit:", attrib.pastLimit, end=' ')
         # print('Tick: Price')
+        if self.contract_price is None and price != -1 and tickType == 4:
+            self.contract_price = price
+            # self.cancelMktData(reqId)
 
 
     @iswrapper
@@ -258,8 +282,8 @@ class TestApp(TestWrapper, TestClient):
         for val in value.split(';'):
             if 'QTOTD2EQ' in val:
                 self.debt2equity = val.split('=')[1]
-            if 'NPRICE' in val:
-                self.contract_price = float(val.split('=')[1])
+            # if 'NPRICE' in val:
+            #     self.contract_price = float(val.split('=')[1])
             if 'YIELD' in val:
                 self.contract_yield = float(val.split('=')[1])/100
         if ';' in value:
@@ -304,11 +328,25 @@ class TestApp(TestWrapper, TestClient):
 
         ### Positions ###
         self.reqPositionsMulti(self.nextValidOrderId, self.account, "")
+        self.nextValidOrderId += 1
 
         ### Requesting this API client's orders (determined by clientId) ###
         self.reqOpenOrders()
 
         print("Executing requests ... finished")
+
+
+    def reconnect(self):
+        print("Attempting to reconnect")
+        self.disconnect()
+        self.started = False
+        self.connect(self.ip_addr, self.my_port, self.my_clientId)
+        #if self.isConnected()
+        if self.twsConnectionTime():
+            self.disconnected = False
+            return True
+        else:
+            return False
 
 
     def get_historical_data(self, contract):
@@ -323,13 +361,15 @@ class TestApp(TestWrapper, TestClient):
 
     def getPrice(self, contract):
         '''
-        Requests daily prices for 1 day. Can be useful for getting a price instead
-        of using reqMktData() as it will be a more up to date price
+        Requests last trade price
         '''
-        queryTime = datetime.datetime.today().strftime("%Y%m%d %H:%M:%S")
-        self.reqHistoricalData(self.nextValidOrderId, contract, queryTime,
-                               "1 D", "1 day", "MIDPOINT", 1, 1, False, [])
+        if contract.currency != 'USD':
+            self.reqMarketDataType(3)
+        self.reqMktData(self.nextValidOrderId, contract, "", True, False, [])
         self.nextValidOrderId += 1
+        if contract.currency != 'USD':
+            # Go back to live/frozen
+            self.reqMarketDataType(2)
 
 
     def findContracts(self, sybmol):
@@ -426,9 +466,13 @@ class TestApp(TestWrapper, TestClient):
         # Ratios
         # Switch to live (1) frozen (2) delayed (3) delayed frozen (4).
         # MarketDataTypeEnum.DELAYED
-        self.reqMarketDataType(data_type)
+        if contract.currency != 'USD':
+            self.reqMarketDataType(data_type)
         self.reqMktData(self.nextValidOrderId, contract, "258", False, False, [])
         self.nextValidOrderId += 1
+        if contract.currency != 'USD':
+            # Go back to live/frozen
+            self.reqMarketDataType(2)
 
 
     def getFinancialData(self, contract, data_type):
