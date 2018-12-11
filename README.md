@@ -15,13 +15,15 @@ A platform to automate trading through Interactive Brokers using their python AP
 ## Setup
 1. Create virtualenv (Optional)
 2. Install TWS API client  
-`$ cd <dir of TWS API installation>/source/pythonclient`
+`$ cd <dir of TWS API installation>/source/pythonclient`  
+In this directory, replace client.py with the client.py in this repo. This updated version has removed a timeout that was causing uneccessary disconnections. After that, install ibapi by running:  
 `$ python setup.py install`
-3. Install other requirements  
+3. Return to this git repo and install other requirements  
 `$ pip install -r requirements.txt`
 4. Follow Interactive Brokers instructions on how to setup TWS and API connections. Ensure the port specified in TWS matches the port used in the code. The port can be specified with the '-p' option.
 You can find the port in TWS by File->Global Config->API->Settings  
-Highly recommended to use in a paper account!
+Highly recommended to use in a paper account!  
+TODO: Add instructions to include client.py (copy to ibapi dir and setup.py install)
 
 ## Usage
 Run the script (displaying input options):  
