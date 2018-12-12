@@ -523,13 +523,15 @@ class TestApp(TestWrapper, TestClient):
                     time.sleep(1)
 
 
-    def parseFinancials(self, data, quarterly=False, ttm=False):
+    def parseFinancials(self, data, quarterly=False):
         '''
         Parses Financial Data
 
         See sample_financialStatement.xml for coaCodes and their corresponding values
         Input:
             data as xml string returned from IB's reqFundamentalData
+            quarterly: if True, then will return last four qtrs of data,
+                       else returns latest and previous annual reports
         '''
 
         # Only initialize non-mandatory values to 0
@@ -540,30 +542,35 @@ class TestApp(TestWrapper, TestClient):
         tree = ET.fromstring(data)
         financial_statements = tree.find('FinancialStatements')
         if len(financial_statements) == 0:
+            print('Financial Statements missing or not in correct format')
             return None, None
 
         # financial_statements = [coaMap, annuals, interims]
-        # TODO: Check xml report <Source> and ensure not type "PRESS",
-        # then remove share count check below (example see: AZO)
-        reports = financial_statements[1]
+        # We want to use a 10-K or 10-Q, no 8-K or PRESS reports
+        latest = None
+        prev = None
         if quarterly:
+            two_qtr_ago = None
+            three_qtr_ago = None
             reports = financial_statements[2]
-            two_qtr_ago = reports[2]
-            three_qtr_ago = reports[3]
-        latest = reports[0]
-        prev = reports[1]
-
-        if latest.find('.//lineItem[@coaCode="QTCO"]') != None:
-            latest_val['shares'] = float(latest.find('.//lineItem[@coaCode="QTCO"]').text)
-        # Latest report doesn't have share count. Let's check previous report to see if it has it
-        # If it does, then the first report is probably a PRESS report and missing lots
-        elif prev.find('.//lineItem[@coaCode="QTCO"]') != None:
-            # Update which reports we look at
-            if quarterly:
-                two_qtr_ago = reports[3]
-                three_qtr_ago = reports[4]
-            latest = reports[1]
-            prev = reports[2]
+            for r in reports:
+                if r.find(".//Source").text.startswith(("10-K", "10-Q")):
+                    if latest is None:
+                        latest = r
+                    elif prev is None:
+                        prev = r
+                    elif two_qtr_ago is None:
+                        two_qtr_ago = r
+                    elif three_qtr_ago is None:
+                        three_qtr_ago = r
+        else:
+            reports = financial_statements[1]
+            for r in reports:
+                if r.find(".//Source").text.startswith(("10-K", "10-Q")):
+                    if latest is None:
+                        latest = r
+                    elif prev is None:
+                        prev = r
 
         # Pulling values from latest annual report
         if latest.find('.//lineItem[@coaCode="ATOT"]') != None:
@@ -668,7 +675,7 @@ class TestApp(TestWrapper, TestClient):
         else:
             prev_val['capex'] = 0
 
-        if ttm:
+        if quarterly:
             two_qtr = {}
             three_qtr = {}
             if two_qtr_ago.find('.//lineItem[@coaCode="SDBF"]') != None:

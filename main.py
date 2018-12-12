@@ -42,7 +42,7 @@ def alphaInFactors(app, tickers, input_f):
         return
 
     # Remove me later!
-    tickers = tickers[:100]
+    tickers = tickers[:130]
 
     tickers, df_cache = loadCacheData(tickers, input_f, 'alpha_in_factor')
 
@@ -57,7 +57,7 @@ def alphaInFactors(app, tickers, input_f):
     for ticker in tickers:
         print(ticker)
         # Get data
-        contract = app.createContract(ticker, "STK", "USD", "SMART")
+        contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
         # Need to use BRK.A instead of B for data
         if contract.symbol == 'BRK B':
             contract.symbol = 'BRK A'
@@ -66,7 +66,7 @@ def alphaInFactors(app, tickers, input_f):
         contract_price = app.contract_price
         app.getFinancialData(contract, "ReportsFinStatements")
         waitForData(app, 'fundamental')
-        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True, ttm=True)
+        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True)
         ratio = Ratio()
 
         # Numerators
@@ -139,8 +139,6 @@ def ratios(app, tickers):
     p_bvs = []
     ev_ss = []
     ev_fcfs = []
-    # tickers = tickers[7:14]
-    tickers = tickers[:14]
     # tickers = tickers[14:]
     for ticker in tickers:
         print(ticker)
@@ -157,7 +155,7 @@ def ratios(app, tickers):
         waitForData(app, 'price')
         app.getFinancialData(contract, "ReportsFinStatements")
         waitForData(app, 'fundamental')
-        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True, ttm=True)
+        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True)
         ratio = Ratio()
 
         # Numerators
@@ -391,7 +389,6 @@ def factorSort(app, tickers, end, rank, input_f):
 
 """
 MA Cross
-    - Fix "The contract description specified for CSCO is ambiguous" (SMART to ISLAND)
     - histData limits: 60 req/10min?
 """
 def movingAvgCross(app, tickers, start, buy):
@@ -405,8 +402,7 @@ def movingAvgCross(app, tickers, start, buy):
     if ISSUE_TICKERS:
         tickers = [x for x in tickers if x not in ISSUE_TICKERS]
 
-    # contract = app.createContract(None, "STK", "USD", "SMART", "ISLAND")
-    contract = app.createContract(None, "STK", "USD", "SMART")
+    contract = app.createContract(None, "STK", "USD", "SMART", "ISLAND")
 
     for ticker in tickers:
         contract.symbol = ticker
@@ -582,9 +578,9 @@ def main(args):
         print('Warrant Valuation Completed')
 
     if args.ratios:
-        print('Calculating Multiples')
+        print('Calculating Ratios')
         ratios(app, tickers)
-        print('Calculating Multiples Completed')
+        print('Calculating Ratios Completed')
 
     if args.factor_alpha:
         print('Performing Alpha within Factors')
@@ -595,17 +591,11 @@ def main(args):
         '''
         Temporary Option to help debug/test the API
         '''
-        tickers = tickers[400:]
-        for i, ticker in enumerate(tickers):
-            print(ticker)
-            print(i+1)
-            contract = app.createContract(ticker, "STK", "USD", "SMART")
-            app.getPrice(contract)
-            ret = waitForData(app, 'price')
-            if ret:
-                sys.exit()
-            print(app.contract_price)
-            app.contract_price = None
+        contract = app.createContract('AZO', "STK", "USD", "SMART", "ISLAND")
+        app.getFinancialData(contract, "ReportsFinStatements")
+        waitForData(app, 'fundamental')
+        app.parseFinancials(app.fundamental_data)
+        # print(app.fundamental_data)
 
 
 
@@ -651,6 +641,8 @@ if __name__ == '__main__':
     - tests
     - Set up sql lite db to store fundamental data?
       Need to update every 3 months and gets over 60 request per min limit
+    - Reorg IB code to match the ib_threaded gist
+        - https://gist.github.com/erdewit/0c01c754defe7cca129b949600be2e52
 
 
 - Enhancements
@@ -682,6 +674,8 @@ if __name__ == '__main__':
         - Use screener to find similar companies to do a relative valuation on. Something similar to Aswath's
           videos of finding mismatches i.e. ROE over the median but book value under the median would be cheap.
           Can apply to all the various multiples and their drivers
+    - Ideas from TWS API group: https://groups.io/g/twsapi/topics
+        - https://groups.io/g/twsapi/topic/can_algorithmic_trading_be/28672441
 
 - Notes
     - Collapse all: ctrl-k ctrl-0, open all: ctrl-k ctrl-j
