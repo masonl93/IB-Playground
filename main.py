@@ -42,17 +42,23 @@ def alphaInFactors(app, tickers, input_f):
         return
 
     # Remove me later!
-    tickers = tickers[:130]
+    tickers = tickers[:20]
 
     tickers, df_cache = loadCacheData(tickers, input_f, 'alpha_in_factor')
 
+    prices = []
     mkt_caps = []
     enterprise_vals = []
+    dividends = []
     p_es = []
     ev_ebitdas = []
-    # p_bvs = []
     ev_ss = []
     ev_fcfs = []
+    noas = []
+    eps = []
+    debt_to_equities = []
+    factors = Factors()
+
 
     for ticker in tickers:
         print(ticker)
@@ -67,6 +73,12 @@ def alphaInFactors(app, tickers, input_f):
         app.getFinancialData(contract, "ReportsFinStatements")
         waitForData(app, 'fundamental')
         qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True)
+        # Getting annual reports also
+        latest_val, prev_val = app.parseFinancials(app.fundamental_data)
+
+        # Get last two qtrs dividends
+        div = qtr1['dividend'] + qtr2['dividend']
+
         ratio = Ratio()
 
         # Numerators
@@ -78,26 +90,42 @@ def alphaInFactors(app, tickers, input_f):
         # EV/EBITDA
         ev_ebitda = ratio.getEV_EBITDA(ev, qtr1, qtr2, qtr3, qtr4)
 
-        # # P/B
-        # p_b = ratio.getP_B(contract_price, qtr1)
-
         # EV/S
         ev_s = ratio.getEV_S(ev, qtr1, qtr2, qtr3, qtr4)
 
         # EV/FCF
         ev_fcf = ratio.getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4)
 
+        # Change in Net Operating Assets (1yr) - Earnings Quality
+        noa = factors.calcNOA(latest_val)
+        noa_prev = factors.calcNOA(prev_val)
+        if noa is None or noa_prev is None:
+            change_noa = "Error"
+        else:
+            change_noa = (noa - noa_prev)/noa_prev
+
+        # Earnings Growth (1yr)
+        eps_change = (latest_val['eps'] - prev_val['eps'])/prev_val['eps']
+
+        # Leverage
+        debt_to_equity = factors.calcDebtToEquity(qtr1)
+
         mkt_caps.append(mkt_cap)
         enterprise_vals.append(ev)
         p_es.append(p_e)
         ev_ebitdas.append(ev_ebitda)
-        # p_bvs.append(p_b)
         ev_ss.append(ev_s)
         ev_fcfs.append(ev_fcf)
+        noas.append(change_noa)
+        prices.append(app.contract_price)
+        dividends.append(div)
+        eps.append(eps_change)
+        debt_to_equities.append(debt_to_equity)
         app.resetData()
 
-    data = {'Symbol': tickers, 'Market Cap': mkt_caps, 'Enterprise Value': enterprise_vals,
-            'P/E': p_es, 'EV/EBITDA': ev_ebitdas, 'EV/S': ev_ss, 'EV/FCF': ev_fcfs}
+    data = {'Symbol': tickers, 'Price': prices, 'Market Cap': mkt_caps, 'Enterprise Value': enterprise_vals,
+            'Dividend': dividends, 'Change in NOA': noas, 'EPS Growth': eps,'P/E': p_es, 'EV/EBITDA': ev_ebitdas,
+            'EV/S': ev_ss, 'EV/FCF': ev_fcfs, 'Debt to Equity': debt_to_equities}
     df = pandas.DataFrame(data=data)
 
     if df_cache.empty:
@@ -110,13 +138,35 @@ def alphaInFactors(app, tickers, input_f):
     cacheData(df, input_f, 'alpha_in_factor')
 
     df = algo.compositeValueRank(df)
+    print('All stocks ranked by value score:')
     print(df)
     cutoff = int(df.shape[0]*4/5)
     df = df[:-cutoff]
-    print(df.reset_index(drop=True,))
+    df = df.reset_index(drop=True,)
+    print('Top quintile of value score:')
+    print(df)
+
+    # Value Traps
+    df['Momentum'] = None
+    df['Debt to Equity'] = None
+    # Growth and Earnings quality calculated above
+
+    for i, row in df.iterrows():
+        # Momentum - trailing 6 months return
+        contract = app.createContract(row['Symbol'], "STK", "USD", "SMART", "ISLAND")
+        app.get_historical_data(contract, "6 M")
+        waitForData(app, 'hist')
+        df.at[i, 'Momentum'] = algo.calcTotalReturn(app.hist_data_df.iloc[0]['price'], row['Price'], row['Dividend'])
+
+        # Leverage
+        # Already calculated debt to equity before ranking
+
+        #
+
+        app.resetData()
 
 
-
+    print(df)
 
 
 """
@@ -263,7 +313,6 @@ Factors
     - proof read code and add comments
     - try using quarterly reports? Depends on when we would rebalance?
     - finish going through microcap list?
-    - Use fundamental data to calc debt/equity myself, remove getMktData() call
     - ROIC Calculation
         - Stronger NIBCL calculation to include everything neccessary
         - excess cash -> dynamic required cash value. If operating losses,
@@ -280,7 +329,8 @@ def factorSort(app, tickers, end, rank, input_f):
     if end and end < len(tickers):
         tickers = tickers[0:end]
 
-    tickers, df_cache = loadCacheData(tickers, input_f, 'factors')
+    if input_f:
+        tickers, df_cache = loadCacheData(tickers, input_f, 'factors')
 
     noas = []
     debts = []
@@ -299,7 +349,6 @@ def factorSort(app, tickers, end, rank, input_f):
         else:
             contract = app.createContract(ticker, "STK", "USD", "SMART")
         app.getFinancialData(contract, "ReportsFinStatements")
-        app.getMktData(contract)
 
         waitForData(app, 'fundamental')
 
@@ -308,7 +357,7 @@ def factorSort(app, tickers, end, rank, input_f):
             change_noa = "Error"
             debt_change = "Error"
             roic = "Error"
-            app.debt2equity = "Error"
+            debt2equity = "Error"
         else:
             # Net Operating Assets
             noa = factors.calcNOA(latest_val)
@@ -330,12 +379,12 @@ def factorSort(app, tickers, end, rank, input_f):
                 roic = "Error"
 
             # Debt to Equity Ratio
-            while app.debt2equity is None:
-                print('Waiting on ratio data')
-                time.sleep(1)
+            debt2equity = factors.calcDebtToEquity(latest_val)
+            if debt2equity is None:
+                debt2equity = "Error"
 
         # Append values to lists which we will insert into our dataframe
-        debt_to_equities.append(app.debt2equity)
+        debt_to_equities.append(debt2equity)
         noas.append(change_noa)
         debts.append(debt_change)
         roics.append(roic)
@@ -352,7 +401,9 @@ def factorSort(app, tickers, end, rank, input_f):
         df = pandas.concat(frames)
         df.reset_index(drop=True, inplace=True)
         print(df)
-    cacheData(df, input_f, 'factors')
+
+    if input_f:
+        cacheData(df, input_f, 'factors')
 
     if rank:
         print('Ranked Results - Top Decile for each Factor:')
@@ -409,7 +460,7 @@ def movingAvgCross(app, tickers, start, buy):
 
         # Only process if no open orders with this ticker
         if app.orders_df.empty or not app.orders_df['symbol'].str.contains(ticker).any():
-            app.get_historical_data(contract)
+            app.get_historical_data(contract, "1 Y")
 
             print("Symbol: " + ticker)
             waitForData(app, 'hist')
@@ -518,6 +569,8 @@ def waitForData(app, data, timeout=5):
             app_data = app.fundamental_data
         elif data == 'contract':
             app_data = app.contract_details_flag
+        elif data == 'debt2equity':
+            app_data = app.debt2equity
 
         if app_data is not None:
             return 0
@@ -552,6 +605,8 @@ def main(args):
     tickers = None
     if args.input:
         tickers = loadTickers(args.input)
+    elif args.ticker:
+        tickers = [args.ticker]
 
     if args.moving_avg:
         print('Performing Moving Avg Cross')
@@ -591,12 +646,20 @@ def main(args):
         '''
         Temporary Option to help debug/test the API
         '''
-        contract = app.createContract('AZO', "STK", "USD", "SMART", "ISLAND")
+        contract = app.createContract('F', "STK", "USD", "SMART", "ISLAND")
+        app.getPrice(contract)
+        waitForData(app, 'price')
+        print(app.contract_price)
+
         app.getFinancialData(contract, "ReportsFinStatements")
         waitForData(app, 'fundamental')
-        app.parseFinancials(app.fundamental_data)
-        # print(app.fundamental_data)
+        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True)
 
+        app.get_historical_data(contract, "6 M")
+        waitForData(app, 'hist')
+        print(app.hist_data_df.iloc[0]['price'])
+        totalReturn = algo.calcTotalReturn(app.hist_data_df.iloc[0]['price'], app.contract_price, qtr1['dividend']+qtr2['dividend'])
+        print(totalReturn)
 
 
     print('Shutting down!')
@@ -639,10 +702,11 @@ if __name__ == '__main__':
         - follow logic of open sourced one
         - Only do if we can get sufficient data to use
     - tests
-    - Set up sql lite db to store fundamental data?
-      Need to update every 3 months and gets over 60 request per min limit
     - Reorg IB code to match the ib_threaded gist
         - https://gist.github.com/erdewit/0c01c754defe7cca129b949600be2e52
+    - Use fundamental data to calc debt/equity myself, remove getMktData() calls
+    - WWOWS - incorporate accounting ratios, earnings quality composite, value factor composites
+        - Instead of shorting the bottom deciles, do put options?
 
 
 - Enhancements
@@ -656,6 +720,10 @@ if __name__ == '__main__':
           so when we sell, we know how many to sell and multiple algo's don't get
           mixed up
     - More elegant parseFinancials function
+    - Make classes into normal functions if not using member vars i.e. Factors()
+    - Set up sql lite db to store fundamental data?
+        - Need to update every 3 months and gets over 60 request per min limit
+    - Hook in tableu or kibana for data visualizations
 
 
 - Possible Strategies:

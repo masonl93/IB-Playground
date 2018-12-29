@@ -19,6 +19,10 @@ def movingAvgCross(df):
         return False
 
 
+def calcTotalReturn(start, end, dividends):
+    return (end - start + dividends)/start
+
+
 def compositeValueRank(df):
     '''
     Ranks a pandas.dataframe by Composite Value
@@ -183,4 +187,18 @@ class Factors():
         else:
             print('Cannot calc ROIC. Missing values:')
             print(set(roic_vars).difference(data))
+            return None
+
+
+    def calcDebtToEquity(self, data):
+        '''
+        Calculating Debt to Equity Ratio
+        debt_to_equity = total liabilites / total equity
+
+        Alternatives: Can use reqMktData with tick type 258 to get IB's version of debt to equity
+        or could use total debt instead of total liabilities
+        '''
+        if data['total_liabilities'] and data['total_equity']:
+            return (data['total_liabilities']/data['total_equity'])
+        else:
             return None

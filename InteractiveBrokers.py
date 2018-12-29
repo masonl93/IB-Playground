@@ -349,13 +349,16 @@ class TestApp(TestWrapper, TestClient):
             return False
 
 
-    def get_historical_data(self, contract):
+    def get_historical_data(self, contract, duration):
         '''
-        Requests daily prices for 1 year back from today
+        Requests historical daily prices
+
+          Input:
+            duration: Duration string e.g. "1 Y", "6 M", "3 D", etc
         '''
         queryTime = datetime.datetime.today().strftime("%Y%m%d %H:%M:%S")
         self.reqHistoricalData(self.nextValidOrderId, contract, queryTime,
-                               "1 Y", "1 day", "MIDPOINT", 1, 1, False, [])
+                               duration, "1 day", "MIDPOINT", 1, 1, False, [])
         self.nextValidOrderId += 1
 
 
@@ -462,13 +465,13 @@ class TestApp(TestWrapper, TestClient):
         return matching_ticker_df[matching_ticker_df['secType'].str.match("^STK$")]
 
 
-    def getMktData(self, contract, data_type=3):
+    def getMktData(self, contract, tick, data_type=3):
         # Ratios
         # Switch to live (1) frozen (2) delayed (3) delayed frozen (4).
         # MarketDataTypeEnum.DELAYED
         if contract.currency != 'USD':
             self.reqMarketDataType(data_type)
-        self.reqMktData(self.nextValidOrderId, contract, "258", False, False, [])
+        self.reqMktData(self.nextValidOrderId, contract, tick, False, False, [])
         self.nextValidOrderId += 1
         if contract.currency != 'USD':
             # Go back to live/frozen
@@ -554,7 +557,7 @@ class TestApp(TestWrapper, TestClient):
             three_qtr_ago = None
             reports = financial_statements[2]
             for r in reports:
-                if r.find(".//Source").text.startswith(("10-K", "10-Q")):
+                if r.find(".//Source").text.startswith(("10-K", "10-Q", "ARS")):
                     if latest is None:
                         latest = r
                     elif prev is None:
@@ -566,7 +569,7 @@ class TestApp(TestWrapper, TestClient):
         else:
             reports = financial_statements[1]
             for r in reports:
-                if r.find(".//Source").text.startswith(("10-K", "10-Q")):
+                if r.find(".//Source").text.startswith(("10-K", "10-Q", "ARS")):
                     if latest is None:
                         latest = r
                     elif prev is None:
@@ -637,6 +640,10 @@ class TestApp(TestWrapper, TestClient):
             latest_val['capex'] = float(latest.find('.//lineItem[@coaCode="SCEX"]').text)
         else:
             latest_val['capex'] = 0
+        if latest.find('.//lineItem[@coaCode="DDPS1"]') != None:
+            latest_val['dividend'] = float(latest.find('.//lineItem[@coaCode="DDPS1"]').text)
+        else:
+             latest_val['dividend'] = 0
 
 
         # Pulling values from previous report
@@ -674,6 +681,10 @@ class TestApp(TestWrapper, TestClient):
             prev_val['capex'] = float(prev.find('.//lineItem[@coaCode="SCEX"]').text)
         else:
             prev_val['capex'] = 0
+        if prev.find('.//lineItem[@coaCode="DDPS1"]') != None:
+            prev_val['dividend'] = float(prev.find('.//lineItem[@coaCode="DDPS1"]').text)
+        else:
+             prev_val['dividend'] = 0
 
         if quarterly:
             two_qtr = {}
@@ -698,6 +709,10 @@ class TestApp(TestWrapper, TestClient):
                 two_qtr['capex'] = float(two_qtr_ago.find('.//lineItem[@coaCode="SCEX"]').text)
             else:
                 two_qtr['capex'] = 0
+            if two_qtr_ago.find('.//lineItem[@coaCode="DDPS1"]') != None:
+                two_qtr['dividend'] = float(two_qtr_ago.find('.//lineItem[@coaCode="DDPS1"]').text)
+            else:
+                two_qtr['dividend'] = 0
 
             if three_qtr_ago.find('.//lineItem[@coaCode="SDBF"]') != None:
                 three_qtr['eps'] = float(three_qtr_ago.find('.//lineItem[@coaCode="SDBF"]').text)
@@ -719,6 +734,10 @@ class TestApp(TestWrapper, TestClient):
                 three_qtr['capex'] = float(three_qtr_ago.find('.//lineItem[@coaCode="SCEX"]').text)
             else:
                 three_qtr['capex'] = 0
+            if three_qtr_ago.find('.//lineItem[@coaCode="DDPS1"]') != None:
+                three_qtr['dividend'] = float(three_qtr_ago.find('.//lineItem[@coaCode="DDPS1"]').text)
+            else:
+                three_qtr['dividend'] = 0
 
             return latest_val, prev_val, two_qtr, three_qtr
 

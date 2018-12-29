@@ -23,7 +23,6 @@ In this directory, replace client.py with the client.py in this repo. This updat
 4. Follow Interactive Brokers instructions on how to setup TWS and API connections. Ensure the port specified in TWS matches the port used in the code. The port can be specified with the '-p' option.
 You can find the port in TWS by File->Global Config->API->Settings  
 Highly recommended to use in a paper account!  
-TODO: Add instructions to include client.py (copy to ibapi dir and setup.py install)
 
 ## Usage
 Run the script (displaying input options):  
@@ -61,8 +60,8 @@ In order to accomplish this, there will be three steps:
   - EV/EBITDA
   - EV/FCF 
   - EV/S  
-Then form a composite score, where a stock in lowest 1% of P/E, will receive rank of 100. If in highest 1%, will receive rank of 1. If missing a score, then assign score of 50. Repeat this for each factor and then add the scores up and take a simple average for the final Value Score. Lastly, we will take the top quintile stocks based off the value score as our starting point.  
-2) 
+Then form a composite score, where a stock in lowest 1% of P/E, will receive rank of 100. If in highest 1%, will receive rank of 1. If missing a score, then assign score of 50. Repeat this for each factor and then add the scores up and take a simple average for the final Value Score. Lastly, we will take the top quintile stocks based off the value score as our starting point. So if we are using the SP500 as an example, we now have 100 stocks with the highest value score.
+2) Next we want to attempt to remove value traps.
 
 ### Moving Average Cross
 Using the SP500 stocks, buy shares when the 50-day moving average crosses the 200-day moving average (golden cross) and sell the shares when 200-day moving average crosses the 50-day moving average (death cross)
