@@ -107,98 +107,94 @@ def compositeValueRank(df):
 
 
 
-class Factors():
-    def __init__(self):
-        pass
+
+def calcNOA(data):
+    '''
+    Calculating Net Opearating Assets
+    NOA = OA - OL
+    operating assets = total assets - Cash and Short Term Investments
+    operating liabilites = total liabilities - Total debt
+
+    Input:
+        dict containing necessary keys for computing (see noa_vars)
+    Output:
+        None if data is missing keys needed to compute NOA
+        else NOA as a float
+    '''
+    noa_vars = ['total_assets', 'cash', 'total_liabilities', 'total_debt']
+
+    if data and all(var in data for var in noa_vars):
+        return (data['total_assets'] - data['cash'] -
+                    data['total_liabilities'] - data['total_debt'])
+    else:
+        return None
 
 
-    def calcNOA(self, data):
-        '''
-        Calculating Net Opearating Assets
-        NOA = OA - OL
-        operating assets = total assets - Cash and Short Term Investments
-        operating liabilites = total liabilities - Total debt
+def calcDebtChange(debt, prev_debt):
+    '''
+    Calculates the change between two periods of debt
 
-        Input:
-            dict containing necessary keys for computing (see noa_vars)
-        Output:
-            None if data is missing keys needed to compute NOA
-            else NOA as a float
-        '''
-        noa_vars = ['total_assets', 'cash', 'total_liabilities', 'total_debt']
-
-        if all(var in data for var in noa_vars):
-            return (data['total_assets'] - data['cash'] -
-                     data['total_liabilities'] - data['total_debt'])
+    Output:
+        If previous debt is 0 and current debt is > 0, then we
+        return "Divide by Zero" as a string
+        Else return a float
+    '''
+    if prev_debt == 0:
+        if debt != 0:
+            return "Divide by Zero"
         else:
-            return None
+            return 0
+    else:
+        return ((debt - prev_debt)/prev_debt)
 
 
-    def calcDebtChange(self, debt, prev_debt):
-        '''
-        Calculates the change between two periods of debt
+def calcROIC(data):
+    '''
+    Calculating ROIC
+    ROIC = NOPAT/IC
+    NOPAT = Operating Profit * (1-tax_rate)
+    Tax_rate = income taxes/net income before taxes
+    IC = Total Assets - Non-interest bearing current liabilities - Excess cash
+    NIBCL = accounts payable + accrued expenses + other current liabilities +
+            accrued/payable + deferred income
+    Excess cash = Cash & Equivalents - required_cash
+    required_cash = .025*revenue
 
-        Output:
-            If previous debt is 0 and current debt is > 0, then we
-            return "Divide by Zero" as a string
-            Else return a float
-        '''
-        if prev_debt == 0:
-            if debt != 0:
-                return "Divide by Zero"
-            else:
-                return 0
+    Input:
+        dict containing necessary keys for computing (see roic_vars)
+    Output:
+        None if data is missing keys needed to compute ROIC
+        else ROIC as a float
+    '''
+    roic_vars = ['operating_profit', 'income_b4_taxes', 'total_assets', 'cash', 'revenue']
+
+    if all(var in data for var in roic_vars):
+        if 'taxes' in data:
+            tax_rate = data['taxes']/data['income_b4_taxes']
+            nopat = data['operating_profit']*(1-tax_rate)
         else:
-            return ((debt - prev_debt)/prev_debt)
+            nopat = data['operating_profit']
+        # TODO: Make this calculation smarter
+        excess_cash = data['cash'] - .025*data['revenue']
+        nibcl = (data['acct_payable'] + data['accrued_expense'] +
+                    data['others'] + data['payable'] + data['deferred'])
+        invested_cap = data['total_assets'] - nibcl - excess_cash
+        return (nopat/invested_cap)
+    else:
+        print('Cannot calc ROIC. Missing values:')
+        print(set(roic_vars).difference(data))
+        return None
 
 
-    def calcROIC(self, data):
-        '''
-        Calculating ROIC
-        ROIC = NOPAT/IC
-        NOPAT = Operating Profit * (1-tax_rate)
-        Tax_rate = income taxes/net income before taxes
-        IC = Total Assets - Non-interest bearing current liabilities - Excess cash
-        NIBCL = accounts payable + accrued expenses + other current liabilities +
-                accrued/payable + deferred income
-        Excess cash = Cash & Equivalents - required_cash
-        required_cash = .025*revenue
+def calcDebtToEquity(data):
+    '''
+    Calculating Debt to Equity Ratio
+    debt_to_equity = total liabilites / total equity
 
-        Input:
-            dict containing necessary keys for computing (see roic_vars)
-        Output:
-            None if data is missing keys needed to compute ROIC
-            else ROIC as a float
-        '''
-        roic_vars = ['operating_profit', 'income_b4_taxes', 'total_assets', 'cash', 'revenue']
-
-        if all(var in data for var in roic_vars):
-            if 'taxes' in data:
-                tax_rate = data['taxes']/data['income_b4_taxes']
-                nopat = data['operating_profit']*(1-tax_rate)
-            else:
-                nopat = data['operating_profit']
-            # TODO: Make this calculation smarter
-            excess_cash = data['cash'] - .025*data['revenue']
-            nibcl = (data['acct_payable'] + data['accrued_expense'] +
-                        data['others'] + data['payable'] + data['deferred'])
-            invested_cap = data['total_assets'] - nibcl - excess_cash
-            return (nopat/invested_cap)
-        else:
-            print('Cannot calc ROIC. Missing values:')
-            print(set(roic_vars).difference(data))
-            return None
-
-
-    def calcDebtToEquity(self, data):
-        '''
-        Calculating Debt to Equity Ratio
-        debt_to_equity = total liabilites / total equity
-
-        Alternatives: Can use reqMktData with tick type 258 to get IB's version of debt to equity
-        or could use total debt instead of total liabilities
-        '''
-        if data['total_liabilities'] and data['total_equity']:
-            return (data['total_liabilities']/data['total_equity'])
-        else:
-            return None
+    Alternatives: Can use reqMktData with tick type 258 to get IB's version of debt to equity
+    or could use total debt instead of total liabilities
+    '''
+    if data['total_liabilities'] and data['total_equity']:
+        return (data['total_liabilities']/data['total_equity'])
+    else:
+        return None
