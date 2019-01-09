@@ -62,6 +62,13 @@ In order to accomplish this, there will be three steps:
   - EV/S  
 Then form a composite score, where a stock in lowest 1% of P/E, will receive rank of 100. If in highest 1%, will receive rank of 1. If missing a score, then assign score of 50. Repeat this for each factor and then add the scores up and take a simple average for the final Value Score. Lastly, we will take the top quintile stocks based off the value score as our starting point. So if we are using the SP500 as an example, we now have 100 stocks with the highest value score.
 2) Next we want to attempt to remove value traps.
+Remove value traps: Remove the bottom decile for each scoring:
+        - Momentum: trailing 6-months total return (higher is better)
+        - Growth: 1yr change in earnings (higher is better)
+        - Earnings quality: change in NOA
+        - Financial Strength: measure of leverage (lower is better), debt to equity
+3) Select the best
+  - Select the top half based on the value score, equally weighted.
 
 ### Moving Average Cross
 Using the SP500 stocks, buy shares when the 50-day moving average crosses the 200-day moving average (golden cross) and sell the shares when 200-day moving average crosses the 50-day moving average (death cross)

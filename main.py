@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import pathlib
+import queue
 import sys
 import time
 import xml.etree.ElementTree as ET
@@ -9,43 +10,32 @@ import pandas
 
 import InteractiveBrokers as ib
 import Algorithms as algo
-from Algorithms import Factors
 from Ratios import Ratio
 from ContractSamples import ContractSamples
 from Black_Scholes import BlackScholes
 
-# Constants
 
+# Constants
 SAVE_FILE = 'save_from_sell.txt'
 
-# MA Cross
-ISSUE_TICKERS = []
 
 
 """
 Alpha within Factors
-    - better FCF calculation (see Ratios comments)
-    2) Remove value traps: Remove the bottom decile for each scoring:
-        - Momentum: trailing 6-months total return (higher is better)
-        - Growth: trailing change in earnings (higher is better)
-        - Earnings quality: measure of accruals (lower is better), Using change in NOA since we have it,
-            could also use acruals-to-assets.
-        - Financial Strength: measure of leverage (lower is better), debt to equity and/or change in debt?
-    3) Select the best
-        - Select the top half, equally weighted.
-    Run on SP500? Would rebalance once a year. Could try in different spaces i.e. microcap where factors are
-    more pronounced.
 """
 def alphaInFactors(app, tickers, input_f):
+    start = time.time()
     if tickers is None:
         print("Error: Must provide file of tickers by '-i' option")
         return
 
     # Remove me later!
-    tickers = tickers[:20]
+    # tickers = tickers[:100]
 
-    tickers, df_cache = loadCacheData(tickers, input_f, 'alpha_in_factor')
+    # tickers, df_cache = loadCacheData(tickers, input_f, 'alpha_in_factor')
 
+    ticker_data = {}
+    issue_tickers = {}
     prices = []
     mkt_caps = []
     enterprise_vals = []
@@ -57,85 +47,147 @@ def alphaInFactors(app, tickers, input_f):
     noas = []
     eps = []
     debt_to_equities = []
-    factors = Factors()
 
+    # Max number of requests that can be made per second for reqmktdata = 100
+    tickers_chunked = chunkTickers(tickers, 100)
 
-    for ticker in tickers:
-        print(ticker)
-        # Get data
-        contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
-        # Need to use BRK.A instead of B for data
-        if contract.symbol == 'BRK B':
-            contract.symbol = 'BRK A'
-        app.getPrice(contract)
-        waitForData(app, 'price')
-        contract_price = app.contract_price
-        app.getFinancialData(contract, "ReportsFinStatements")
-        waitForData(app, 'fundamental')
-        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True)
-        # Getting annual reports also
-        latest_val, prev_val = app.parseFinancials(app.fundamental_data)
+    # Request price data for all symbols
+    for chunk in tickers_chunked:
+        for ticker in chunk:
+            print(ticker)
+            contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
+            app.getPrice(contract)
+        time.sleep(1)
 
-        # Get last two qtrs dividends
-        div = qtr1['dividend'] + qtr2['dividend']
+    # Process Price data
+    ticker_data, issue_tickers = processQueue(app.price_queue, tickers, app, q2=app.close_price_queue)
 
-        ratio = Ratio()
+    # Request fundamental data
+    tickers_chunked = chunkTickers(tickers, 2)
+    for chunk in tickers_chunked:
+        if app.slowdown:
+            print('Taking 10 second nap to hoepfully fix pacing violation')
+            time.sleep(10)
+            app.slowdown = False
+        for ticker in chunk:
+            print(ticker)
+            # Get data
+            contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
+            app.getFinancialData(contract, "ReportsFinStatements")
+        time.sleep(1)
 
-        # Numerators
-        mkt_cap, _firm_val, ev = ratio.getCompanyValues(contract_price, qtr1)
+    # Process Fundamental data
+    fund_ticker_data, data_issue_tickers = processQueue(app.fundamental_data_q, tickers, app)
 
-        # P/E
-        p_e = ratio.getP_E(contract_price, qtr1, qtr2, qtr3, qtr4)
+    # Re-request fundamental data for any tickers that gave
+    # us a pacing error
+    try_agains = []
+    for key, val in data_issue_tickers.items():
+        if 'pacing violation' in val:
+            try_agains.append(key)
+    if try_agains:
+        print('Retrying some tickers due to pacing violations')
+        tickers_chunked = chunkTickers(try_agains, 2)
+        for chunk in tickers_chunked:
+            if app.slowdown:
+                print('Taking 10 second nap to hoepfully fix pacing violation')
+                time.sleep(10)
+                app.slowdown = False
+            for ticker in chunk:
+                print(ticker)
+                contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
+                app.getFinancialData(contract, "ReportsFinStatements")
+            time.sleep(1)
+        try_again_data, try_again_issues = processQueue(app.fundamental_data_q, try_agains, app)
 
-        # EV/EBITDA
-        ev_ebitda = ratio.getEV_EBITDA(ev, qtr1, qtr2, qtr3, qtr4)
+        # Update our two lists
+        for key, val in try_again_data.items():
+            fund_ticker_data[key] = val
+            del data_issue_tickers[key]
+        for key, val in try_again_issues.items():
+            if val != data_issue_tickers[key]:
+                data_issue_tickers[key] = val
 
-        # EV/S
-        ev_s = ratio.getEV_S(ev, qtr1, qtr2, qtr3, qtr4)
-
-        # EV/FCF
-        ev_fcf = ratio.getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4)
-
-        # Change in Net Operating Assets (1yr) - Earnings Quality
-        noa = factors.calcNOA(latest_val)
-        noa_prev = factors.calcNOA(prev_val)
-        if noa is None or noa_prev is None:
-            change_noa = "Error"
+    # Create our dataframe with price and fundamental data
+    symbols = []
+    prices = []
+    datas = []
+    for key, val in ticker_data.items():
+        symbols.append(key)
+        prices.append(ticker_data[key])
+        if key in fund_ticker_data:
+            datas.append(fund_ticker_data[key])
         else:
-            change_noa = (noa - noa_prev)/noa_prev
+            datas.append(None)
+    data = {'Symbol': symbols, 'Price': prices, 'Data': datas, 'Market Cap': None, 'Enterprise Value': None,
+            'Dividend': None, 'Momentum': None, 'Change in NOA': None, 'EPS Growth': None,'P/E': None, 'EV/EBITDA': None,
+            'EV/S': None, 'EV/FCF': None, 'Debt to Equity': None}
+    df = pandas.DataFrame(data=data).dropna(subset=['Price', 'Data'])
+    print("Price Data:")
+    print(df)
 
-        # Earnings Growth (1yr)
-        eps_change = (latest_val['eps'] - prev_val['eps'])/prev_val['eps']
+    # Loop through dataframe and update specific values
+    for i, row in df.iterrows():
+        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(row['Data'], quarterly=True)
+        # Getting annual reports also
+        latest_val, prev_val = app.parseFinancials(row['Data'])
+        if qtr1:
+            try:
+                df.at[i, 'Dividend'] = qtr1['dividend'] + qtr2['dividend']
+            except:
+                pass
 
-        # Leverage
-        debt_to_equity = factors.calcDebtToEquity(qtr1)
+            # TODO: get rid of ratio class
+            ratio = Ratio()
 
-        mkt_caps.append(mkt_cap)
-        enterprise_vals.append(ev)
-        p_es.append(p_e)
-        ev_ebitdas.append(ev_ebitda)
-        ev_ss.append(ev_s)
-        ev_fcfs.append(ev_fcf)
-        noas.append(change_noa)
-        prices.append(app.contract_price)
-        dividends.append(div)
-        eps.append(eps_change)
-        debt_to_equities.append(debt_to_equity)
-        app.resetData()
+            # Numerators
+            df.at[i, 'Market Cap'],  _firm_val, ev = ratio.getCompanyValues(row['Price'], qtr1)
+            df.at[i, 'Enterprise Value'] = ev
 
-    data = {'Symbol': tickers, 'Price': prices, 'Market Cap': mkt_caps, 'Enterprise Value': enterprise_vals,
-            'Dividend': dividends, 'Change in NOA': noas, 'EPS Growth': eps,'P/E': p_es, 'EV/EBITDA': ev_ebitdas,
-            'EV/S': ev_ss, 'EV/FCF': ev_fcfs, 'Debt to Equity': debt_to_equities}
-    df = pandas.DataFrame(data=data)
+            # TODO: better fix when missing quarterly reports
+            # P/E
+            try:
+                df.at[i, 'P/E'] = ratio.getP_E(row['Price'], qtr1, qtr2, qtr3, qtr4)
+            except KeyError:
+                df.at[i, 'P/E'] = "N/A"
 
-    if df_cache.empty:
-        print(df)
-    else:
-        frames = [df_cache, df]
-        df = pandas.concat(frames)
-        df.reset_index(drop=True, inplace=True)
-        print(df)
-    cacheData(df, input_f, 'alpha_in_factor')
+            # EV/EBITDA
+            try:
+                df.at[i, 'EV/EBITDA'] = ratio.getEV_EBITDA(ev, qtr1, qtr2, qtr3, qtr4)
+            except KeyError:
+                df.at[i, 'EV/EBITDA'] = "N/A"
+
+            # EV/S
+            try:
+                df.at[i, 'EV/S']  = ratio.getEV_S(ev, qtr1, qtr2, qtr3, qtr4)
+            except KeyError:
+                df.at[i, 'EV/S']  = "N/A"
+
+            # EV/FCF
+            # TODO: better FCF calculation (see Ratios comments)
+            try:
+                df.at[i, 'EV/FCF']  = ratio.getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4)
+            except KeyError:
+                df.at[i, 'EV/FCF']  = "N/A"
+
+            # Change in Net Operating Assets (1yr) - Earnings Quality
+            noa = algo.calcNOA(latest_val)
+            noa_prev = algo.calcNOA(prev_val)
+            if noa is None or noa_prev is None:
+                df.at[i, 'Change in NOA'] = "Error"
+            else:
+                df.at[i, 'Change in NOA'] = (noa - noa_prev)/noa_prev
+
+            # Earnings Growth (1yr)
+            if latest_val and prev_val:
+                df.at[i, 'EPS Growth'] = (latest_val['eps'] - prev_val['eps'])/abs(prev_val['eps'])
+            else:
+                df.at[i, 'EPS Growth'] = "Error"
+
+            # Leverage
+            df.at[i, 'Debt to Equity'] = algo.calcDebtToEquity(qtr1)
+
+    print(df)
 
     df = algo.compositeValueRank(df)
     print('All stocks ranked by value score:')
@@ -147,26 +199,45 @@ def alphaInFactors(app, tickers, input_f):
     print(df)
 
     # Value Traps
-    df['Momentum'] = None
-    df['Debt to Equity'] = None
-    # Growth and Earnings quality calculated above
-
+    # Growth (eps change), Earnings quality (change in NOA), and Leverage (debt to equity) calculated above
+    # Calculating momentum here
     for i, row in df.iterrows():
         # Momentum - trailing 6 months return
         contract = app.createContract(row['Symbol'], "STK", "USD", "SMART", "ISLAND")
-        app.get_historical_data(contract, "6 M")
+        # TODO: Batch request this - fix how we store hist data
+        app.getHistoricalData(contract, "6 M")
         waitForData(app, 'hist')
         df.at[i, 'Momentum'] = algo.calcTotalReturn(app.hist_data_df.iloc[0]['price'], row['Price'], row['Dividend'])
-
-        # Leverage
-        # Already calculated debt to equity before ranking
-
-        #
-
         app.resetData()
 
+    # Sort and Remove Bottom Deciles
+    columns = ['Momentum', 'Debt to Equity', 'EPS Growth', 'Change in NOA']
+    for column in columns:
+        if df[column].dtype == 'object':
+            df = df[df[column] != 'Error']
+        if column == 'Momentum' or column == 'EPS Growth':
+            df = df.sort_values(column, ascending=False)
+        else:
+            df = df.sort_values(column)
+        cutoff = int(df.shape[0]/10)
+        if cutoff == 0:
+            cutoff = 1
+        df = df[:-cutoff]
 
+
+    df = df.sort_values('Value Score', ascending=False)
+    df = df.reset_index(drop=True,)
+    print('Final Results:')
     print(df)
+
+
+    print('Tickers missing price data: (%s)' % len(issue_tickers))
+    print(issue_tickers)
+    print('Tickers missing fundamental data: (%s)' % len(data_issue_tickers))
+    print(data_issue_tickers)
+    print("Time")
+    print(time.time()-start)
+    return
 
 
 """
@@ -360,8 +431,8 @@ def factorSort(app, tickers, end, rank, input_f):
             debt2equity = "Error"
         else:
             # Net Operating Assets
-            noa = factors.calcNOA(latest_val)
-            noa_prev = factors.calcNOA(prev_val)
+            noa = algo.calcNOA(latest_val)
+            noa_prev = algo.calcNOA(prev_val)
             if noa is None or noa_prev is None:
                 change_noa = "Error"
             else:
@@ -369,17 +440,17 @@ def factorSort(app, tickers, end, rank, input_f):
 
             # 1 year debt change
             if 'total_debt' in latest_val and 'total_debt' in prev_val:
-                debt_change = factors.calcDebtChange(latest_val['total_debt'], prev_val['total_debt'])
+                debt_change = algo.calcDebtChange(latest_val['total_debt'], prev_val['total_debt'])
             else:
                 debt_change = "Error"
 
             # ROIC
-            roic = factors.calcROIC(latest_val)
+            roic = algo.calcROIC(latest_val)
             if roic is None:
                 roic = "Error"
 
             # Debt to Equity Ratio
-            debt2equity = factors.calcDebtToEquity(latest_val)
+            debt2equity = algo.calcDebtToEquity(latest_val)
             if debt2equity is None:
                 debt2equity = "Error"
 
@@ -409,7 +480,7 @@ def factorSort(app, tickers, end, rank, input_f):
         print('Ranked Results - Top Decile for each Factor:')
 
         # debt to equity
-        df = df[df.noa_change != 'Error']
+        df = df[df.debt_to_equity != 'Error']
         df = df.sort_values('debt_to_equity')
         cutoff = int(df.shape[0]/10)
         df = df[:-cutoff]
@@ -450,8 +521,6 @@ def movingAvgCross(app, tickers, start, buy):
     if start is not None:
         start_index = tickers.index(start) + 1
         tickers = tickers[start_index:]
-    if ISSUE_TICKERS:
-        tickers = [x for x in tickers if x not in ISSUE_TICKERS]
 
     contract = app.createContract(None, "STK", "USD", "SMART", "ISLAND")
 
@@ -460,7 +529,7 @@ def movingAvgCross(app, tickers, start, buy):
 
         # Only process if no open orders with this ticker
         if app.orders_df.empty or not app.orders_df['symbol'].str.contains(ticker).any():
-            app.get_historical_data(contract, "1 Y")
+            app.getHistoricalData(contract, "1 Y")
 
             print("Symbol: " + ticker)
             waitForData(app, 'hist')
@@ -511,6 +580,60 @@ def cacheData(df, input_f, algo):
     df.to_pickle(results_file)
 
 
+"""
+TODO: update with comments
+"""
+def processQueue(q, tickers, app, q2=None):
+    data_map = {}
+    issues = {}
+
+    while True:
+        if q.empty():
+            # Once our queue is empty and we have processed all tickers
+            # we can break out of this loop
+            if (len(data_map) + len(issues) == len(tickers)):
+                break
+            elif q2 is not None:
+                # Live price data queue is empty but haven't processed all tickers
+                # Lets use last close price as maybe no shares have traded today
+                while True:
+                    try:
+                        data, reqId = q2.get(block=False)
+                        symbol = app.reqId_map[reqId]
+                        if symbol not in data_map and symbol not in issues:
+                            print("Using Backup Queue for: " + symbol)
+                            data_map[symbol] = data
+                    except queue.Empty:
+                        break
+        try:
+            # Symbol caused an error i.e. No security definition for the symbol
+            error, reqId = app.data_errors_q.get(block=False)
+            symbol = app.reqId_map[reqId]
+            print('Bad Symbol: ' + symbol)
+            print("Error: " + error)
+            issues[symbol] = error
+
+        except queue.Empty:
+            pass
+
+        try:
+            # Get data from queue
+            data, reqId = q.get(block=False)
+            symbol = app.reqId_map[reqId]
+            data_map[symbol] = data
+        except queue.Empty:
+            continue
+
+    return data_map, issues
+
+
+"""
+TODO: update with comments
+"""
+def chunkTickers(tickers, n):
+    return [tickers[i * n:(i + 1) * n] for i in range((len(tickers) + n - 1) // n )]
+
+
 def loadTickers(ticker_file):
     with open(ticker_file) as f:
         tickers = [line.rstrip('\n') for line in f]
@@ -550,6 +673,7 @@ Wait for Data
         timeout: How long to wait for the data before giving up
 
     Output: Int
+        -2: Data Error
         -1: App has been disconnected
         0: Data is ready
         1: Reached timeout
@@ -585,6 +709,8 @@ def waitForData(app, data, timeout=5):
                 print('THREAD EXCEPTION:')
                 print(exception)
             return -1
+        # if app.data_errors:
+        #     return -2
 
 
 def main(args):
@@ -646,20 +772,26 @@ def main(args):
         '''
         Temporary Option to help debug/test the API
         '''
-        contract = app.createContract('F', "STK", "USD", "SMART", "ISLAND")
-        app.getPrice(contract)
-        waitForData(app, 'price')
-        print(app.contract_price)
+        contract = app.createContract('AAPL', "STK", "USD", "SMART", "ISLAND")
+        # app.getPrice(contract)
+        # waitForData(app, 'price')
+        # print(app.contract_price)
 
-        app.getFinancialData(contract, "ReportsFinStatements")
-        waitForData(app, 'fundamental')
-        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True)
+        # app.getFinancialData(contract, "ReportsFinStatements")
+        # waitForData(app, 'fundamental')
+        # qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True)
 
-        app.get_historical_data(contract, "6 M")
-        waitForData(app, 'hist')
-        print(app.hist_data_df.iloc[0]['price'])
-        totalReturn = algo.calcTotalReturn(app.hist_data_df.iloc[0]['price'], app.contract_price, qtr1['dividend']+qtr2['dividend'])
-        print(totalReturn)
+        # app.getHistoricalData(contract, "6 M")
+        # waitForData(app, 'hist')
+        # print(app.hist_data_df.iloc[0]['price'])
+        symbols = ['a', 'b', 'c']
+        prices = [1, 2, 3]
+        datas = ['z', 'y', 'x']
+        data = {'Symbol': symbols, 'Price': prices, 'Data': datas, 'Market Cap': None, 'Enterprise Value': None,
+        'Dividend': None, 'Change in NOA': None, 'EPS Growth': None,'P/E': None, 'EV/EBITDA': None,
+        'EV/S': None, 'EV/FCF': None, 'Debt to Equity': None}
+        df = pandas.DataFrame(data)
+        print(df)
 
 
     print('Shutting down!')
@@ -704,9 +836,14 @@ if __name__ == '__main__':
     - tests
     - Reorg IB code to match the ib_threaded gist
         - https://gist.github.com/erdewit/0c01c754defe7cca129b949600be2e52
-    - Use fundamental data to calc debt/equity myself, remove getMktData() calls
     - WWOWS - incorporate accounting ratios, earnings quality composite, value factor composites
         - Instead of shorting the bottom deciles, do put options?
+    - Turn algo/functions into their own class? I.e. class Alpha_in_Factor()
+    - Everything should be bulletproof i.e. no mid run crashes - handle errors, retry/sleep when necessary, bad ticker list
+    - Move positions and orders to command line option
+    - Add to README how long sp500 takes for each alpha in factors (and other algos if applicable)
+        - Explain reqfundamentaldata takes up lots of time
+    - Remove cache data functionality. Have option to save dataframe as pickle output but thats it
 
 
 - Enhancements
@@ -720,10 +857,11 @@ if __name__ == '__main__':
           so when we sell, we know how many to sell and multiple algo's don't get
           mixed up
     - More elegant parseFinancials function
-    - Make classes into normal functions if not using member vars i.e. Factors()
     - Set up sql lite db to store fundamental data?
         - Need to update every 3 months and gets over 60 request per min limit
     - Hook in tableu or kibana for data visualizations
+    - Set up on Jupyter? Only challenge might be dealing with IB
+    - Add code layout, explanation to README
 
 
 - Possible Strategies:
