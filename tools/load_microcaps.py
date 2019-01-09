@@ -17,7 +17,7 @@ NOT_MICROCAPS = ['NTC', 'ACP', 'AGD']
 
 def concat_100_symbols(symbols):
     '''
-    Input: 
+    Input:
         symbols: list of symbols
 
     Output:
@@ -50,7 +50,7 @@ def save_microcap_tickers():
 
     for s in api_symbols:
         # Only want symbols that are type 'cs' (common stock)
-        if s['type'] == 'cs':
+        if s['type'] == 'cs' and '#' not in s['symbol']:
             symbols.append(s['symbol'])
 
     # Retrieving quote data
