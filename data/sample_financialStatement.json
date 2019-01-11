@@ -1,0 +1,3707 @@
+{
+	"ReportFinancialStatements": {
+		"@Major": "1",
+		"@Minor": "0",
+		"@Revision": "1",
+		"CoIDs": {
+			"CoID": [{
+				"@Type": "RepNo",
+				"#text": "C7ECC"
+			}, {
+				"@Type": "CompanyName",
+				"#text": "Electromed, Inc."
+			}, {
+				"@Type": "IRSNo",
+				"#text": "411732920"
+			}, {
+				"@Type": "CIKNo",
+				"#text": "0001488917"
+			}]
+		},
+		"Issues": {
+			"Issue": {
+				"@ID": "1",
+				"@Type": "C",
+				"@Desc": "Common Stock",
+				"@Order": "1",
+				"IssueID": [{
+					"@Type": "Name",
+					"#text": "Ordinary Shares"
+				}, {
+					"@Type": "Ticker",
+					"#text": "ELMD"
+				}, {
+					"@Type": "CUSIP",
+					"#text": "285409108"
+				}, {
+					"@Type": "ISIN",
+					"#text": "US2854091087"
+				}, {
+					"@Type": "RIC",
+					"#text": "ELMD.K"
+				}, {
+					"@Type": "SEDOL",
+					"#text": "B3WLLH5"
+				}, {
+					"@Type": "DisplayRIC",
+					"#text": "ELMD.A"
+				}, {
+					"@Type": "InstrumentPI",
+					"#text": "71407876"
+				}, {
+					"@Type": "QuotePI",
+					"#text": "71450358"
+				}],
+				"Exchange": {
+					"@Code": "AMEX",
+					"@Country": "USA",
+					"#text": "NYSE MKT LLC"
+				}
+			}
+		},
+		"CoGeneralInfo": {
+			"CoStatus": {
+				"@Code": "1",
+				"#text": "Active"
+			},
+			"CoType": {
+				"@Code": "EQU",
+				"#text": "Equity Issue"
+			},
+			"LastModified": "2018-09-26",
+			"LatestAvailableAnnual": "2018-06-30",
+			"LatestAvailableInterim": "2018-06-30",
+			"ReportingCurrency": {
+				"@Code": "USD",
+				"#text": "U.S. Dollars"
+			},
+			"MostRecentExchange": {
+				"@Date": "2018-09-25",
+				"#text": "1.0"
+			}
+		},
+		"StatementInfo": {
+			"COAType": {
+				"@Code": "IND",
+				"#text": "Industry"
+			},
+			"BalanceSheetDisplay": {
+				"@Code": "CUR",
+				"#text": "Differentiates"
+			},
+			"CashFlowMethod": {
+				"@Code": "IND",
+				"#text": "Indirect"
+			}
+		},
+		"Notes": {
+			"CFAAvailability": {
+				"@Code": "1"
+			},
+			"IAvailability": {
+				"@Code": "1"
+			},
+			"ISIAvailability": {
+				"@Code": "1"
+			},
+			"BSIAvailability": {
+				"@Code": "1"
+			},
+			"CFIAvailability": {
+				"@Code": "1"
+			}
+		},
+		"FinancialStatements": {
+			"COAMap": {
+				"mapItem": [{
+					"@coaItem": "SREV",
+					"@statementType": "INC",
+					"@lineID": "100",
+					"@precision": "1",
+					"#text": "Revenue"
+				}, {
+					"@coaItem": "SORE",
+					"@statementType": "INC",
+					"@lineID": "300",
+					"@precision": "1",
+					"#text": "Other Revenue, Total"
+				}, {
+					"@coaItem": "RTLR",
+					"@statementType": "INC",
+					"@lineID": "310",
+					"@precision": "1",
+					"#text": "Total Revenue"
+				}, {
+					"@coaItem": "SCOR",
+					"@statementType": "INC",
+					"@lineID": "360",
+					"@precision": "1",
+					"#text": "Cost of Revenue, Total"
+				}, {
+					"@coaItem": "SGRP",
+					"@statementType": "INC",
+					"@lineID": "370",
+					"@precision": "1",
+					"#text": "Gross Profit"
+				}, {
+					"@coaItem": "SSGA",
+					"@statementType": "INC",
+					"@lineID": "550",
+					"@precision": "1",
+					"#text": "Selling/General/Admin. Expenses, Total"
+				}, {
+					"@coaItem": "ERAD",
+					"@statementType": "INC",
+					"@lineID": "560",
+					"@precision": "1",
+					"#text": "Research & Development"
+				}, {
+					"@coaItem": "SDPR",
+					"@statementType": "INC",
+					"@lineID": "600",
+					"@precision": "1",
+					"#text": "Depreciation/Amortization"
+				}, {
+					"@coaItem": "SINN",
+					"@statementType": "INC",
+					"@lineID": "671",
+					"@precision": "1",
+					"#text": "Interest Exp.(Inc.),Net-Operating, Total"
+				}, {
+					"@coaItem": "SUIE",
+					"@statementType": "INC",
+					"@lineID": "740",
+					"@precision": "1",
+					"#text": "Unusual Expense (Income)"
+				}, {
+					"@coaItem": "SOOE",
+					"@statementType": "INC",
+					"@lineID": "820",
+					"@precision": "1",
+					"#text": "Other Operating Expenses, Total"
+				}, {
+					"@coaItem": "ETOE",
+					"@statementType": "INC",
+					"@lineID": "830",
+					"@precision": "1",
+					"#text": "Total Operating Expense"
+				}, {
+					"@coaItem": "SOPI",
+					"@statementType": "INC",
+					"@lineID": "840",
+					"@precision": "1",
+					"#text": "Operating Income"
+				}, {
+					"@coaItem": "SNIN",
+					"@statementType": "INC",
+					"@lineID": "911",
+					"@precision": "1",
+					"#text": "Interest Inc.(Exp.),Net-Non-Op., Total"
+				}, {
+					"@coaItem": "NGLA",
+					"@statementType": "INC",
+					"@lineID": "920",
+					"@precision": "1",
+					"#text": "Gain (Loss) on Sale of Assets"
+				}, {
+					"@coaItem": "SONT",
+					"@statementType": "INC",
+					"@lineID": "1270",
+					"@precision": "1",
+					"#text": "Other, Net"
+				}, {
+					"@coaItem": "EIBT",
+					"@statementType": "INC",
+					"@lineID": "1280",
+					"@precision": "1",
+					"#text": "Net Income Before Taxes"
+				}, {
+					"@coaItem": "TTAX",
+					"@statementType": "INC",
+					"@lineID": "1290",
+					"@precision": "1",
+					"#text": "Provision for Income Taxes"
+				}, {
+					"@coaItem": "TIAT",
+					"@statementType": "INC",
+					"@lineID": "1300",
+					"@precision": "1",
+					"#text": "Net Income After Taxes"
+				}, {
+					"@coaItem": "CMIN",
+					"@statementType": "INC",
+					"@lineID": "1310",
+					"@precision": "1",
+					"#text": "Minority Interest"
+				}, {
+					"@coaItem": "CEIA",
+					"@statementType": "INC",
+					"@lineID": "1320",
+					"@precision": "1",
+					"#text": "Equity In Affiliates"
+				}, {
+					"@coaItem": "CGAP",
+					"@statementType": "INC",
+					"@lineID": "1330",
+					"@precision": "1",
+					"#text": "U.S. GAAP Adjustment"
+				}, {
+					"@coaItem": "NIBX",
+					"@statementType": "INC",
+					"@lineID": "1340",
+					"@precision": "1",
+					"#text": "Net Income Before Extra. Items"
+				}, {
+					"@coaItem": "STXI",
+					"@statementType": "INC",
+					"@lineID": "1390",
+					"@precision": "1",
+					"#text": "Total Extraordinary Items"
+				}, {
+					"@coaItem": "NINC",
+					"@statementType": "INC",
+					"@lineID": "1400",
+					"@precision": "1",
+					"#text": "Net Income"
+				}, {
+					"@coaItem": "SANI",
+					"@statementType": "INC",
+					"@lineID": "1460",
+					"@precision": "1",
+					"#text": "Total Adjustments to Net Income"
+				}, {
+					"@coaItem": "CIAC",
+					"@statementType": "INC",
+					"@lineID": "1470",
+					"@precision": "1",
+					"#text": "Income Available to Com Excl ExtraOrd"
+				}, {
+					"@coaItem": "XNIC",
+					"@statementType": "INC",
+					"@lineID": "1480",
+					"@precision": "1",
+					"#text": "Income Available to Com Incl ExtraOrd"
+				}, {
+					"@coaItem": "SDAJ",
+					"@statementType": "INC",
+					"@lineID": "1520",
+					"@precision": "1",
+					"#text": "Dilution Adjustment"
+				}, {
+					"@coaItem": "SDNI",
+					"@statementType": "INC",
+					"@lineID": "1530",
+					"@precision": "1",
+					"#text": "Diluted Net Income"
+				}, {
+					"@coaItem": "SDWS",
+					"@statementType": "INC",
+					"@lineID": "1540",
+					"@precision": "2",
+					"#text": "Diluted Weighted Average Shares"
+				}, {
+					"@coaItem": "SDBF",
+					"@statementType": "INC",
+					"@lineID": "1550",
+					"@precision": "3",
+					"#text": "Diluted EPS Excluding ExtraOrd Items"
+				}, {
+					"@coaItem": "DDPS1",
+					"@statementType": "INC",
+					"@lineID": "1570",
+					"@precision": "3",
+					"#text": "DPS - Common Stock Primary Issue"
+				}, {
+					"@coaItem": "VDES",
+					"@statementType": "INC",
+					"@lineID": "1770",
+					"@precision": "3",
+					"#text": "Diluted Normalized EPS"
+				}, {
+					"@coaItem": "ACSH",
+					"@statementType": "BAL",
+					"@lineID": "10",
+					"@precision": "1",
+					"#text": "Cash"
+				}, {
+					"@coaItem": "ACAE",
+					"@statementType": "BAL",
+					"@lineID": "20",
+					"@precision": "1",
+					"#text": "Cash & Equivalents"
+				}, {
+					"@coaItem": "ASTI",
+					"@statementType": "BAL",
+					"@lineID": "30",
+					"@precision": "1",
+					"#text": "Short Term Investments"
+				}, {
+					"@coaItem": "SCSI",
+					"@statementType": "BAL",
+					"@lineID": "40",
+					"@precision": "1",
+					"#text": "Cash and Short Term Investments"
+				}, {
+					"@coaItem": "AACR",
+					"@statementType": "BAL",
+					"@lineID": "70",
+					"@precision": "1",
+					"#text": "Accounts Receivable - Trade, Net"
+				}, {
+					"@coaItem": "ATRC",
+					"@statementType": "BAL",
+					"@lineID": "100",
+					"@precision": "1",
+					"#text": "Total Receivables, Net"
+				}, {
+					"@coaItem": "AITL",
+					"@statementType": "BAL",
+					"@lineID": "180",
+					"@precision": "1",
+					"#text": "Total Inventory"
+				}, {
+					"@coaItem": "APPY",
+					"@statementType": "BAL",
+					"@lineID": "190",
+					"@precision": "1",
+					"#text": "Prepaid Expenses"
+				}, {
+					"@coaItem": "SOCA",
+					"@statementType": "BAL",
+					"@lineID": "260",
+					"@precision": "1",
+					"#text": "Other Current Assets, Total"
+				}, {
+					"@coaItem": "ATCA",
+					"@statementType": "BAL",
+					"@lineID": "270",
+					"@precision": "1",
+					"#text": "Total Current Assets"
+				}, {
+					"@coaItem": "APTC",
+					"@statementType": "BAL",
+					"@lineID": "520",
+					"@precision": "1",
+					"#text": "Property/Plant/Equipment, Total - Gross"
+				}, {
+					"@coaItem": "ADEP",
+					"@statementType": "BAL",
+					"@lineID": "530",
+					"@precision": "1",
+					"#text": "Accumulated Depreciation, Total"
+				}, {
+					"@coaItem": "APPN",
+					"@statementType": "BAL",
+					"@lineID": "540",
+					"@precision": "1",
+					"#text": "Property/Plant/Equipment, Total - Net"
+				}, {
+					"@coaItem": "AGWI",
+					"@statementType": "BAL",
+					"@lineID": "570",
+					"@precision": "1",
+					"#text": "Goodwill, Net"
+				}, {
+					"@coaItem": "AINT",
+					"@statementType": "BAL",
+					"@lineID": "600",
+					"@precision": "1",
+					"#text": "Intangibles, Net"
+				}, {
+					"@coaItem": "SINV",
+					"@statementType": "BAL",
+					"@lineID": "690",
+					"@precision": "1",
+					"#text": "Long Term Investments"
+				}, {
+					"@coaItem": "ALTR",
+					"@statementType": "BAL",
+					"@lineID": "710",
+					"@precision": "1",
+					"#text": "Note Receivable - Long Term"
+				}, {
+					"@coaItem": "SOLA",
+					"@statementType": "BAL",
+					"@lineID": "780",
+					"@precision": "1",
+					"#text": "Other Long Term Assets, Total"
+				}, {
+					"@coaItem": "ATOT",
+					"@statementType": "BAL",
+					"@lineID": "880",
+					"@precision": "1",
+					"#text": "Total Assets"
+				}, {
+					"@coaItem": "LAPB",
+					"@statementType": "BAL",
+					"@lineID": "890",
+					"@precision": "1",
+					"#text": "Accounts Payable"
+				}, {
+					"@coaItem": "LPBA",
+					"@statementType": "BAL",
+					"@lineID": "900",
+					"@precision": "1",
+					"#text": "Payable/Accrued"
+				}, {
+					"@coaItem": "LAEX",
+					"@statementType": "BAL",
+					"@lineID": "910",
+					"@precision": "1",
+					"#text": "Accrued Expenses"
+				}, {
+					"@coaItem": "LSTD",
+					"@statementType": "BAL",
+					"@lineID": "1120",
+					"@precision": "1",
+					"#text": "Notes Payable/Short Term Debt"
+				}, {
+					"@coaItem": "LCLD",
+					"@statementType": "BAL",
+					"@lineID": "1130",
+					"@precision": "1",
+					"#text": "Current Port. of  LT Debt/Capital Leases"
+				}, {
+					"@coaItem": "SOCL",
+					"@statementType": "BAL",
+					"@lineID": "1220",
+					"@precision": "1",
+					"#text": "Other Current liabilities, Total"
+				}, {
+					"@coaItem": "LTCL",
+					"@statementType": "BAL",
+					"@lineID": "1230",
+					"@precision": "1",
+					"#text": "Total Current Liabilities"
+				}, {
+					"@coaItem": "LLTD",
+					"@statementType": "BAL",
+					"@lineID": "1240",
+					"@precision": "1",
+					"#text": "Long Term Debt"
+				}, {
+					"@coaItem": "LCLO",
+					"@statementType": "BAL",
+					"@lineID": "1250",
+					"@precision": "1",
+					"#text": "Capital Lease Obligations"
+				}, {
+					"@coaItem": "LTTD",
+					"@statementType": "BAL",
+					"@lineID": "1260",
+					"@precision": "1",
+					"#text": "Total Long Term Debt"
+				}, {
+					"@coaItem": "STLD",
+					"@statementType": "BAL",
+					"@lineID": "1270",
+					"@precision": "1",
+					"#text": "Total Debt"
+				}, {
+					"@coaItem": "SBDT",
+					"@statementType": "BAL",
+					"@lineID": "1300",
+					"@precision": "1",
+					"#text": "Deferred Income Tax"
+				}, {
+					"@coaItem": "LMIN",
+					"@statementType": "BAL",
+					"@lineID": "1310",
+					"@precision": "1",
+					"#text": "Minority Interest"
+				}, {
+					"@coaItem": "SLTL",
+					"@statementType": "BAL",
+					"@lineID": "1370",
+					"@precision": "1",
+					"#text": "Other Liabilities, Total"
+				}, {
+					"@coaItem": "LTLL",
+					"@statementType": "BAL",
+					"@lineID": "1380",
+					"@precision": "1",
+					"#text": "Total Liabilities"
+				}, {
+					"@coaItem": "SRPR",
+					"@statementType": "BAL",
+					"@lineID": "1410",
+					"@precision": "1",
+					"#text": "Redeemable Preferred Stock, Total"
+				}, {
+					"@coaItem": "SPRS",
+					"@statementType": "BAL",
+					"@lineID": "1460",
+					"@precision": "1",
+					"#text": "Preferred Stock - Non Redeemable, Net"
+				}, {
+					"@coaItem": "SCMS",
+					"@statementType": "BAL",
+					"@lineID": "1490",
+					"@precision": "1",
+					"#text": "Common Stock, Total"
+				}, {
+					"@coaItem": "QPIC",
+					"@statementType": "BAL",
+					"@lineID": "1500",
+					"@precision": "1",
+					"#text": "Additional Paid-In Capital"
+				}, {
+					"@coaItem": "QRED",
+					"@statementType": "BAL",
+					"@lineID": "1510",
+					"@precision": "1",
+					"#text": "Retained Earnings (Accumulated Deficit)"
+				}, {
+					"@coaItem": "QTSC",
+					"@statementType": "BAL",
+					"@lineID": "1520",
+					"@precision": "1",
+					"#text": "Treasury Stock - Common"
+				}, {
+					"@coaItem": "QEDG",
+					"@statementType": "BAL",
+					"@lineID": "1530",
+					"@precision": "1",
+					"#text": "ESOP Debt Guarantee"
+				}, {
+					"@coaItem": "QUGL",
+					"@statementType": "BAL",
+					"@lineID": "1540",
+					"@precision": "1",
+					"#text": "Unrealized Gain (Loss)"
+				}, {
+					"@coaItem": "SOTE",
+					"@statementType": "BAL",
+					"@lineID": "1590",
+					"@precision": "1",
+					"#text": "Other Equity, Total"
+				}, {
+					"@coaItem": "QTLE",
+					"@statementType": "BAL",
+					"@lineID": "1600",
+					"@precision": "1",
+					"#text": "Total Equity"
+				}, {
+					"@coaItem": "QTEL",
+					"@statementType": "BAL",
+					"@lineID": "1610",
+					"@precision": "1",
+					"#text": "Total Liabilities & Shareholders' Equity"
+				}, {
+					"@coaItem": "QTCO",
+					"@statementType": "BAL",
+					"@lineID": "1660",
+					"@precision": "2",
+					"#text": "Total Common Shares Outstanding"
+				}, {
+					"@coaItem": "QTPO",
+					"@statementType": "BAL",
+					"@lineID": "1770",
+					"@precision": "2",
+					"#text": "Total Preferred Shares Outstanding"
+				}, {
+					"@coaItem": "STBP",
+					"@statementType": "BAL",
+					"@lineID": "1980",
+					"@precision": "3",
+					"#text": "Tangible Book Value per Share, Common Eq"
+				}, {
+					"@coaItem": "ONET",
+					"@statementType": "CAS",
+					"@lineID": "10",
+					"@precision": "1",
+					"#text": "Net Income/Starting Line"
+				}, {
+					"@coaItem": "SDED",
+					"@statementType": "CAS",
+					"@lineID": "40",
+					"@precision": "1",
+					"#text": "Depreciation/Depletion"
+				}, {
+					"@coaItem": "SAMT",
+					"@statementType": "CAS",
+					"@lineID": "80",
+					"@precision": "1",
+					"#text": "Amortization"
+				}, {
+					"@coaItem": "OBDT",
+					"@statementType": "CAS",
+					"@lineID": "90",
+					"@precision": "1",
+					"#text": "Deferred Taxes"
+				}, {
+					"@coaItem": "SNCI",
+					"@statementType": "CAS",
+					"@lineID": "170",
+					"@precision": "1",
+					"#text": "Non-Cash Items"
+				}, {
+					"@coaItem": "SOCF",
+					"@statementType": "CAS",
+					"@lineID": "470",
+					"@precision": "1",
+					"#text": "Changes in Working Capital"
+				}, {
+					"@coaItem": "OTLO",
+					"@statementType": "CAS",
+					"@lineID": "480",
+					"@precision": "1",
+					"#text": "Cash from Operating Activities"
+				}, {
+					"@coaItem": "SCEX",
+					"@statementType": "CAS",
+					"@lineID": "520",
+					"@precision": "1",
+					"#text": "Capital Expenditures"
+				}, {
+					"@coaItem": "SICF",
+					"@statementType": "CAS",
+					"@lineID": "670",
+					"@precision": "1",
+					"#text": "Other Investing Cash Flow Items, Total"
+				}, {
+					"@coaItem": "ITLI",
+					"@statementType": "CAS",
+					"@lineID": "680",
+					"@precision": "1",
+					"#text": "Cash from Investing Activities"
+				}, {
+					"@coaItem": "SFCF",
+					"@statementType": "CAS",
+					"@lineID": "730",
+					"@precision": "1",
+					"#text": "Financing Cash Flow Items"
+				}, {
+					"@coaItem": "FCDP",
+					"@statementType": "CAS",
+					"@lineID": "760",
+					"@precision": "1",
+					"#text": "Total Cash Dividends Paid"
+				}, {
+					"@coaItem": "FPSS",
+					"@statementType": "CAS",
+					"@lineID": "880",
+					"@precision": "1",
+					"#text": "Issuance (Retirement) of Stock, Net"
+				}, {
+					"@coaItem": "FPRD",
+					"@statementType": "CAS",
+					"@lineID": "970",
+					"@precision": "1",
+					"#text": "Issuance (Retirement) of Debt, Net"
+				}, {
+					"@coaItem": "FTLF",
+					"@statementType": "CAS",
+					"@lineID": "980",
+					"@precision": "1",
+					"#text": "Cash from Financing Activities"
+				}, {
+					"@coaItem": "SFEE",
+					"@statementType": "CAS",
+					"@lineID": "990",
+					"@precision": "1",
+					"#text": "Foreign Exchange Effects"
+				}, {
+					"@coaItem": "SNCC",
+					"@statementType": "CAS",
+					"@lineID": "1000",
+					"@precision": "1",
+					"#text": "Net Change in Cash"
+				}, {
+					"@coaItem": "SCIP",
+					"@statementType": "CAS",
+					"@lineID": "1040",
+					"@precision": "1",
+					"#text": "Cash Interest Paid"
+				}, {
+					"@coaItem": "SCTP",
+					"@statementType": "CAS",
+					"@lineID": "1050",
+					"@precision": "1",
+					"#text": "Cash Taxes Paid"
+				}]
+			},
+			"AnnualPeriods": {
+				"FiscalPeriod": [{
+					"@Type": "Annual",
+					"@EndDate": "2018-06-30",
+					"@FiscalYear": "2018",
+					"Statement": [{
+						"@Type": "INC",
+						"FPHeader": {
+							"PeriodLength": "12",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"AccountingStd": null,
+							"StatementDate": "2018-06-30",
+							"AuditorName": {
+								"@Code": "RSUS",
+								"#text": "RSM US LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2018-09-25",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "SREV",
+							"#text": "28.697620"
+						}, {
+							"@coaCode": "RTLR",
+							"#text": "28.697620"
+						}, {
+							"@coaCode": "SCOR",
+							"#text": "5.841600"
+						}, {
+							"@coaCode": "SGRP",
+							"#text": "22.856020"
+						}, {
+							"@coaCode": "SSGA",
+							"#text": "19.596050"
+						}, {
+							"@coaCode": "ERAD",
+							"#text": "0.251440"
+						}, {
+							"@coaCode": "ETOE",
+							"#text": "25.689100"
+						}, {
+							"@coaCode": "SOPI",
+							"#text": "3.008520"
+						}, {
+							"@coaCode": "SNIN",
+							"#text": "0.019870"
+						}, {
+							"@coaCode": "EIBT",
+							"#text": "3.028400"
+						}, {
+							"@coaCode": "TTAX",
+							"#text": "0.945000"
+						}, {
+							"@coaCode": "TIAT",
+							"#text": "2.083400"
+						}, {
+							"@coaCode": "NIBX",
+							"#text": "2.083400"
+						}, {
+							"@coaCode": "STXI",
+							"#text": "-0.181000"
+						}, {
+							"@coaCode": "NINC",
+							"#text": "1.902400"
+						}, {
+							"@coaCode": "CIAC",
+							"#text": "2.083400"
+						}, {
+							"@coaCode": "XNIC",
+							"#text": "1.902400"
+						}, {
+							"@coaCode": "SDNI",
+							"#text": "1.902400"
+						}, {
+							"@coaCode": "SDWS",
+							"#text": "8.620100"
+						}, {
+							"@coaCode": "SDBF",
+							"#text": "0.241690"
+						}, {
+							"@coaCode": "VDES",
+							"#text": "0.241690"
+						}]
+					}, {
+						"@Type": "BAL",
+						"FPHeader": {
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2018-06-30",
+							"AuditorName": {
+								"@Code": "RSUS",
+								"#text": "RSM US LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2018-09-25",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ACAE",
+							"#text": "7.455840"
+						}, {
+							"@coaCode": "SCSI",
+							"#text": "7.455840"
+						}, {
+							"@coaCode": "AACR",
+							"#text": "11.563210"
+						}, {
+							"@coaCode": "ATRC",
+							"#text": "11.563210"
+						}, {
+							"@coaCode": "AITL",
+							"#text": "2.360690"
+						}, {
+							"@coaCode": "APPY",
+							"#text": "0.832200"
+						}, {
+							"@coaCode": "ATCA",
+							"#text": "22.211950"
+						}, {
+							"@coaCode": "APTC",
+							"#text": "6.831240"
+						}, {
+							"@coaCode": "ADEP",
+							"#text": "-3.740000"
+						}, {
+							"@coaCode": "APPN",
+							"#text": "3.091240"
+						}, {
+							"@coaCode": "AINT",
+							"#text": "0.649100"
+						}, {
+							"@coaCode": "SOLA",
+							"#text": "0.685910"
+						}, {
+							"@coaCode": "ATOT",
+							"#text": "26.638200"
+						}, {
+							"@coaCode": "LAPB",
+							"#text": "0.810640"
+						}, {
+							"@coaCode": "LAEX",
+							"#text": "1.674100"
+						}, {
+							"@coaCode": "LSTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "LCLD",
+							"#text": "1.101040"
+						}, {
+							"@coaCode": "SOCL",
+							"#text": "1.157390"
+						}, {
+							"@coaCode": "LTCL",
+							"#text": "4.743170"
+						}, {
+							"@coaCode": "LLTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "LTTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "STLD",
+							"#text": "1.101040"
+						}, {
+							"@coaCode": "LTLL",
+							"#text": "4.743170"
+						}, {
+							"@coaCode": "SCMS",
+							"#text": "0.082890"
+						}, {
+							"@coaCode": "QPIC",
+							"#text": "14.953100"
+						}, {
+							"@coaCode": "QRED",
+							"#text": "6.859040"
+						}, {
+							"@coaCode": "QTLE",
+							"#text": "21.895030"
+						}, {
+							"@coaCode": "QTEL",
+							"#text": "26.638200"
+						}, {
+							"@coaCode": "QTCO",
+							"#text": "8.288660"
+						}, {
+							"@coaCode": "STBP",
+							"#text": "2.563250"
+						}]
+					}, {
+						"@Type": "CAS",
+						"FPHeader": {
+							"PeriodLength": "12",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2018-06-30",
+							"AuditorName": {
+								"@Code": "RSUS",
+								"#text": "RSM US LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2018-09-25",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ONET",
+							"#text": "1.902400"
+						}, {
+							"@coaCode": "SDED",
+							"#text": "0.676430"
+						}, {
+							"@coaCode": "SAMT",
+							"#text": "0.113600"
+						}, {
+							"@coaCode": "OBDT",
+							"#text": "-0.134000"
+						}, {
+							"@coaCode": "SNCI",
+							"#text": "0.899140"
+						}, {
+							"@coaCode": "SCTP",
+							"#text": "1.019130"
+						}, {
+							"@coaCode": "SCIP",
+							"#text": "0.046000"
+						}, {
+							"@coaCode": "SOCF",
+							"#text": "-1.015360"
+						}, {
+							"@coaCode": "OTLO",
+							"#text": "2.442200"
+						}, {
+							"@coaCode": "SCEX",
+							"#text": "-0.571780"
+						}, {
+							"@coaCode": "ITLI",
+							"#text": "-0.571780"
+						}, {
+							"@coaCode": "SFCF",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "FPSS",
+							"#text": "0.062410"
+						}, {
+							"@coaCode": "FPRD",
+							"#text": "-0.050700"
+						}, {
+							"@coaCode": "FTLF",
+							"#text": "0.011710"
+						}, {
+							"@coaCode": "SNCC",
+							"#text": "1.882140"
+						}]
+					}]
+				}, {
+					"@Type": "Annual",
+					"@EndDate": "2017-06-30",
+					"@FiscalYear": "2017",
+					"Statement": [{
+						"@Type": "INC",
+						"FPHeader": {
+							"PeriodLength": "12",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"AccountingStd": null,
+							"StatementDate": "2017-06-30",
+							"AuditorName": {
+								"@Code": "RSUS",
+								"#text": "RSM US LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2017-09-05",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "SREV",
+							"#text": "25.861140"
+						}, {
+							"@coaCode": "RTLR",
+							"#text": "25.861140"
+						}, {
+							"@coaCode": "SCOR",
+							"#text": "5.292720"
+						}, {
+							"@coaCode": "SGRP",
+							"#text": "20.568420"
+						}, {
+							"@coaCode": "SSGA",
+							"#text": "16.402210"
+						}, {
+							"@coaCode": "ERAD",
+							"#text": "0.596880"
+						}, {
+							"@coaCode": "ETOE",
+							"#text": "22.291810"
+						}, {
+							"@coaCode": "SOPI",
+							"#text": "3.569330"
+						}, {
+							"@coaCode": "SNIN",
+							"#text": "-0.049870"
+						}, {
+							"@coaCode": "EIBT",
+							"#text": "3.519470"
+						}, {
+							"@coaCode": "TTAX",
+							"#text": "1.290000"
+						}, {
+							"@coaCode": "TIAT",
+							"#text": "2.229470"
+						}, {
+							"@coaCode": "NIBX",
+							"#text": "2.229470"
+						}, {
+							"@coaCode": "NINC",
+							"#text": "2.229470"
+						}, {
+							"@coaCode": "CIAC",
+							"#text": "2.229470"
+						}, {
+							"@coaCode": "XNIC",
+							"#text": "2.229470"
+						}, {
+							"@coaCode": "SDNI",
+							"#text": "2.229470"
+						}, {
+							"@coaCode": "SDWS",
+							"#text": "8.461120"
+						}, {
+							"@coaCode": "SDBF",
+							"#text": "0.263500"
+						}, {
+							"@coaCode": "VDES",
+							"#text": "0.263500"
+						}]
+					}, {
+						"@Type": "BAL",
+						"FPHeader": {
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2017-06-30",
+							"AuditorName": {
+								"@Code": "RSUS",
+								"#text": "RSM US LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2017-09-05",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ACAE",
+							"#text": "5.573710"
+						}, {
+							"@coaCode": "SCSI",
+							"#text": "5.573710"
+						}, {
+							"@coaCode": "AACR",
+							"#text": "9.949760"
+						}, {
+							"@coaCode": "ATRC",
+							"#text": "9.949760"
+						}, {
+							"@coaCode": "AITL",
+							"#text": "2.559490"
+						}, {
+							"@coaCode": "APPY",
+							"#text": "0.393320"
+						}, {
+							"@coaCode": "ATCA",
+							"#text": "18.476270"
+						}, {
+							"@coaCode": "APTC",
+							"#text": "6.543230"
+						}, {
+							"@coaCode": "ADEP",
+							"#text": "-3.240000"
+						}, {
+							"@coaCode": "APPN",
+							"#text": "3.303230"
+						}, {
+							"@coaCode": "AINT",
+							"#text": "0.721280"
+						}, {
+							"@coaCode": "SOLA",
+							"#text": "0.559870"
+						}, {
+							"@coaCode": "ATOT",
+							"#text": "23.060650"
+						}, {
+							"@coaCode": "LAPB",
+							"#text": "0.663380"
+						}, {
+							"@coaCode": "LAEX",
+							"#text": "1.385370"
+						}, {
+							"@coaCode": "LSTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "LCLD",
+							"#text": "0.050700"
+						}, {
+							"@coaCode": "SOCL",
+							"#text": "0.796520"
+						}, {
+							"@coaCode": "LTCL",
+							"#text": "2.895970"
+						}, {
+							"@coaCode": "LLTD",
+							"#text": "1.097130"
+						}, {
+							"@coaCode": "LTTD",
+							"#text": "1.097130"
+						}, {
+							"@coaCode": "STLD",
+							"#text": "1.147830"
+						}, {
+							"@coaCode": "LTLL",
+							"#text": "3.993100"
+						}, {
+							"@coaCode": "SCMS",
+							"#text": "0.082300"
+						}, {
+							"@coaCode": "QPIC",
+							"#text": "14.028600"
+						}, {
+							"@coaCode": "QRED",
+							"#text": "4.956650"
+						}, {
+							"@coaCode": "QTLE",
+							"#text": "19.067550"
+						}, {
+							"@coaCode": "QTEL",
+							"#text": "23.060650"
+						}, {
+							"@coaCode": "QTCO",
+							"#text": "8.187110"
+						}, {
+							"@coaCode": "STBP",
+							"#text": "2.240870"
+						}]
+					}, {
+						"@Type": "CAS",
+						"FPHeader": {
+							"PeriodLength": "12",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2017-06-30",
+							"AuditorName": {
+								"@Code": "RSUS",
+								"#text": "RSM US LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2017-09-05",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ONET",
+							"#text": "2.229470"
+						}, {
+							"@coaCode": "SDED",
+							"#text": "0.636710"
+						}, {
+							"@coaCode": "SAMT",
+							"#text": "0.118420"
+						}, {
+							"@coaCode": "OBDT",
+							"#text": "-0.117000"
+						}, {
+							"@coaCode": "SNCI",
+							"#text": "0.628580"
+						}, {
+							"@coaCode": "SCTP",
+							"#text": "1.089790"
+						}, {
+							"@coaCode": "SCIP",
+							"#text": "0.059230"
+						}, {
+							"@coaCode": "SOCF",
+							"#text": "-2.305050"
+						}, {
+							"@coaCode": "OTLO",
+							"#text": "1.191120"
+						}, {
+							"@coaCode": "SCEX",
+							"#text": "-0.687150"
+						}, {
+							"@coaCode": "ITLI",
+							"#text": "-0.687150"
+						}, {
+							"@coaCode": "SFCF",
+							"#text": "-0.004870"
+						}, {
+							"@coaCode": "FPRD",
+							"#text": "-0.048750"
+						}, {
+							"@coaCode": "FTLF",
+							"#text": "-0.053620"
+						}, {
+							"@coaCode": "SNCC",
+							"#text": "0.450350"
+						}]
+					}]
+				}, {
+					"@Type": "Annual",
+					"@EndDate": "2016-06-30",
+					"@FiscalYear": "2016",
+					"Statement": [{
+						"@Type": "INC",
+						"FPHeader": {
+							"PeriodLength": "12",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"AccountingStd": null,
+							"StatementDate": "2016-06-30",
+							"AuditorName": {
+								"@Code": "RSUS",
+								"#text": "RSM US LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2016-09-06",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "SREV",
+							"#text": "22.992000"
+						}, {
+							"@coaCode": "RTLR",
+							"#text": "22.992000"
+						}, {
+							"@coaCode": "SCOR",
+							"#text": "5.115740"
+						}, {
+							"@coaCode": "SGRP",
+							"#text": "17.876260"
+						}, {
+							"@coaCode": "SSGA",
+							"#text": "14.386560"
+						}, {
+							"@coaCode": "ERAD",
+							"#text": "0.380390"
+						}, {
+							"@coaCode": "ETOE",
+							"#text": "19.882690"
+						}, {
+							"@coaCode": "SOPI",
+							"#text": "3.109310"
+						}, {
+							"@coaCode": "SNIN",
+							"#text": "-0.066800"
+						}, {
+							"@coaCode": "EIBT",
+							"#text": "3.042500"
+						}, {
+							"@coaCode": "TTAX",
+							"#text": "0.830000"
+						}, {
+							"@coaCode": "TIAT",
+							"#text": "2.212500"
+						}, {
+							"@coaCode": "NIBX",
+							"#text": "2.212500"
+						}, {
+							"@coaCode": "NINC",
+							"#text": "2.212500"
+						}, {
+							"@coaCode": "CIAC",
+							"#text": "2.212500"
+						}, {
+							"@coaCode": "XNIC",
+							"#text": "2.212500"
+						}, {
+							"@coaCode": "SDNI",
+							"#text": "2.212500"
+						}, {
+							"@coaCode": "SDWS",
+							"#text": "8.248390"
+						}, {
+							"@coaCode": "SDBF",
+							"#text": "0.268230"
+						}, {
+							"@coaCode": "DDPS1",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "VDES",
+							"#text": "0.268230"
+						}]
+					}, {
+						"@Type": "BAL",
+						"FPHeader": {
+							"UpdateType": {
+								"@Code": "CLA",
+								"#text": "Reclassified Normal"
+							},
+							"StatementDate": "2017-03-31",
+							"Source": {
+								"@Date": "2017-05-15",
+								"#text": "10-Q"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ACAE",
+							"#text": "5.123360"
+						}, {
+							"@coaCode": "SCSI",
+							"#text": "5.123360"
+						}, {
+							"@coaCode": "AACR",
+							"#text": "7.611440"
+						}, {
+							"@coaCode": "ATRC",
+							"#text": "7.804120"
+						}, {
+							"@coaCode": "AITL",
+							"#text": "2.480440"
+						}, {
+							"@coaCode": "APPY",
+							"#text": "0.419620"
+						}, {
+							"@coaCode": "ATCA",
+							"#text": "15.827540"
+						}, {
+							"@coaCode": "APPN",
+							"#text": "3.375190"
+						}, {
+							"@coaCode": "AINT",
+							"#text": "0.904030"
+						}, {
+							"@coaCode": "SOLA",
+							"#text": "0.470760"
+						}, {
+							"@coaCode": "ATOT",
+							"#text": "20.577520"
+						}, {
+							"@coaCode": "LAPB",
+							"#text": "0.589230"
+						}, {
+							"@coaCode": "LAEX",
+							"#text": "1.776990"
+						}, {
+							"@coaCode": "LSTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "LCLD",
+							"#text": "0.046310"
+						}, {
+							"@coaCode": "SOCL",
+							"#text": "0.660000"
+						}, {
+							"@coaCode": "LTCL",
+							"#text": "3.072530"
+						}, {
+							"@coaCode": "LLTD",
+							"#text": "1.146400"
+						}, {
+							"@coaCode": "LTTD",
+							"#text": "1.146400"
+						}, {
+							"@coaCode": "STLD",
+							"#text": "1.192710"
+						}, {
+							"@coaCode": "LTLL",
+							"#text": "4.218920"
+						}, {
+							"@coaCode": "SCMS",
+							"#text": "0.081870"
+						}, {
+							"@coaCode": "QPIC",
+							"#text": "13.549550"
+						}, {
+							"@coaCode": "QRED",
+							"#text": "2.727170"
+						}, {
+							"@coaCode": "QTLE",
+							"#text": "16.358600"
+						}, {
+							"@coaCode": "QTEL",
+							"#text": "20.577520"
+						}, {
+							"@coaCode": "QTCO",
+							"#text": "8.187110"
+						}, {
+							"@coaCode": "STBP",
+							"#text": "1.887670"
+						}]
+					}, {
+						"@Type": "CAS",
+						"FPHeader": {
+							"PeriodLength": "12",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2016-06-30",
+							"AuditorName": {
+								"@Code": "RSUS",
+								"#text": "RSM US LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2016-09-06",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ONET",
+							"#text": "2.212500"
+						}, {
+							"@coaCode": "SDED",
+							"#text": "0.616020"
+						}, {
+							"@coaCode": "SAMT",
+							"#text": "0.122680"
+						}, {
+							"@coaCode": "OBDT",
+							"#text": "-0.343000"
+						}, {
+							"@coaCode": "SNCI",
+							"#text": "0.298940"
+						}, {
+							"@coaCode": "SCTP",
+							"#text": "1.494510"
+						}, {
+							"@coaCode": "SCIP",
+							"#text": "0.061560"
+						}, {
+							"@coaCode": "SOCF",
+							"#text": "-0.740240"
+						}, {
+							"@coaCode": "OTLO",
+							"#text": "2.166900"
+						}, {
+							"@coaCode": "SCEX",
+							"#text": "-0.579520"
+						}, {
+							"@coaCode": "ITLI",
+							"#text": "-0.579520"
+						}, {
+							"@coaCode": "SFCF",
+							"#text": "-0.013520"
+						}, {
+							"@coaCode": "FPRD",
+							"#text": "-0.048750"
+						}, {
+							"@coaCode": "FTLF",
+							"#text": "-0.062270"
+						}, {
+							"@coaCode": "SNCC",
+							"#text": "1.525120"
+						}]
+					}]
+				}, {
+					"@Type": "Annual",
+					"@EndDate": "2015-06-30",
+					"@FiscalYear": "2015",
+					"Statement": [{
+						"@Type": "INC",
+						"FPHeader": {
+							"PeriodLength": "12",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"AccountingStd": null,
+							"StatementDate": "2015-06-30",
+							"AuditorName": {
+								"@Code": "MGLP",
+								"#text": "McGladrey LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2015-09-15",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "SREV",
+							"#text": "19.408390"
+						}, {
+							"@coaCode": "RTLR",
+							"#text": "19.408390"
+						}, {
+							"@coaCode": "SCOR",
+							"#text": "5.808160"
+						}, {
+							"@coaCode": "SGRP",
+							"#text": "13.600230"
+						}, {
+							"@coaCode": "SSGA",
+							"#text": "11.974380"
+						}, {
+							"@coaCode": "ERAD",
+							"#text": "0.315650"
+						}, {
+							"@coaCode": "ETOE",
+							"#text": "18.098190"
+						}, {
+							"@coaCode": "SOPI",
+							"#text": "1.310200"
+						}, {
+							"@coaCode": "SNIN",
+							"#text": "-0.085710"
+						}, {
+							"@coaCode": "EIBT",
+							"#text": "1.224490"
+						}, {
+							"@coaCode": "TTAX",
+							"#text": "0.132000"
+						}, {
+							"@coaCode": "TIAT",
+							"#text": "1.092490"
+						}, {
+							"@coaCode": "NIBX",
+							"#text": "1.092490"
+						}, {
+							"@coaCode": "NINC",
+							"#text": "1.092490"
+						}, {
+							"@coaCode": "CIAC",
+							"#text": "1.092490"
+						}, {
+							"@coaCode": "XNIC",
+							"#text": "1.092490"
+						}, {
+							"@coaCode": "SDNI",
+							"#text": "1.092490"
+						}, {
+							"@coaCode": "SDWS",
+							"#text": "8.153700"
+						}, {
+							"@coaCode": "SDBF",
+							"#text": "0.133990"
+						}, {
+							"@coaCode": "VDES",
+							"#text": "0.133990"
+						}]
+					}, {
+						"@Type": "BAL",
+						"FPHeader": {
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2015-06-30",
+							"AuditorName": {
+								"@Code": "MGLP",
+								"#text": "McGladrey LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2015-09-15",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ACAE",
+							"#text": "3.598240"
+						}, {
+							"@coaCode": "SCSI",
+							"#text": "3.598240"
+						}, {
+							"@coaCode": "AACR",
+							"#text": "6.518820"
+						}, {
+							"@coaCode": "ATRC",
+							"#text": "6.518820"
+						}, {
+							"@coaCode": "AITL",
+							"#text": "2.072110"
+						}, {
+							"@coaCode": "APPY",
+							"#text": "0.397830"
+						}, {
+							"@coaCode": "ATCA",
+							"#text": "12.587000"
+						}, {
+							"@coaCode": "APTC",
+							"#text": "6.263520"
+						}, {
+							"@coaCode": "ADEP",
+							"#text": "-2.628000"
+						}, {
+							"@coaCode": "APPN",
+							"#text": "3.635520"
+						}, {
+							"@coaCode": "AINT",
+							"#text": "0.999840"
+						}, {
+							"@coaCode": "SOLA",
+							"#text": "0.182700"
+						}, {
+							"@coaCode": "ATOT",
+							"#text": "17.405050"
+						}, {
+							"@coaCode": "LAPB",
+							"#text": "0.538520"
+						}, {
+							"@coaCode": "LAEX",
+							"#text": "0.909350"
+						}, {
+							"@coaCode": "LSTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "LCLD",
+							"#text": "0.048750"
+						}, {
+							"@coaCode": "SOCL",
+							"#text": "0.782660"
+						}, {
+							"@coaCode": "LTCL",
+							"#text": "2.279280"
+						}, {
+							"@coaCode": "LLTD",
+							"#text": "1.202450"
+						}, {
+							"@coaCode": "LTTD",
+							"#text": "1.202450"
+						}, {
+							"@coaCode": "STLD",
+							"#text": "1.251200"
+						}, {
+							"@coaCode": "LTLL",
+							"#text": "3.481720"
+						}, {
+							"@coaCode": "SCMS",
+							"#text": "0.081340"
+						}, {
+							"@coaCode": "QPIC",
+							"#text": "13.327320"
+						}, {
+							"@coaCode": "QRED",
+							"#text": "0.514670"
+						}, {
+							"@coaCode": "QTLE",
+							"#text": "13.923330"
+						}, {
+							"@coaCode": "QTEL",
+							"#text": "17.405050"
+						}, {
+							"@coaCode": "QTCO",
+							"#text": "8.133860"
+						}, {
+							"@coaCode": "STBP",
+							"#text": "1.588850"
+						}]
+					}, {
+						"@Type": "CAS",
+						"FPHeader": {
+							"PeriodLength": "12",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2015-06-30",
+							"AuditorName": {
+								"@Code": "MGLP",
+								"#text": "McGladrey LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2015-09-15",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ONET",
+							"#text": "1.092490"
+						}, {
+							"@coaCode": "SDED",
+							"#text": "0.613300"
+						}, {
+							"@coaCode": "SAMT",
+							"#text": "0.122910"
+						}, {
+							"@coaCode": "SNCI",
+							"#text": "0.430090"
+						}, {
+							"@coaCode": "SCTP",
+							"#text": "0.002600"
+						}, {
+							"@coaCode": "SCIP",
+							"#text": "0.068930"
+						}, {
+							"@coaCode": "SOCF",
+							"#text": "0.522420"
+						}, {
+							"@coaCode": "OTLO",
+							"#text": "2.781210"
+						}, {
+							"@coaCode": "SCEX",
+							"#text": "-0.624510"
+						}, {
+							"@coaCode": "ITLI",
+							"#text": "-0.624510"
+						}, {
+							"@coaCode": "SFCF",
+							"#text": "-0.014800"
+						}, {
+							"@coaCode": "FPRD",
+							"#text": "-0.046370"
+						}, {
+							"@coaCode": "FTLF",
+							"#text": "-0.061170"
+						}, {
+							"@coaCode": "SNCC",
+							"#text": "2.095540"
+						}]
+					}]
+				}, {
+					"@Type": "Annual",
+					"@EndDate": "2014-06-30",
+					"@FiscalYear": "2014",
+					"Statement": [{
+						"@Type": "INC",
+						"FPHeader": {
+							"PeriodLength": "12",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"AccountingStd": null,
+							"StatementDate": "2014-06-30",
+							"AuditorName": {
+								"@Code": "MGLP",
+								"#text": "McGladrey LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2014-09-23",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "SREV",
+							"#text": "15.487880"
+						}, {
+							"@coaCode": "RTLR",
+							"#text": "15.487880"
+						}, {
+							"@coaCode": "SCOR",
+							"#text": "4.853870"
+						}, {
+							"@coaCode": "SGRP",
+							"#text": "10.634010"
+						}, {
+							"@coaCode": "SSGA",
+							"#text": "10.908530"
+						}, {
+							"@coaCode": "ERAD",
+							"#text": "0.466060"
+						}, {
+							"@coaCode": "ETOE",
+							"#text": "16.228470"
+						}, {
+							"@coaCode": "SOPI",
+							"#text": "-0.740590"
+						}, {
+							"@coaCode": "SNIN",
+							"#text": "-0.079010"
+						}, {
+							"@coaCode": "EIBT",
+							"#text": "-0.819590"
+						}, {
+							"@coaCode": "TTAX",
+							"#text": "0.469000"
+						}, {
+							"@coaCode": "TIAT",
+							"#text": "-1.288590"
+						}, {
+							"@coaCode": "NIBX",
+							"#text": "-1.288590"
+						}, {
+							"@coaCode": "NINC",
+							"#text": "-1.288590"
+						}, {
+							"@coaCode": "CIAC",
+							"#text": "-1.288590"
+						}, {
+							"@coaCode": "XNIC",
+							"#text": "-1.288590"
+						}, {
+							"@coaCode": "SDNI",
+							"#text": "-1.288590"
+						}, {
+							"@coaCode": "SDWS",
+							"#text": "8.114250"
+						}, {
+							"@coaCode": "SDBF",
+							"#text": "-0.158810"
+						}, {
+							"@coaCode": "DDPS1",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "VDES",
+							"#text": "-0.158810"
+						}]
+					}, {
+						"@Type": "BAL",
+						"FPHeader": {
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2014-06-30",
+							"AuditorName": {
+								"@Code": "MGLP",
+								"#text": "McGladrey LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2014-09-23",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ACAE",
+							"#text": "1.502700"
+						}, {
+							"@coaCode": "SCSI",
+							"#text": "1.502700"
+						}, {
+							"@coaCode": "AACR",
+							"#text": "6.487270"
+						}, {
+							"@coaCode": "ATRC",
+							"#text": "6.487270"
+						}, {
+							"@coaCode": "AITL",
+							"#text": "2.235500"
+						}, {
+							"@coaCode": "APPY",
+							"#text": "0.397850"
+						}, {
+							"@coaCode": "SOCA",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "ATCA",
+							"#text": "10.623320"
+						}, {
+							"@coaCode": "APTC",
+							"#text": "6.286800"
+						}, {
+							"@coaCode": "ADEP",
+							"#text": "-2.351000"
+						}, {
+							"@coaCode": "APPN",
+							"#text": "3.935800"
+						}, {
+							"@coaCode": "AINT",
+							"#text": "0.930450"
+						}, {
+							"@coaCode": "SOLA",
+							"#text": "0.302600"
+						}, {
+							"@coaCode": "ATOT",
+							"#text": "15.792170"
+						}, {
+							"@coaCode": "LAPB",
+							"#text": "0.380580"
+						}, {
+							"@coaCode": "LAEX",
+							"#text": "0.693520"
+						}, {
+							"@coaCode": "LSTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "LCLD",
+							"#text": "0.046380"
+						}, {
+							"@coaCode": "SOCL",
+							"#text": "0.700000"
+						}, {
+							"@coaCode": "LTCL",
+							"#text": "1.820480"
+						}, {
+							"@coaCode": "LLTD",
+							"#text": "1.251190"
+						}, {
+							"@coaCode": "LTTD",
+							"#text": "1.251190"
+						}, {
+							"@coaCode": "STLD",
+							"#text": "1.297570"
+						}, {
+							"@coaCode": "LTLL",
+							"#text": "3.071670"
+						}, {
+							"@coaCode": "SCMS",
+							"#text": "0.081140"
+						}, {
+							"@coaCode": "QPIC",
+							"#text": "13.217170"
+						}, {
+							"@coaCode": "QRED",
+							"#text": "-0.577810"
+						}, {
+							"@coaCode": "QTLE",
+							"#text": "12.720500"
+						}, {
+							"@coaCode": "QTEL",
+							"#text": "15.792170"
+						}, {
+							"@coaCode": "QTCO",
+							"#text": "8.114250"
+						}, {
+							"@coaCode": "STBP",
+							"#text": "1.453010"
+						}]
+					}, {
+						"@Type": "CAS",
+						"FPHeader": {
+							"PeriodLength": "12",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2014-06-30",
+							"AuditorName": {
+								"@Code": "MGLP",
+								"#text": "McGladrey LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2014-09-23",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ONET",
+							"#text": "-1.288590"
+						}, {
+							"@coaCode": "SDED",
+							"#text": "0.567340"
+						}, {
+							"@coaCode": "SAMT",
+							"#text": "0.128210"
+						}, {
+							"@coaCode": "OBDT",
+							"#text": "0.454000"
+						}, {
+							"@coaCode": "SNCI",
+							"#text": "0.239070"
+						}, {
+							"@coaCode": "SCTP",
+							"#text": "0.007330"
+						}, {
+							"@coaCode": "SCIP",
+							"#text": "0.078810"
+						}, {
+							"@coaCode": "SOCF",
+							"#text": "1.962640"
+						}, {
+							"@coaCode": "OTLO",
+							"#text": "2.062660"
+						}, {
+							"@coaCode": "SCEX",
+							"#text": "-0.935800"
+						}, {
+							"@coaCode": "ITLI",
+							"#text": "-0.935800"
+						}, {
+							"@coaCode": "SFCF",
+							"#text": "-0.035300"
+						}, {
+							"@coaCode": "FPRD",
+							"#text": "-0.092430"
+						}, {
+							"@coaCode": "FTLF",
+							"#text": "-0.127720"
+						}, {
+							"@coaCode": "SNCC",
+							"#text": "0.999140"
+						}]
+					}]
+				}, {
+					"@Type": "Annual",
+					"@EndDate": "2013-06-30",
+					"@FiscalYear": "2013",
+					"Statement": [{
+						"@Type": "INC",
+						"FPHeader": {
+							"PeriodLength": "12",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"AccountingStd": null,
+							"StatementDate": "2013-06-30",
+							"AuditorName": {
+								"@Code": "MGLP",
+								"#text": "McGladrey LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2013-09-25",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "SREV",
+							"#text": "15.104420"
+						}, {
+							"@coaCode": "RTLR",
+							"#text": "15.104420"
+						}, {
+							"@coaCode": "SCOR",
+							"#text": "4.655370"
+						}, {
+							"@coaCode": "SGRP",
+							"#text": "10.449050"
+						}, {
+							"@coaCode": "SSGA",
+							"#text": "11.673070"
+						}, {
+							"@coaCode": "ERAD",
+							"#text": "0.603380"
+						}, {
+							"@coaCode": "ETOE",
+							"#text": "16.931820"
+						}, {
+							"@coaCode": "SOPI",
+							"#text": "-1.827400"
+						}, {
+							"@coaCode": "SNIN",
+							"#text": "-0.116890"
+						}, {
+							"@coaCode": "EIBT",
+							"#text": "-1.944280"
+						}, {
+							"@coaCode": "TTAX",
+							"#text": "-0.615000"
+						}, {
+							"@coaCode": "TIAT",
+							"#text": "-1.329280"
+						}, {
+							"@coaCode": "NIBX",
+							"#text": "-1.329280"
+						}, {
+							"@coaCode": "NINC",
+							"#text": "-1.329280"
+						}, {
+							"@coaCode": "CIAC",
+							"#text": "-1.329280"
+						}, {
+							"@coaCode": "XNIC",
+							"#text": "-1.329280"
+						}, {
+							"@coaCode": "SDAJ",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "SDNI",
+							"#text": "-1.329280"
+						}, {
+							"@coaCode": "SDWS",
+							"#text": "8.114250"
+						}, {
+							"@coaCode": "SDBF",
+							"#text": "-0.163820"
+						}, {
+							"@coaCode": "DDPS1",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "VDES",
+							"#text": "-0.163820"
+						}]
+					}, {
+						"@Type": "BAL",
+						"FPHeader": {
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2013-06-30",
+							"AuditorName": {
+								"@Code": "MGLP",
+								"#text": "McGladrey LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2013-09-25",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ACAE",
+							"#text": "0.503560"
+						}, {
+							"@coaCode": "SCSI",
+							"#text": "0.503560"
+						}, {
+							"@coaCode": "AACR",
+							"#text": "9.014040"
+						}, {
+							"@coaCode": "ATRC",
+							"#text": "9.552330"
+						}, {
+							"@coaCode": "AITL",
+							"#text": "1.379590"
+						}, {
+							"@coaCode": "APPY",
+							"#text": "0.428840"
+						}, {
+							"@coaCode": "SOCA",
+							"#text": "0.557000"
+						}, {
+							"@coaCode": "ATCA",
+							"#text": "12.421330"
+						}, {
+							"@coaCode": "APTC",
+							"#text": "5.711680"
+						}, {
+							"@coaCode": "ADEP",
+							"#text": "-1.968000"
+						}, {
+							"@coaCode": "APPN",
+							"#text": "3.743680"
+						}, {
+							"@coaCode": "AINT",
+							"#text": "1.080730"
+						}, {
+							"@coaCode": "SOLA",
+							"#text": "0.310090"
+						}, {
+							"@coaCode": "ATOT",
+							"#text": "17.555830"
+						}, {
+							"@coaCode": "LAPB",
+							"#text": "0.643680"
+						}, {
+							"@coaCode": "LAEX",
+							"#text": "0.812290"
+						}, {
+							"@coaCode": "LSTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "LCLD",
+							"#text": "0.057540"
+						}, {
+							"@coaCode": "SOCL",
+							"#text": "0.680000"
+						}, {
+							"@coaCode": "LTCL",
+							"#text": "2.193510"
+						}, {
+							"@coaCode": "LLTD",
+							"#text": "1.332460"
+						}, {
+							"@coaCode": "LTTD",
+							"#text": "1.332460"
+						}, {
+							"@coaCode": "STLD",
+							"#text": "1.390000"
+						}, {
+							"@coaCode": "SBDT",
+							"#text": "0.103000"
+						}, {
+							"@coaCode": "LTLL",
+							"#text": "3.628970"
+						}, {
+							"@coaCode": "SCMS",
+							"#text": "0.081140"
+						}, {
+							"@coaCode": "QPIC",
+							"#text": "13.134940"
+						}, {
+							"@coaCode": "QRED",
+							"#text": "0.710780"
+						}, {
+							"@coaCode": "QTLE",
+							"#text": "13.926860"
+						}, {
+							"@coaCode": "QTEL",
+							"#text": "17.555830"
+						}, {
+							"@coaCode": "QTCO",
+							"#text": "8.114250"
+						}, {
+							"@coaCode": "STBP",
+							"#text": "1.583160"
+						}]
+					}, {
+						"@Type": "CAS",
+						"FPHeader": {
+							"PeriodLength": "12",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2013-06-30",
+							"AuditorName": {
+								"@Code": "MGLP",
+								"#text": "McGladrey LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2013-09-25",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ONET",
+							"#text": "-1.329280"
+						}, {
+							"@coaCode": "SDED",
+							"#text": "0.459820"
+						}, {
+							"@coaCode": "SAMT",
+							"#text": "0.130050"
+						}, {
+							"@coaCode": "OBDT",
+							"#text": "-0.078000"
+						}, {
+							"@coaCode": "SNCI",
+							"#text": "0.235240"
+						}, {
+							"@coaCode": "SCTP",
+							"#text": "0.010360"
+						}, {
+							"@coaCode": "SCIP",
+							"#text": "0.116200"
+						}, {
+							"@coaCode": "SOCF",
+							"#text": "2.458830"
+						}, {
+							"@coaCode": "OTLO",
+							"#text": "1.876660"
+						}, {
+							"@coaCode": "SCEX",
+							"#text": "-1.053370"
+						}, {
+							"@coaCode": "SICF",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "ITLI",
+							"#text": "-1.053370"
+						}, {
+							"@coaCode": "SFCF",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "FPSS",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "FPRD",
+							"#text": "-2.022160"
+						}, {
+							"@coaCode": "FTLF",
+							"#text": "-2.022160"
+						}, {
+							"@coaCode": "SNCC",
+							"#text": "-1.198870"
+						}]
+					}]
+				}]
+			},
+			"InterimPeriods": {
+				"FiscalPeriod": [{
+					"@Type": "Interim",
+					"@EndDate": "2018-06-30",
+					"@FiscalYear": "2018",
+					"@FiscalPeriodNumber": "4",
+					"Statement": [{
+						"@Type": "INC",
+						"FPHeader": {
+							"PeriodLength": "3",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UCA",
+								"#text": "Updated Calculated"
+							},
+							"AccountingStd": null,
+							"StatementDate": "2018-06-30",
+							"AuditorName": {
+								"@Code": "RSUS",
+								"#text": "RSM US LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2018-09-25",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "SREV",
+							"#text": "8.240560"
+						}, {
+							"@coaCode": "RTLR",
+							"#text": "8.240560"
+						}, {
+							"@coaCode": "SCOR",
+							"#text": "1.507160"
+						}, {
+							"@coaCode": "SGRP",
+							"#text": "6.733400"
+						}, {
+							"@coaCode": "SSGA",
+							"#text": "5.061170"
+						}, {
+							"@coaCode": "ERAD",
+							"#text": "0.081320"
+						}, {
+							"@coaCode": "ETOE",
+							"#text": "6.649650"
+						}, {
+							"@coaCode": "SOPI",
+							"#text": "1.590910"
+						}, {
+							"@coaCode": "SNIN",
+							"#text": "0.028300"
+						}, {
+							"@coaCode": "EIBT",
+							"#text": "1.619210"
+						}, {
+							"@coaCode": "TTAX",
+							"#text": "0.479000"
+						}, {
+							"@coaCode": "TIAT",
+							"#text": "1.140210"
+						}, {
+							"@coaCode": "NIBX",
+							"#text": "1.140210"
+						}, {
+							"@coaCode": "STXI",
+							"#text": "-0.021000"
+						}, {
+							"@coaCode": "NINC",
+							"#text": "1.119210"
+						}, {
+							"@coaCode": "CIAC",
+							"#text": "1.140210"
+						}, {
+							"@coaCode": "XNIC",
+							"#text": "1.119210"
+						}, {
+							"@coaCode": "SDNI",
+							"#text": "1.119210"
+						}, {
+							"@coaCode": "SDWS",
+							"#text": "8.577050"
+						}, {
+							"@coaCode": "SDBF",
+							"#text": "0.132940"
+						}, {
+							"@coaCode": "VDES",
+							"#text": "0.132940"
+						}]
+					}, {
+						"@Type": "BAL",
+						"FPHeader": {
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2018-06-30",
+							"AuditorName": {
+								"@Code": "RSUS",
+								"#text": "RSM US LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2018-09-25",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ACAE",
+							"#text": "7.455840"
+						}, {
+							"@coaCode": "SCSI",
+							"#text": "7.455840"
+						}, {
+							"@coaCode": "AACR",
+							"#text": "11.563210"
+						}, {
+							"@coaCode": "ATRC",
+							"#text": "11.563210"
+						}, {
+							"@coaCode": "AITL",
+							"#text": "2.360690"
+						}, {
+							"@coaCode": "APPY",
+							"#text": "0.832200"
+						}, {
+							"@coaCode": "ATCA",
+							"#text": "22.211950"
+						}, {
+							"@coaCode": "APTC",
+							"#text": "6.831240"
+						}, {
+							"@coaCode": "ADEP",
+							"#text": "-3.740000"
+						}, {
+							"@coaCode": "APPN",
+							"#text": "3.091240"
+						}, {
+							"@coaCode": "AINT",
+							"#text": "0.649100"
+						}, {
+							"@coaCode": "SOLA",
+							"#text": "0.685910"
+						}, {
+							"@coaCode": "ATOT",
+							"#text": "26.638200"
+						}, {
+							"@coaCode": "LAPB",
+							"#text": "0.810640"
+						}, {
+							"@coaCode": "LAEX",
+							"#text": "1.674100"
+						}, {
+							"@coaCode": "LSTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "LCLD",
+							"#text": "1.101040"
+						}, {
+							"@coaCode": "SOCL",
+							"#text": "1.157390"
+						}, {
+							"@coaCode": "LTCL",
+							"#text": "4.743170"
+						}, {
+							"@coaCode": "LLTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "LTTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "STLD",
+							"#text": "1.101040"
+						}, {
+							"@coaCode": "LTLL",
+							"#text": "4.743170"
+						}, {
+							"@coaCode": "SCMS",
+							"#text": "0.082890"
+						}, {
+							"@coaCode": "QPIC",
+							"#text": "14.953100"
+						}, {
+							"@coaCode": "QRED",
+							"#text": "6.859040"
+						}, {
+							"@coaCode": "QTLE",
+							"#text": "21.895030"
+						}, {
+							"@coaCode": "QTEL",
+							"#text": "26.638200"
+						}, {
+							"@coaCode": "QTCO",
+							"#text": "8.288660"
+						}, {
+							"@coaCode": "STBP",
+							"#text": "2.563250"
+						}]
+					}, {
+						"@Type": "CAS",
+						"FPHeader": {
+							"PeriodLength": "12",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2018-06-30",
+							"AuditorName": {
+								"@Code": "RSUS",
+								"#text": "RSM US LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2018-09-25",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ONET",
+							"#text": "1.902400"
+						}, {
+							"@coaCode": "SDED",
+							"#text": "0.676430"
+						}, {
+							"@coaCode": "SAMT",
+							"#text": "0.113600"
+						}, {
+							"@coaCode": "OBDT",
+							"#text": "-0.134000"
+						}, {
+							"@coaCode": "SNCI",
+							"#text": "0.899140"
+						}, {
+							"@coaCode": "SOCF",
+							"#text": "-1.015360"
+						}, {
+							"@coaCode": "OTLO",
+							"#text": "2.442200"
+						}, {
+							"@coaCode": "SCEX",
+							"#text": "-0.571780"
+						}, {
+							"@coaCode": "ITLI",
+							"#text": "-0.571780"
+						}, {
+							"@coaCode": "SFCF",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "FPSS",
+							"#text": "0.062410"
+						}, {
+							"@coaCode": "FPRD",
+							"#text": "-0.050700"
+						}, {
+							"@coaCode": "FTLF",
+							"#text": "0.011710"
+						}, {
+							"@coaCode": "SNCC",
+							"#text": "1.882140"
+						}]
+					}]
+				}, {
+					"@Type": "Interim",
+					"@EndDate": "2018-03-31",
+					"@FiscalYear": "2018",
+					"@FiscalPeriodNumber": "3",
+					"Statement": [{
+						"@Type": "INC",
+						"FPHeader": {
+							"PeriodLength": "3",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"AccountingStd": null,
+							"StatementDate": "2018-03-31",
+							"Source": {
+								"@Date": "2018-05-08",
+								"#text": "10-Q"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "SREV",
+							"#text": "7.090650"
+						}, {
+							"@coaCode": "RTLR",
+							"#text": "7.090650"
+						}, {
+							"@coaCode": "SCOR",
+							"#text": "1.491160"
+						}, {
+							"@coaCode": "SGRP",
+							"#text": "5.599490"
+						}, {
+							"@coaCode": "SSGA",
+							"#text": "5.071720"
+						}, {
+							"@coaCode": "ERAD",
+							"#text": "0.042670"
+						}, {
+							"@coaCode": "ETOE",
+							"#text": "6.605550"
+						}, {
+							"@coaCode": "SOPI",
+							"#text": "0.485100"
+						}, {
+							"@coaCode": "SNIN",
+							"#text": "0.000670"
+						}, {
+							"@coaCode": "EIBT",
+							"#text": "0.485780"
+						}, {
+							"@coaCode": "TTAX",
+							"#text": "0.173000"
+						}, {
+							"@coaCode": "TIAT",
+							"#text": "0.312780"
+						}, {
+							"@coaCode": "NIBX",
+							"#text": "0.312780"
+						}, {
+							"@coaCode": "STXI",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "NINC",
+							"#text": "0.312780"
+						}, {
+							"@coaCode": "CIAC",
+							"#text": "0.312780"
+						}, {
+							"@coaCode": "XNIC",
+							"#text": "0.312780"
+						}, {
+							"@coaCode": "SDNI",
+							"#text": "0.312780"
+						}, {
+							"@coaCode": "SDWS",
+							"#text": "8.613370"
+						}, {
+							"@coaCode": "SDBF",
+							"#text": "0.036310"
+						}, {
+							"@coaCode": "DDPS1",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "VDES",
+							"#text": "0.036310"
+						}]
+					}, {
+						"@Type": "BAL",
+						"FPHeader": {
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2018-03-31",
+							"Source": {
+								"@Date": "2018-05-08",
+								"#text": "10-Q"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ACAE",
+							"#text": "7.062820"
+						}, {
+							"@coaCode": "SCSI",
+							"#text": "7.062820"
+						}, {
+							"@coaCode": "AACR",
+							"#text": "10.075210"
+						}, {
+							"@coaCode": "ATRC",
+							"#text": "10.166310"
+						}, {
+							"@coaCode": "AITL",
+							"#text": "2.207290"
+						}, {
+							"@coaCode": "APPY",
+							"#text": "0.483820"
+						}, {
+							"@coaCode": "ATCA",
+							"#text": "19.920250"
+						}, {
+							"@coaCode": "APPN",
+							"#text": "3.165540"
+						}, {
+							"@coaCode": "AINT",
+							"#text": "-0.211070"
+						}, {
+							"@coaCode": "SOLA",
+							"#text": "1.389070"
+						}, {
+							"@coaCode": "ATOT",
+							"#text": "24.263780"
+						}, {
+							"@coaCode": "LAPB",
+							"#text": "0.614870"
+						}, {
+							"@coaCode": "LAEX",
+							"#text": "1.338870"
+						}, {
+							"@coaCode": "LSTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "LCLD",
+							"#text": "1.112840"
+						}, {
+							"@coaCode": "SOCL",
+							"#text": "0.680000"
+						}, {
+							"@coaCode": "LTCL",
+							"#text": "3.746580"
+						}, {
+							"@coaCode": "LLTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "LTTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "STLD",
+							"#text": "1.112840"
+						}, {
+							"@coaCode": "LTLL",
+							"#text": "3.746580"
+						}, {
+							"@coaCode": "SCMS",
+							"#text": "0.082890"
+						}, {
+							"@coaCode": "QPIC",
+							"#text": "14.694490"
+						}, {
+							"@coaCode": "QRED",
+							"#text": "5.739830"
+						}, {
+							"@coaCode": "QTLE",
+							"#text": "20.517200"
+						}, {
+							"@coaCode": "QTEL",
+							"#text": "24.263780"
+						}, {
+							"@coaCode": "QTCO",
+							"#text": "8.288660"
+						}, {
+							"@coaCode": "STBP",
+							"#text": "2.500800"
+						}]
+					}, {
+						"@Type": "CAS",
+						"FPHeader": {
+							"PeriodLength": "9",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2018-03-31",
+							"Source": {
+								"@Date": "2018-05-08",
+								"#text": "10-Q"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ONET",
+							"#text": "0.783180"
+						}, {
+							"@coaCode": "SDED",
+							"#text": "0.495800"
+						}, {
+							"@coaCode": "SAMT",
+							"#text": "0.085170"
+						}, {
+							"@coaCode": "OBDT",
+							"#text": "0.043000"
+						}, {
+							"@coaCode": "SNCI",
+							"#text": "0.609430"
+						}, {
+							"@coaCode": "SOCF",
+							"#text": "-0.144800"
+						}, {
+							"@coaCode": "OTLO",
+							"#text": "1.871770"
+						}, {
+							"@coaCode": "SCEX",
+							"#text": "-0.407150"
+						}, {
+							"@coaCode": "ITLI",
+							"#text": "-0.407150"
+						}, {
+							"@coaCode": "SFCF",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "FPSS",
+							"#text": "0.062410"
+						}, {
+							"@coaCode": "FPRD",
+							"#text": "-0.037930"
+						}, {
+							"@coaCode": "FTLF",
+							"#text": "0.024490"
+						}, {
+							"@coaCode": "SNCC",
+							"#text": "1.489110"
+						}]
+					}]
+				}, {
+					"@Type": "Interim",
+					"@EndDate": "2017-12-31",
+					"@FiscalYear": "2018",
+					"@FiscalPeriodNumber": "2",
+					"Statement": [{
+						"@Type": "INC",
+						"FPHeader": {
+							"PeriodLength": "3",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"AccountingStd": null,
+							"StatementDate": "2017-12-31",
+							"Source": {
+								"@Date": "2018-02-13",
+								"#text": "10-Q"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "SREV",
+							"#text": "6.984630"
+						}, {
+							"@coaCode": "RTLR",
+							"#text": "6.984630"
+						}, {
+							"@coaCode": "SCOR",
+							"#text": "1.398000"
+						}, {
+							"@coaCode": "SGRP",
+							"#text": "5.586630"
+						}, {
+							"@coaCode": "SSGA",
+							"#text": "4.759650"
+						}, {
+							"@coaCode": "ERAD",
+							"#text": "0.056790"
+						}, {
+							"@coaCode": "ETOE",
+							"#text": "6.214450"
+						}, {
+							"@coaCode": "SOPI",
+							"#text": "0.770180"
+						}, {
+							"@coaCode": "SNIN",
+							"#text": "-0.004890"
+						}, {
+							"@coaCode": "EIBT",
+							"#text": "0.765290"
+						}, {
+							"@coaCode": "TTAX",
+							"#text": "0.256000"
+						}, {
+							"@coaCode": "TIAT",
+							"#text": "0.509290"
+						}, {
+							"@coaCode": "NIBX",
+							"#text": "0.509290"
+						}, {
+							"@coaCode": "STXI",
+							"#text": "-0.160000"
+						}, {
+							"@coaCode": "NINC",
+							"#text": "0.349290"
+						}, {
+							"@coaCode": "CIAC",
+							"#text": "0.509290"
+						}, {
+							"@coaCode": "XNIC",
+							"#text": "0.349290"
+						}, {
+							"@coaCode": "SDNI",
+							"#text": "0.349290"
+						}, {
+							"@coaCode": "SDWS",
+							"#text": "8.648870"
+						}, {
+							"@coaCode": "SDBF",
+							"#text": "0.058880"
+						}, {
+							"@coaCode": "DDPS1",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "VDES",
+							"#text": "0.058880"
+						}]
+					}, {
+						"@Type": "BAL",
+						"FPHeader": {
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2017-12-31",
+							"Source": {
+								"@Date": "2018-02-13",
+								"#text": "10-Q"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ACAE",
+							"#text": "6.840240"
+						}, {
+							"@coaCode": "SCSI",
+							"#text": "6.840240"
+						}, {
+							"@coaCode": "AACR",
+							"#text": "9.680370"
+						}, {
+							"@coaCode": "ATRC",
+							"#text": "9.680370"
+						}, {
+							"@coaCode": "AITL",
+							"#text": "2.393640"
+						}, {
+							"@coaCode": "APPY",
+							"#text": "0.379710"
+						}, {
+							"@coaCode": "ATCA",
+							"#text": "19.293960"
+						}, {
+							"@coaCode": "APPN",
+							"#text": "3.215370"
+						}, {
+							"@coaCode": "AINT",
+							"#text": "0.674700"
+						}, {
+							"@coaCode": "SOLA",
+							"#text": "0.519580"
+						}, {
+							"@coaCode": "ATOT",
+							"#text": "23.703610"
+						}, {
+							"@coaCode": "LAPB",
+							"#text": "0.704110"
+						}, {
+							"@coaCode": "LAEX",
+							"#text": "1.196450"
+						}, {
+							"@coaCode": "LSTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "LCLD",
+							"#text": "1.124750"
+						}, {
+							"@coaCode": "SOCL",
+							"#text": "0.754110"
+						}, {
+							"@coaCode": "LTCL",
+							"#text": "3.779410"
+						}, {
+							"@coaCode": "LLTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "LTTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "STLD",
+							"#text": "1.124750"
+						}, {
+							"@coaCode": "LTLL",
+							"#text": "3.779410"
+						}, {
+							"@coaCode": "SCMS",
+							"#text": "0.082700"
+						}, {
+							"@coaCode": "QPIC",
+							"#text": "14.414450"
+						}, {
+							"@coaCode": "QRED",
+							"#text": "5.427050"
+						}, {
+							"@coaCode": "QTLE",
+							"#text": "19.924200"
+						}, {
+							"@coaCode": "QTEL",
+							"#text": "23.703610"
+						}, {
+							"@coaCode": "QTCO",
+							"#text": "8.270170"
+						}, {
+							"@coaCode": "STBP",
+							"#text": "2.327580"
+						}]
+					}, {
+						"@Type": "CAS",
+						"FPHeader": {
+							"PeriodLength": "6",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2017-12-31",
+							"Source": {
+								"@Date": "2018-02-13",
+								"#text": "10-Q"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ONET",
+							"#text": "0.470410"
+						}, {
+							"@coaCode": "SDED",
+							"#text": "0.329720"
+						}, {
+							"@coaCode": "SAMT",
+							"#text": "0.056610"
+						}, {
+							"@coaCode": "OBDT",
+							"#text": "0.043000"
+						}, {
+							"@coaCode": "SNCI",
+							"#text": "0.390640"
+						}, {
+							"@coaCode": "SOCF",
+							"#text": "0.239410"
+						}, {
+							"@coaCode": "OTLO",
+							"#text": "1.529780"
+						}, {
+							"@coaCode": "SCEX",
+							"#text": "-0.238210"
+						}, {
+							"@coaCode": "ITLI",
+							"#text": "-0.238210"
+						}, {
+							"@coaCode": "SFCF",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "FPRD",
+							"#text": "-0.025040"
+						}, {
+							"@coaCode": "FTLF",
+							"#text": "-0.025040"
+						}, {
+							"@coaCode": "SNCC",
+							"#text": "1.266530"
+						}]
+					}]
+				}, {
+					"@Type": "Interim",
+					"@EndDate": "2017-09-30",
+					"@FiscalYear": "2018",
+					"@FiscalPeriodNumber": "1",
+					"Statement": [{
+						"@Type": "INC",
+						"FPHeader": {
+							"PeriodLength": "3",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"AccountingStd": null,
+							"StatementDate": "2017-09-30",
+							"Source": {
+								"@Date": "2017-11-07",
+								"#text": "10-Q"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "SREV",
+							"#text": "6.381780"
+						}, {
+							"@coaCode": "RTLR",
+							"#text": "6.381780"
+						}, {
+							"@coaCode": "SCOR",
+							"#text": "1.445280"
+						}, {
+							"@coaCode": "SGRP",
+							"#text": "4.936500"
+						}, {
+							"@coaCode": "SSGA",
+							"#text": "4.703590"
+						}, {
+							"@coaCode": "ERAD",
+							"#text": "0.070580"
+						}, {
+							"@coaCode": "ETOE",
+							"#text": "6.219460"
+						}, {
+							"@coaCode": "SOPI",
+							"#text": "0.162320"
+						}, {
+							"@coaCode": "SNIN",
+							"#text": "-0.004200"
+						}, {
+							"@coaCode": "EIBT",
+							"#text": "0.158120"
+						}, {
+							"@coaCode": "TTAX",
+							"#text": "0.037000"
+						}, {
+							"@coaCode": "TIAT",
+							"#text": "0.121120"
+						}, {
+							"@coaCode": "NIBX",
+							"#text": "0.121120"
+						}, {
+							"@coaCode": "NINC",
+							"#text": "0.121120"
+						}, {
+							"@coaCode": "CIAC",
+							"#text": "0.121120"
+						}, {
+							"@coaCode": "XNIC",
+							"#text": "0.121120"
+						}, {
+							"@coaCode": "SDNI",
+							"#text": "0.121120"
+						}, {
+							"@coaCode": "SDWS",
+							"#text": "8.614630"
+						}, {
+							"@coaCode": "SDBF",
+							"#text": "0.014060"
+						}, {
+							"@coaCode": "DDPS1",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "VDES",
+							"#text": "0.014060"
+						}]
+					}, {
+						"@Type": "BAL",
+						"FPHeader": {
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2017-09-30",
+							"Source": {
+								"@Date": "2017-11-07",
+								"#text": "10-Q"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ACAE",
+							"#text": "5.786990"
+						}, {
+							"@coaCode": "SCSI",
+							"#text": "5.786990"
+						}, {
+							"@coaCode": "AACR",
+							"#text": "9.644130"
+						}, {
+							"@coaCode": "ATRC",
+							"#text": "9.870710"
+						}, {
+							"@coaCode": "AITL",
+							"#text": "2.454150"
+						}, {
+							"@coaCode": "APPY",
+							"#text": "0.565880"
+						}, {
+							"@coaCode": "ATCA",
+							"#text": "18.677740"
+						}, {
+							"@coaCode": "APPN",
+							"#text": "3.262470"
+						}, {
+							"@coaCode": "AINT",
+							"#text": "0.700450"
+						}, {
+							"@coaCode": "SOLA",
+							"#text": "0.565190"
+						}, {
+							"@coaCode": "ATOT",
+							"#text": "23.205850"
+						}, {
+							"@coaCode": "LAPB",
+							"#text": "0.678930"
+						}, {
+							"@coaCode": "LAEX",
+							"#text": "1.321460"
+						}, {
+							"@coaCode": "LSTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "LCLD",
+							"#text": "0.051210"
+						}, {
+							"@coaCode": "SOCL",
+							"#text": "0.690000"
+						}, {
+							"@coaCode": "LTCL",
+							"#text": "2.741600"
+						}, {
+							"@coaCode": "LLTD",
+							"#text": "1.085200"
+						}, {
+							"@coaCode": "LTTD",
+							"#text": "1.085200"
+						}, {
+							"@coaCode": "STLD",
+							"#text": "1.136410"
+						}, {
+							"@coaCode": "LTLL",
+							"#text": "3.826800"
+						}, {
+							"@coaCode": "SCMS",
+							"#text": "0.082600"
+						}, {
+							"@coaCode": "QPIC",
+							"#text": "14.218690"
+						}, {
+							"@coaCode": "QRED",
+							"#text": "5.077770"
+						}, {
+							"@coaCode": "QTLE",
+							"#text": "19.379060"
+						}, {
+							"@coaCode": "QTEL",
+							"#text": "23.205850"
+						}, {
+							"@coaCode": "QTCO",
+							"#text": "8.260170"
+						}, {
+							"@coaCode": "STBP",
+							"#text": "2.261290"
+						}]
+					}, {
+						"@Type": "CAS",
+						"FPHeader": {
+							"PeriodLength": "3",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2017-09-30",
+							"Source": {
+								"@Date": "2017-11-07",
+								"#text": "10-Q"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ONET",
+							"#text": "0.121120"
+						}, {
+							"@coaCode": "SDED",
+							"#text": "0.164070"
+						}, {
+							"@coaCode": "SAMT",
+							"#text": "0.028260"
+						}, {
+							"@coaCode": "OBDT",
+							"#text": "-0.007000"
+						}, {
+							"@coaCode": "SNCI",
+							"#text": "0.192580"
+						}, {
+							"@coaCode": "SOCF",
+							"#text": "-0.170900"
+						}, {
+							"@coaCode": "OTLO",
+							"#text": "0.328130"
+						}, {
+							"@coaCode": "SCEX",
+							"#text": "-0.102450"
+						}, {
+							"@coaCode": "ITLI",
+							"#text": "-0.102450"
+						}, {
+							"@coaCode": "FPRD",
+							"#text": "-0.012400"
+						}, {
+							"@coaCode": "FTLF",
+							"#text": "-0.012400"
+						}, {
+							"@coaCode": "SNCC",
+							"#text": "0.213280"
+						}]
+					}]
+				}, {
+					"@Type": "Interim",
+					"@EndDate": "2017-06-30",
+					"@FiscalYear": "2017",
+					"@FiscalPeriodNumber": "4",
+					"Statement": [{
+						"@Type": "INC",
+						"FPHeader": {
+							"PeriodLength": "3",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UCA",
+								"#text": "Updated Calculated"
+							},
+							"AccountingStd": null,
+							"StatementDate": "2017-06-30",
+							"AuditorName": {
+								"@Code": "RSUS",
+								"#text": "RSM US LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2017-09-05",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "SREV",
+							"#text": "7.273900"
+						}, {
+							"@coaCode": "RTLR",
+							"#text": "7.273900"
+						}, {
+							"@coaCode": "SCOR",
+							"#text": "1.272100"
+						}, {
+							"@coaCode": "SGRP",
+							"#text": "6.001800"
+						}, {
+							"@coaCode": "SSGA",
+							"#text": "4.422950"
+						}, {
+							"@coaCode": "ERAD",
+							"#text": "0.064620"
+						}, {
+							"@coaCode": "ETOE",
+							"#text": "5.759670"
+						}, {
+							"@coaCode": "SOPI",
+							"#text": "1.514230"
+						}, {
+							"@coaCode": "SNIN",
+							"#text": "-0.008730"
+						}, {
+							"@coaCode": "EIBT",
+							"#text": "1.505500"
+						}, {
+							"@coaCode": "TTAX",
+							"#text": "0.559000"
+						}, {
+							"@coaCode": "TIAT",
+							"#text": "0.946500"
+						}, {
+							"@coaCode": "NIBX",
+							"#text": "0.946500"
+						}, {
+							"@coaCode": "NINC",
+							"#text": "0.946500"
+						}, {
+							"@coaCode": "CIAC",
+							"#text": "0.946500"
+						}, {
+							"@coaCode": "XNIC",
+							"#text": "0.946500"
+						}, {
+							"@coaCode": "SDNI",
+							"#text": "0.946500"
+						}, {
+							"@coaCode": "SDWS",
+							"#text": "8.496880"
+						}, {
+							"@coaCode": "SDBF",
+							"#text": "0.111390"
+						}, {
+							"@coaCode": "VDES",
+							"#text": "0.111390"
+						}]
+					}, {
+						"@Type": "BAL",
+						"FPHeader": {
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2017-06-30",
+							"AuditorName": {
+								"@Code": "RSUS",
+								"#text": "RSM US LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2017-09-05",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ACAE",
+							"#text": "5.573710"
+						}, {
+							"@coaCode": "SCSI",
+							"#text": "5.573710"
+						}, {
+							"@coaCode": "AACR",
+							"#text": "9.949760"
+						}, {
+							"@coaCode": "ATRC",
+							"#text": "9.949760"
+						}, {
+							"@coaCode": "AITL",
+							"#text": "2.559490"
+						}, {
+							"@coaCode": "APPY",
+							"#text": "0.393320"
+						}, {
+							"@coaCode": "ATCA",
+							"#text": "18.476270"
+						}, {
+							"@coaCode": "APTC",
+							"#text": "6.543230"
+						}, {
+							"@coaCode": "ADEP",
+							"#text": "-3.240000"
+						}, {
+							"@coaCode": "APPN",
+							"#text": "3.303230"
+						}, {
+							"@coaCode": "AINT",
+							"#text": "0.721280"
+						}, {
+							"@coaCode": "SOLA",
+							"#text": "0.559870"
+						}, {
+							"@coaCode": "ATOT",
+							"#text": "23.060650"
+						}, {
+							"@coaCode": "LAPB",
+							"#text": "0.663380"
+						}, {
+							"@coaCode": "LAEX",
+							"#text": "1.385370"
+						}, {
+							"@coaCode": "LSTD",
+							"#text": "0.000000"
+						}, {
+							"@coaCode": "LCLD",
+							"#text": "0.050700"
+						}, {
+							"@coaCode": "SOCL",
+							"#text": "0.796520"
+						}, {
+							"@coaCode": "LTCL",
+							"#text": "2.895970"
+						}, {
+							"@coaCode": "LLTD",
+							"#text": "1.097130"
+						}, {
+							"@coaCode": "LTTD",
+							"#text": "1.097130"
+						}, {
+							"@coaCode": "STLD",
+							"#text": "1.147830"
+						}, {
+							"@coaCode": "LTLL",
+							"#text": "3.993100"
+						}, {
+							"@coaCode": "SCMS",
+							"#text": "0.082300"
+						}, {
+							"@coaCode": "QPIC",
+							"#text": "14.028600"
+						}, {
+							"@coaCode": "QRED",
+							"#text": "4.956650"
+						}, {
+							"@coaCode": "QTLE",
+							"#text": "19.067550"
+						}, {
+							"@coaCode": "QTEL",
+							"#text": "23.060650"
+						}, {
+							"@coaCode": "QTCO",
+							"#text": "8.187110"
+						}, {
+							"@coaCode": "STBP",
+							"#text": "2.240870"
+						}]
+					}, {
+						"@Type": "CAS",
+						"FPHeader": {
+							"PeriodLength": "12",
+							"periodType": {
+								"@Code": "M",
+								"#text": "Months"
+							},
+							"UpdateType": {
+								"@Code": "UPD",
+								"#text": "Updated Normal"
+							},
+							"StatementDate": "2017-06-30",
+							"AuditorName": {
+								"@Code": "RSUS",
+								"#text": "RSM US LLP"
+							},
+							"AuditorOpinion": {
+								"@Code": "UNQ",
+								"#text": "Unqualified"
+							},
+							"Source": {
+								"@Date": "2017-09-05",
+								"#text": "10-K"
+							}
+						},
+						"lineItem": [{
+							"@coaCode": "ONET",
+							"#text": "2.229470"
+						}, {
+							"@coaCode": "SDED",
+							"#text": "0.636710"
+						}, {
+							"@coaCode": "SAMT",
+							"#text": "0.118420"
+						}, {
+							"@coaCode": "OBDT",
+							"#text": "-0.117000"
+						}, {
+							"@coaCode": "SNCI",
+							"#text": "0.628580"
+						}, {
+							"@coaCode": "SCTP",
+							"#text": "1.089790"
+						}, {
+							"@coaCode": "SCIP",
+							"#text": "0.059230"
+						}, {
+							"@coaCode": "SOCF",
+							"#text": "-2.305050"
+						}, {
+							"@coaCode": "OTLO",
+							"#text": "1.191120"
+						}, {
+							"@coaCode": "SCEX",
+							"#text": "-0.687150"
+						}, {
+							"@coaCode": "ITLI",
+							"#text": "-0.687150"
+						}, {
+							"@coaCode": "SFCF",
+							"#text": "-0.004870"
+						}, {
+							"@coaCode": "FPRD",
+							"#text": "-0.048750"
+						}, {
+							"@coaCode": "FTLF",
+							"#text": "-0.053620"
+						}, {
+							"@coaCode": "SNCC",
+							"#text": "0.450350"
+						}]
+					}]
+				}]
+			}
+		}
+	}
+}
