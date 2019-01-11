@@ -418,7 +418,7 @@ class TestApp(TestWrapper, TestClient):
         self.nextValidOrderId += 1
 
 
-    def get_contract_details(self, symbol, secType, currency=None, exchange=None):
+    def getContractDetails(self, symbol, secType, currency=None, exchange=None):
         contract = Contract()
         contract.symbol = symbol
         contract.secType = secType

@@ -69,7 +69,7 @@ def alphaInFactors(app, tickers, input_f):
         df.at[i, 'Dividend'] = Ratios.getDivPayout(qtr1, qtr2)
 
         # Numerators
-        df.at[i, 'Market Cap'],  _firm_val, ev = Ratios.getCompanyValues(row['Price'], qtr1)
+        df.at[i, 'Market Cap'], ev = Ratios.getCompanyValues(row['Price'], qtr1)[::2]
         df.at[i, 'Enterprise Value'] = ev
 
         df.at[i, 'P/E'] = Ratios.getP_E(row['Price'], qtr1, qtr2, qtr3, qtr4)
@@ -137,7 +137,7 @@ def alphaInFactors(app, tickers, input_f):
 
 """
 Ratio Calculator
-    - smooth out, add comments, proof read, README usage and algo sections, etc
+    - README usage and algo sections, etc
     - Sketchy Accounting detection: Use Beneish's M-Score or Montier's C-Score (see gmtresearch.com)
     - Bankruptcy Risk: Altman Z-Score
     - Tobins Q, other scores that GW investors use
@@ -196,9 +196,10 @@ BS warrants
     - add readme to this repo readme
     - proper tests
     - Use yield of T-bill closest to expiry date as risk value
+    - add support for list/input file of tickers
 """
-def warrants(app, ticker, warrants_out):
-    if ticker is None:
+def warrants(app, tickers, warrants_out):
+    if tickers is None:
         print('Error: Must provide ticker for warrant valuation')
         return
 
@@ -209,50 +210,50 @@ def warrants(app, ticker, warrants_out):
     vols = [.2, .3, .35, .4, .5, .6]
     data = {'Volatility': vols}
 
-    # find the warrant
-    app.get_contract_details(ticker, "WAR", exchange='SMART', currency='USD')
+    ticker_data, issue_tickers = getPriceData(app, tickers)
+    fund_ticker_data, data_issue_tickers = getFundamentalData(app, tickers)
 
-    waitForData(app, 'contract')
+    for key, val in ticker_data.items():
+        # find the warrant
+        app.getContractDetails(key, "WAR", exchange='SMART', currency='USD')
+        underlying_price = float(val)
+        # TODO: contract yield never will be updated, need to actually get this figure
+        div = app.contract_yield
+        qtr1 = app.parseFinancials(fund_ticker_data[key], quarterly=True)[0]
+        shares_out = qtr1['total_common_shares_outstanding']
 
-    # get underlying price and div yield
-    contract = app.createContract(ticker, "STK", "USD", "SMART")
-    app.getPrice(contract)
-    app.getFinStatements(contract, "ReportsFinStatements")
+        # Wait on contract details
+        while not app.contract_details_flag:
+            pass
+        for c in app.contract_details:
+            contract = c.contract
+            strike = contract.strike
+            # right = contract.right
+            warrants_per_share = (1/float(contract.multiplier))
+            expiry = datetime.datetime.strptime(contract.lastTradeDateOrContractMonth, '%Y%m%d').strftime('%m-%d-%Y')
 
-    waitForData(app, 'price')
-    underlying_price = float(app.contract_price)
-    div = app.contract_yield
+            # TODO: Get this from t-bill near expiry date?
+            risk = .03
 
-    # get share count
-    waitForData(app, 'fundamental')
-    latest_val, _prev_val = app.parseFinancials(app.fundamental_data, quarterly=True)
-    shares_out = latest_val['shares']
+            prices = []
+            for vol in vols:
+                # TODO: remove the repetitive prints here
+                print(strike, app.contract_price, risk, vol,
+                                expiry, div, shares_out, warrants_out,
+                                warrants_per_share)
+                bs = BlackScholes(strike, underlying_price, risk, vol,
+                                expiry, div, shares_out, warrants_out,
+                                warrants_per_share)
+                prices.append('$' + str(round(bs.price_euro_call(), 5)))
+            header = ('%s %s' % (str(strike), expiry))
+            data[header] = prices
+        df = pandas.DataFrame(data=data)
+        print(df)
 
-    for c in app.contract_details:
-        contract = c.contract
-        strike = contract.strike
-        right = contract.right
-        warrants_per_share = (1/float(contract.multiplier))
-        expiry = datetime.datetime.strptime(contract.lastTradeDateOrContractMonth, '%Y%m%d').strftime('%m-%d-%Y')
-
-        # Get this from t-bill near expiry date?
-        risk = .03
-
-
-        prices = []
-        for vol in vols:
-            print(strike, app.contract_price, risk, vol,
-                            expiry, div, shares_out, warrants_out,
-                            warrants_per_share)
-            bs = BlackScholes(strike, underlying_price, risk, vol,
-                            expiry, div, shares_out, warrants_out,
-                            warrants_per_share)
-            prices.append('$' + str(round(bs.price_euro_call(), 5)))
-        header = ('%s %s' % (str(strike), expiry))
-        data[header] = prices
-
-    df = pandas.DataFrame(data=data)
-    print(df)
+    print('Tickers missing price data: (%s)' % len(issue_tickers))
+    print(issue_tickers)
+    print('Tickers missing fundamental data: (%s)' % len(data_issue_tickers))
+    print(data_issue_tickers)
 
 
 """
@@ -595,7 +596,7 @@ def loadTickers(ticker_file):
         if '-' in ticker:
             tickers[i] = ticker.replace('-', ' ')
 
-    # Handle Foreign Stocks
+    # Handle Foreign Stocks - currency after delimiter '$'
     tickers = [t.split('$') if '$' in t else t for t in tickers]
 
     return tickers
@@ -710,7 +711,7 @@ def main(args):
 
     if args.warrants:
         print('Warrant Valuation')
-        warrants(app, args.ticker, args.warrants_out)
+        warrants(app, tickers, args.warrants_out)
         print('Warrant Valuation Completed')
 
     if args.ratios:
