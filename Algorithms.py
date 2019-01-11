@@ -51,8 +51,8 @@ def compositeValueRank(df):
     # we know that we are missing some values and we can check if values
     # are 'N/A'. If not object type, then we know there's no missing values
     if df['P/E'].dtype == 'object':
-        df_missing = df[df['P/E'] == 'N/A']
-        df_good = df[df['P/E'] != 'N/A']
+        df_missing = df[df['P/E'].isnull()]
+        df_good = df[df['P/E'].notnull()]
         for i, row in df_missing.iterrows():
             df.at[i, 'P/E Score'] = 50
         for i, row in df_good.iterrows():
@@ -63,8 +63,8 @@ def compositeValueRank(df):
 
     # EV/EBITDA Score
     if df['EV/EBITDA'].dtype == 'object':
-        df_missing = df[df['EV/EBITDA'] == 'N/A']
-        df_good = df[df['EV/EBITDA'] != 'N/A']
+        df_missing = df[df['EV/EBITDA'].isnull()]
+        df_good = df[df['EV/EBITDA'].notnull()]
         for i, row in df_missing.iterrows():
             df.at[i, 'EV/EBITDA Score'] = 50
         for i, row in df_good.iterrows():
@@ -75,8 +75,8 @@ def compositeValueRank(df):
 
     # EV/S Score
     if df['EV/S'].dtype == 'object':
-        df_missing = df[df['EV/S'] == 'N/A']
-        df_good = df[df['EV/S'] != 'N/A']
+        df_missing = df[df['EV/S'].isnull()]
+        df_good = df[df['EV/S'].notnull()]
         for i, row in df_missing.iterrows():
             df.at[i, 'EV/S Score'] = 50
         for i, row in df_good.iterrows():
@@ -88,8 +88,8 @@ def compositeValueRank(df):
 
     # EV/FCF Score
     if df['EV/FCF'].dtype == 'object':
-        df_missing = df[df['EV/FCF'] == 'N/A']
-        df_good = df[df['EV/FCF'] != 'N/A']
+        df_missing = df[df['EV/FCF'].isnull()]
+        df_good = df[df['EV/FCF'].notnull()]
         for i, row in df_missing.iterrows():
             df.at[i, 'EV/FCF Score'] = 50
         for i, row in df_good.iterrows():
@@ -183,18 +183,4 @@ def calcROIC(data):
     else:
         print('Cannot calc ROIC. Missing values:')
         print(set(roic_vars).difference(data))
-        return None
-
-
-def calcDebtToEquity(data):
-    '''
-    Calculating Debt to Equity Ratio
-    debt_to_equity = total liabilites / total equity
-
-    Alternatives: Can use reqMktData with tick type 258 to get IB's version of debt to equity
-    or could use total debt instead of total liabilities
-    '''
-    if data['total_liabilities'] and data['total_equity']:
-        return (data['total_liabilities']/data['total_equity'])
-    else:
         return None

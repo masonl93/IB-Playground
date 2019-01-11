@@ -10,7 +10,7 @@ import pandas
 
 import InteractiveBrokers as ib
 import Algorithms as algo
-from Ratios import Ratio
+import Ratios
 from ContractSamples import ContractSamples
 from Black_Scholes import BlackScholes
 
@@ -30,23 +30,14 @@ def alphaInFactors(app, tickers, input_f):
         return
 
     # Remove me later!
-    # tickers = tickers[:100]
+    # tickers = tickers[:25]
 
+    # TODO: remove this functionality
     # tickers, df_cache = loadCacheData(tickers, input_f, 'alpha_in_factor')
 
     ticker_data = {}
     issue_tickers = {}
     prices = []
-    mkt_caps = []
-    enterprise_vals = []
-    dividends = []
-    p_es = []
-    ev_ebitdas = []
-    ev_ss = []
-    ev_fcfs = []
-    noas = []
-    eps = []
-    debt_to_equities = []
 
     # Max number of requests that can be made per second for reqmktdata = 100
     tickers_chunked = chunkTickers(tickers, 100)
@@ -130,63 +121,25 @@ def alphaInFactors(app, tickers, input_f):
     for i, row in df.iterrows():
         qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(row['Data'], quarterly=True)
         # Getting annual reports also
-        latest_val, prev_val = app.parseFinancials(row['Data'])
-        if qtr1:
-            try:
-                df.at[i, 'Dividend'] = qtr1['dividend'] + qtr2['dividend']
-            except:
-                pass
+        current_annual, prev_annual = app.parseFinancials(row['Data'])
 
-            # TODO: get rid of ratio class
-            ratio = Ratio()
+        df.at[i, 'Dividend'] = Ratios.getDivPayout(qtr1, qtr2)
 
-            # Numerators
-            df.at[i, 'Market Cap'],  _firm_val, ev = ratio.getCompanyValues(row['Price'], qtr1)
-            df.at[i, 'Enterprise Value'] = ev
+        # Numerators
+        df.at[i, 'Market Cap'],  _firm_val, ev = Ratios.getCompanyValues(row['Price'], qtr1)
+        df.at[i, 'Enterprise Value'] = ev
 
-            # TODO: better fix when missing quarterly reports
-            # P/E
-            try:
-                df.at[i, 'P/E'] = ratio.getP_E(row['Price'], qtr1, qtr2, qtr3, qtr4)
-            except KeyError:
-                df.at[i, 'P/E'] = "N/A"
+        df.at[i, 'P/E'] = Ratios.getP_E(row['Price'], qtr1, qtr2, qtr3, qtr4)
+        df.at[i, 'EV/EBITDA'] = Ratios.getEV_EBITDA(ev, qtr1, qtr2, qtr3, qtr4)
+        df.at[i, 'EV/S']  = Ratios.getEV_S(ev, qtr1, qtr2, qtr3, qtr4)
+        df.at[i, 'EV/FCF']  = Ratios.getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4)
 
-            # EV/EBITDA
-            try:
-                df.at[i, 'EV/EBITDA'] = ratio.getEV_EBITDA(ev, qtr1, qtr2, qtr3, qtr4)
-            except KeyError:
-                df.at[i, 'EV/EBITDA'] = "N/A"
+        df.at[i, 'Change in NOA'] = Ratios.calcChangeInNOA(current_annual, prev_annual)
+        df.at[i, 'EPS Growth'] = Ratios.calcOneYearGrowth(current_annual, prev_annual)
+        df.at[i, 'Debt to Equity'] = Ratios.calcDebtToEquity(qtr1)
 
-            # EV/S
-            try:
-                df.at[i, 'EV/S']  = ratio.getEV_S(ev, qtr1, qtr2, qtr3, qtr4)
-            except KeyError:
-                df.at[i, 'EV/S']  = "N/A"
-
-            # EV/FCF
-            # TODO: better FCF calculation (see Ratios comments)
-            try:
-                df.at[i, 'EV/FCF']  = ratio.getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4)
-            except KeyError:
-                df.at[i, 'EV/FCF']  = "N/A"
-
-            # Change in Net Operating Assets (1yr) - Earnings Quality
-            noa = algo.calcNOA(latest_val)
-            noa_prev = algo.calcNOA(prev_val)
-            if noa is None or noa_prev is None:
-                df.at[i, 'Change in NOA'] = "Error"
-            else:
-                df.at[i, 'Change in NOA'] = (noa - noa_prev)/noa_prev
-
-            # Earnings Growth (1yr)
-            if latest_val and prev_val:
-                df.at[i, 'EPS Growth'] = (latest_val['eps'] - prev_val['eps'])/abs(prev_val['eps'])
-            else:
-                df.at[i, 'EPS Growth'] = "Error"
-
-            # Leverage
-            df.at[i, 'Debt to Equity'] = algo.calcDebtToEquity(qtr1)
-
+    # Drop rows where we don't have market cap or EV
+    df = df.dropna(subset=['Market Cap', 'Enterprise Value'])
     print(df)
 
     df = algo.compositeValueRank(df)
@@ -247,9 +200,6 @@ Ratio Calculator
     - Sketchy Accounting detection: Use Beneish's M-Score or Montier's C-Score (see gmtresearch.com)
     - Bankruptcy Risk: Altman Z-Score
     - Create a final row in dataframe for averages
-    - Use WWOWS cash flow definitions (or GuruFocus):
-        (cash flow = net income + depreciation + non cash expenses,
-         fcf = cash flow - capex - dividends(including prefered))
 """
 def ratios(app, tickers):
     mkt_caps = []
@@ -277,25 +227,24 @@ def ratios(app, tickers):
         app.getFinancialData(contract, "ReportsFinStatements")
         waitForData(app, 'fundamental')
         qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True)
-        ratio = Ratio()
 
         # Numerators
-        mkt_cap, firm_val, ev = ratio.getCompanyValues(app.contract_price, qtr1)
+        mkt_cap, firm_val, ev = Ratios.getCompanyValues(app.contract_price, qtr1)
 
         # P/E
-        p_e = ratio.getP_E(app.contract_price, qtr1, qtr2, qtr3, qtr4)
+        p_e = Ratios.getP_E(app.contract_price, qtr1, qtr2, qtr3, qtr4)
 
         # EV/EBITDA
-        ev_ebitda = ratio.getEV_EBITDA(ev, qtr1, qtr2, qtr3, qtr4)
+        ev_ebitda = Ratios.getEV_EBITDA(ev, qtr1, qtr2, qtr3, qtr4)
 
         # P/B
-        p_b = ratio.getP_B(app.contract_price, qtr1)
+        p_b = Ratios.getP_B(app.contract_price, qtr1)
 
         # EV/S
-        ev_s = ratio.getEV_S(ev, qtr1, qtr2, qtr3, qtr4)
+        ev_s = Ratios.getEV_S(ev, qtr1, qtr2, qtr3, qtr4)
 
         # EV/FCF
-        ev_fcf = ratio.getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4)
+        ev_fcf = Ratios.getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4)
 
         mkt_caps.append(mkt_cap)
         firm_vals.append(firm_val)
@@ -772,26 +721,25 @@ def main(args):
         '''
         Temporary Option to help debug/test the API
         '''
-        contract = app.createContract('AAPL', "STK", "USD", "SMART", "ISLAND")
-        # app.getPrice(contract)
-        # waitForData(app, 'price')
-        # print(app.contract_price)
-
-        # app.getFinancialData(contract, "ReportsFinStatements")
-        # waitForData(app, 'fundamental')
-        # qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True)
-
-        # app.getHistoricalData(contract, "6 M")
-        # waitForData(app, 'hist')
-        # print(app.hist_data_df.iloc[0]['price'])
-        symbols = ['a', 'b', 'c']
-        prices = [1, 2, 3]
-        datas = ['z', 'y', 'x']
-        data = {'Symbol': symbols, 'Price': prices, 'Data': datas, 'Market Cap': None, 'Enterprise Value': None,
-        'Dividend': None, 'Change in NOA': None, 'EPS Growth': None,'P/E': None, 'EV/EBITDA': None,
-        'EV/S': None, 'EV/FCF': None, 'Debt to Equity': None}
-        df = pandas.DataFrame(data)
-        print(df)
+        tickers = loadTickers('data/sp500.txt')
+        tickers = tickers[27:]
+        for i, t in enumerate(tickers):
+            print(i, t)
+            contract = app.createContract(t, "STK", "USD", "SMART", "ISLAND")
+            app.getFinancialData(contract, "ReportsFinStatements")
+            start = time.time()
+            while True:
+                if app.fundamental_data is not None:
+                    break
+                if (time.time() - start) > 5:
+                    app.resetData()
+                    break
+            if app.fundamental_data:
+                print('parse quarter')
+                app.parseFinancials(app.fundamental_data, quarterly=True)
+                print('parse annual')
+                app.parseFinancials(app.fundamental_data)
+                app.resetData()
 
 
     print('Shutting down!')
@@ -838,12 +786,13 @@ if __name__ == '__main__':
         - https://gist.github.com/erdewit/0c01c754defe7cca129b949600be2e52
     - WWOWS - incorporate accounting ratios, earnings quality composite, value factor composites
         - Instead of shorting the bottom deciles, do put options?
-    - Turn algo/functions into their own class? I.e. class Alpha_in_Factor()
     - Everything should be bulletproof i.e. no mid run crashes - handle errors, retry/sleep when necessary, bad ticker list
     - Move positions and orders to command line option
     - Add to README how long sp500 takes for each alpha in factors (and other algos if applicable)
         - Explain reqfundamentaldata takes up lots of time
     - Remove cache data functionality. Have option to save dataframe as pickle output but thats it
+    - Better organize Ratios and Algorithm files. E.g. calcNOA should be in same file as calcP_E
+        - Also give the files better names - fundamental calculations
 
 
 - Enhancements

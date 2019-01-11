@@ -6,6 +6,7 @@ import time
 import xml.etree.ElementTree as ET
 
 import pandas
+import xmltodict
 
 from ibapi.wrapper import EWrapper
 from ibapi.client import EClient
@@ -14,7 +15,9 @@ from ibapi.contract import Contract
 from ibapi.order import Order
 from ibapi.account_summary_tags import AccountSummaryTags
 
+import coaCodes
 from ContractSamples import ContractSamples
+
 
 
 class TestWrapper(EWrapper):
@@ -548,226 +551,75 @@ class TestApp(TestWrapper, TestClient):
 
 
     def parseFinancials(self, data, quarterly=False):
-        '''
-        Parses Financial Data
+        accepted_reports = ["10-K", "10-Q", "Interim Report", "ARS"]
 
-        See sample_financialStatement.xml for coaCodes and their corresponding values
-        Input:
-            data as xml string returned from IB's reqFundamentalData
-            quarterly: if True, then will return last four qtrs of data,
-                       else returns latest and previous annual reports
-        '''
-
-        # Only initialize non-mandatory values to 0
-        # All mandatory keys will be checked to see if they exist before calculating
-        latest_val = {'acct_payable': 0, 'accrued_expense': 0, 'others': 0, 'payable': 0, 'deferred':0}
-        prev_val = {}
-
-        tree = ET.fromstring(data)
-        financial_statements = tree.find('FinancialStatements')
-        if len(financial_statements) == 0:
-            print('Financial Statements missing or not in correct format')
+        fundamental_data = xmltodict.parse(data)
+        if fundamental_data['ReportFinancialStatements']['FinancialStatements'] is None:
+            print('No Fundamental Data')
             if quarterly:
                 return None, None, None, None
             return None, None
+        try:
+            coaMap = fundamental_data['ReportFinancialStatements']['FinancialStatements']['COAMap']
+            annuals = fundamental_data['ReportFinancialStatements']['FinancialStatements']['AnnualPeriods']['FiscalPeriod']
+            interims = fundamental_data['ReportFinancialStatements']['FinancialStatements']['InterimPeriods']['FiscalPeriod']
+        except:
+            print('ERROR with fundamental data')
+            print(fundamental_data)
+            return None, None, None, None
 
-        # financial_statements = [coaMap, annuals, interims]
-        # We want to use a 10-K or 10-Q, no 8-K or PRESS reports
-        latest = None
-        prev = None
         if quarterly:
-            two_qtr_ago = None
-            three_qtr_ago = None
-            reports = financial_statements[2]
-            for r in reports:
-                if r.find(".//Source").text.startswith(("10-K", "10-Q", "Interim Report")):
-                    if latest is None:
-                        latest = r
-                    elif prev is None:
-                        prev = r
-                    elif two_qtr_ago is None:
-                        two_qtr_ago = r
-                    elif three_qtr_ago is None:
-                        three_qtr_ago = r
+            qtr1 = None
+            qtr2 = None
+            qtr3 = None
+            qtr4 = None
+            for s in interims:  # loops through each quarterly report
+                parsed = {}
+                if type(s['Statement']) == list and s['Statement'][0]['FPHeader']['Source']['#text'] in accepted_reports:
+                    data = s['Statement']
+                    for item in data:  # loops through income statement, balance sheet, and income statement
+                        # print(item['@Type'])   ---- this is either INC, BAL, or CAS
+                        for i in item['lineItem']:
+                            try:
+                                parsed[coaCodes.coaCode_map[i['@coaCode']]] = float(i['#text'])
+                            except KeyError:
+                                print('Could not find coaCode!!!')
+                                print(i['@coaCode'])
+                                print(coaMap)
+                    if qtr1 is None:
+                        qtr1 = parsed
+                    elif qtr2 is None:
+                        qtr2 = parsed
+                    elif qtr3 is None:
+                        qtr3 = parsed
+                    elif qtr4 is None:
+                        qtr4 = parsed
+            return qtr1, qtr2, qtr3, qtr4
         else:
-            reports = financial_statements[1]
-            for r in reports:
-                if r.find(".//Source").text.startswith(("10-K", "10-Q", "ARS")):
-                    if latest is None:
-                        latest = r
-                    elif prev is None:
-                        prev = r
-            if latest is None or prev is None:
-                print('Annual Financial Statements missing')
-
-        if latest:
-            # Pulling values from latest annual report
-            if latest.find('.//lineItem[@coaCode="ATOT"]') != None:
-                latest_val['total_assets'] = float(latest.find('.//lineItem[@coaCode="ATOT"]').text)
-            if latest.find('.//lineItem[@coaCode="ACAE"]') != None:
-                # Cash and equivalents
-                latest_val['cash'] = float(latest.find('.//lineItem[@coaCode="ACAE"]').text)
-            elif latest.find('.//lineItem[@coaCode="ACSH"]') != None:
-                # Just cash
-                latest_val['cash'] = float(latest.find('.//lineItem[@coaCode="ACSH"]').text)
-            elif latest.find('.//lineItem[@coaCode="ACDB"]') != None:
-                # Cash & Due from Bank
-                latest_val['cash'] = float(latest.find('.//lineItem[@coaCode="ACDB"]').text)
-            if latest.find('.//lineItem[@coaCode="LTLL"]') != None:
-                latest_val['total_liabilities'] = float(latest.find('.//lineItem[@coaCode="LTLL"]').text)
-            if latest.find('.//lineItem[@coaCode="STLD"]') != None:
-                latest_val['total_debt'] = float(latest.find('.//lineItem[@coaCode="STLD"]').text)
-            if latest.find('.//lineItem[@coaCode="SOPI"]') != None:
-                latest_val['operating_profit'] = float(latest.find('.//lineItem[@coaCode="SOPI"]').text)
-            if latest.find('.//lineItem[@coaCode="EIBT"]') != None:
-                latest_val['income_b4_taxes'] = float(latest.find('.//lineItem[@coaCode="EIBT"]').text)
-            if latest.find('.//lineItem[@coaCode="TTAX"]') != None:
-                latest_val['taxes'] = float(latest.find('.//lineItem[@coaCode="TTAX"]').text)
-            if latest.find('.//lineItem[@coaCode="RTLR"]') != None:
-                latest_val['revenue'] = float(latest.find('.//lineItem[@coaCode="RTLR"]').text)
-            if latest.find('.//lineItem[@coaCode="LAPB"]') != None:
-                latest_val['acct_payable'] = float(latest.find('.//lineItem[@coaCode="LAPB"]').text)
-            if latest.find('.//lineItem[@coaCode="LAEX"]') != None:
-                latest_val['accrued_expense'] = float(latest.find('.//lineItem[@coaCode="LAEX"]').text)
-            if latest.find('.//lineItem[@coaCode="LPBA"]') != None:
-                latest_val['payable'] = float(latest.find('.//lineItem[@coaCode="LPBA"]').text)
-            if latest.find('.//lineItem[@coaCode="SBDT"]') != None:
-                latest_val['deferred'] = float(latest.find('.//lineItem[@coaCode="SBDT"]').text)
-            if latest.find('.//lineItem[@coaCode="SOCL"]') != None:
-                latest_val['others'] = float(latest.find('.//lineItem[@coaCode="SOCL"]').text)
-            if latest.find('.//lineItem[@coaCode="QTCO"]') != None:
-                latest_val['shares'] = float(latest.find('.//lineItem[@coaCode="QTCO"]').text)
-            if latest.find('.//lineItem[@coaCode="SDBF"]') != None:
-                latest_val['eps'] = float(latest.find('.//lineItem[@coaCode="SDBF"]').text)
-            if latest.find('.//lineItem[@coaCode="SCSI"]') != None:
-                latest_val['cash_investments'] = float(latest.find('.//lineItem[@coaCode="SCSI"]').text)
-            if latest.find('.//lineItem[@coaCode="SOPI"]') != None:
-                latest_val['op_income'] = float(latest.find('.//lineItem[@coaCode="SOPI"]').text)
-            if latest.find('.//lineItem[@coaCode="SDPR"]') != None:
-                # Income statement depreciation and amortization
-                latest_val['dep_amor'] = float(latest.find('.//lineItem[@coaCode="SDPR"]').text)
-            else:
-                latest_val['dep_amor'] = 0
-                if latest.find('.//lineItem[@coaCode="SDED"]') != None:
-                    # Cash Flow statement depreciation
-                    latest_val['dep_amor'] = float(latest.find('.//lineItem[@coaCode="SDED"]').text)
-                if latest.find('.//lineItem[@coaCode="SAMT"]') != None:
-                    # Cash Flow statement amortization
-                    latest_val['dep_amor'] += float(latest.find('.//lineItem[@coaCode="SAMT"]').text)
-            if latest.find('.//lineItem[@coaCode="QTLE"]') != None:
-                latest_val['total_equity'] = float(latest.find('.//lineItem[@coaCode="QTLE"]').text)
-            if latest.find('.//lineItem[@coaCode="SRPR"]') != None:
-                latest_val['redeemable_preferred'] = float(latest.find('.//lineItem[@coaCode="SRPR"]').text)
-            if latest.find('.//lineItem[@coaCode="SPRS"]') != None:
-                latest_val['preferred'] = float(latest.find('.//lineItem[@coaCode="SPRS"]').text)
-            if latest.find('.//lineItem[@coaCode="OTLO"]') != None:
-                latest_val['op_cash_flow'] = float(latest.find('.//lineItem[@coaCode="OTLO"]').text)
-            if latest.find('.//lineItem[@coaCode="SCEX"]') != None:
-                latest_val['capex'] = float(latest.find('.//lineItem[@coaCode="SCEX"]').text)
-            else:
-                latest_val['capex'] = 0
-            if latest.find('.//lineItem[@coaCode="DDPS1"]') != None:
-                latest_val['dividend'] = float(latest.find('.//lineItem[@coaCode="DDPS1"]').text)
-            else:
-                latest_val['dividend'] = 0
-
-        if prev:
-            # Pulling values from previous report
-            if prev.find('.//lineItem[@coaCode="ATOT"]') != None:
-                prev_val['total_assets'] = float(prev.find('.//lineItem[@coaCode="ATOT"]').text)
-            if prev.find('.//lineItem[@coaCode="ACAE"]') != None:
-                # Cash and equivalents
-                prev_val['cash'] = float(prev.find('.//lineItem[@coaCode="ACAE"]').text)
-            elif prev.find('.//lineItem[@coaCode="ACSH"]') != None:
-                # Just cash
-                prev_val['cash'] = float(prev.find('.//lineItem[@coaCode="ACSH"]').text)
-            if prev.find('.//lineItem[@coaCode="SCSI"]') != None:
-                prev_val['cash_investments'] = float(prev.find('.//lineItem[@coaCode="SCSI"]').text)
-            if prev.find('.//lineItem[@coaCode="LTLL"]') != None:
-                prev_val['total_liabilities'] = float(prev.find('.//lineItem[@coaCode="LTLL"]').text)
-            if prev.find('.//lineItem[@coaCode="STLD"]') != None:
-                prev_val['total_debt'] = float(prev.find('.//lineItem[@coaCode="STLD"]').text)
-            if prev.find('.//lineItem[@coaCode="SDBF"]') != None:
-                prev_val['eps'] = float(prev.find('.//lineItem[@coaCode="SDBF"]').text)
-            if prev.find('.//lineItem[@coaCode="SOPI"]') != None:
-                prev_val['op_income'] = float(prev.find('.//lineItem[@coaCode="SOPI"]').text)
-            if prev.find('.//lineItem[@coaCode="SDPR"]') != None:
-                prev_val['dep_amor'] = float(prev.find('.//lineItem[@coaCode="SDPR"]').text)
-            else:
-                prev_val['dep_amor'] = 0
-                if prev.find('.//lineItem[@coaCode="SDED"]') != None:
-                    prev_val['dep_amor'] = float(prev.find('.//lineItem[@coaCode="SDED"]').text)
-                if prev.find('.//lineItem[@coaCode="SAMT"]') != None:
-                    prev_val['dep_amor'] += float(prev.find('.//lineItem[@coaCode="SAMT"]').text)
-            if prev.find('.//lineItem[@coaCode="RTLR"]') != None:
-                prev_val['revenue'] = float(prev.find('.//lineItem[@coaCode="RTLR"]').text)
-            if prev.find('.//lineItem[@coaCode="OTLO"]') != None:
-                prev_val['op_cash_flow'] = float(prev.find('.//lineItem[@coaCode="OTLO"]').text)
-            if prev.find('.//lineItem[@coaCode="SCEX"]') != None:
-                prev_val['capex'] = float(prev.find('.//lineItem[@coaCode="SCEX"]').text)
-            else:
-                prev_val['capex'] = 0
-            if prev.find('.//lineItem[@coaCode="DDPS1"]') != None:
-                prev_val['dividend'] = float(prev.find('.//lineItem[@coaCode="DDPS1"]').text)
-            else:
-                prev_val['dividend'] = 0
-
-        if quarterly:
-            two_qtr = {}
-            three_qtr = {}
-            if two_qtr_ago:
-                if two_qtr_ago.find('.//lineItem[@coaCode="SDBF"]') != None:
-                    two_qtr['eps'] = float(two_qtr_ago.find('.//lineItem[@coaCode="SDBF"]').text)
-                if two_qtr_ago.find('.//lineItem[@coaCode="SOPI"]') != None:
-                    two_qtr['op_income'] = float(two_qtr_ago.find('.//lineItem[@coaCode="SOPI"]').text)
-                if two_qtr_ago.find('.//lineItem[@coaCode="SDPR"]') != None:
-                    two_qtr['dep_amor'] = float(two_qtr_ago.find('.//lineItem[@coaCode="SDPR"]').text)
+            current_annual = None
+            prev_annual = None
+            # only one annual report
+            if type(annuals) != list:
+                if annuals['Statement'][0]['FPHeader']['Source']['#text'] in accepted_reports:
+                    annuals = [annuals]  # making it a list to work in the for loop below
                 else:
-                    two_qtr['dep_amor'] = 0
-                    if two_qtr_ago.find('.//lineItem[@coaCode="SDED"]') != None:
-                        two_qtr['dep_amor'] = float(two_qtr_ago.find('.//lineItem[@coaCode="SDED"]').text)
-                    if two_qtr_ago.find('.//lineItem[@coaCode="SAMT"]') != None:
-                        two_qtr['dep_amor'] += float(two_qtr_ago.find('.//lineItem[@coaCode="SAMT"]').text)
-                if two_qtr_ago.find('.//lineItem[@coaCode="RTLR"]') != None:
-                    two_qtr['revenue'] = float(two_qtr_ago.find('.//lineItem[@coaCode="RTLR"]').text)
-                if two_qtr_ago.find('.//lineItem[@coaCode="OTLO"]') != None:
-                    two_qtr['op_cash_flow'] = float(two_qtr_ago.find('.//lineItem[@coaCode="OTLO"]').text)
-                if two_qtr_ago.find('.//lineItem[@coaCode="SCEX"]') != None:
-                    two_qtr['capex'] = float(two_qtr_ago.find('.//lineItem[@coaCode="SCEX"]').text)
-                else:
-                    two_qtr['capex'] = 0
-                if two_qtr_ago.find('.//lineItem[@coaCode="DDPS1"]') != None:
-                    two_qtr['dividend'] = float(two_qtr_ago.find('.//lineItem[@coaCode="DDPS1"]').text)
-                else:
-                    two_qtr['dividend'] = 0
-
-            if three_qtr_ago:
-                if three_qtr_ago.find('.//lineItem[@coaCode="SDBF"]') != None:
-                    three_qtr['eps'] = float(three_qtr_ago.find('.//lineItem[@coaCode="SDBF"]').text)
-                if three_qtr_ago.find('.//lineItem[@coaCode="SOPI"]') != None:
-                    three_qtr['op_income'] = float(three_qtr_ago.find('.//lineItem[@coaCode="SOPI"]').text)
-                if three_qtr_ago.find('.//lineItem[@coaCode="SDPR"]') != None:
-                    three_qtr['dep_amor'] = float(three_qtr_ago.find('.//lineItem[@coaCode="SDPR"]').text)
-                else:
-                    three_qtr['dep_amor'] = 0
-                    if three_qtr_ago.find('.//lineItem[@coaCode="SDED"]') != None:
-                        three_qtr['dep_amor'] = float(three_qtr_ago.find('.//lineItem[@coaCode="SDED"]').text)
-                    if three_qtr_ago.find('.//lineItem[@coaCode="SAMT"]') != None:
-                        three_qtr['dep_amor'] += float(three_qtr_ago.find('.//lineItem[@coaCode="SAMT"]').text)
-                if three_qtr_ago.find('.//lineItem[@coaCode="RTLR"]') != None:
-                    three_qtr['revenue'] = float(three_qtr_ago.find('.//lineItem[@coaCode="RTLR"]').text)
-                if three_qtr_ago.find('.//lineItem[@coaCode="OTLO"]') != None:
-                    three_qtr['op_cash_flow'] = float(three_qtr_ago.find('.//lineItem[@coaCode="OTLO"]').text)
-                if three_qtr_ago.find('.//lineItem[@coaCode="SCEX"]') != None:
-                    three_qtr['capex'] = float(three_qtr_ago.find('.//lineItem[@coaCode="SCEX"]').text)
-                else:
-                    three_qtr['capex'] = 0
-                if three_qtr_ago.find('.//lineItem[@coaCode="DDPS1"]') != None:
-                    three_qtr['dividend'] = float(three_qtr_ago.find('.//lineItem[@coaCode="DDPS1"]').text)
-                else:
-                    three_qtr['dividend'] = 0
-
-            return latest_val, prev_val, two_qtr, three_qtr
-
-
-        return latest_val, prev_val
+                    # No annual reports that are of accepted type
+                    return current_annual, prev_annual
+            for s in annuals:  # loops through each annual report
+                parsed = {}
+                if type(s['Statement']) == list and s['Statement'][0]['FPHeader']['Source']['#text'] in accepted_reports:
+                    data = s['Statement']
+                    for item in data:  # loops through income statement, balance sheet, and income statement
+                        # print(item['@Type'])   ---- this is either INC, BAL, or CAS
+                        for i in item['lineItem']:
+                            try:
+                                parsed[coaCodes.coaCode_map[i['@coaCode']]] = float(i['#text'])
+                            except KeyError:
+                                print('Could not find coaCode!!!')
+                                print(i['@coaCode'])
+                                print(coaMap)
+                    if current_annual is None:
+                        current_annual = parsed
+                    elif prev_annual is None:
+                        prev_annual = parsed
+            return current_annual, prev_annual
