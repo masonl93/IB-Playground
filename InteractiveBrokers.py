@@ -239,7 +239,9 @@ class TestApp(TestWrapper, TestClient):
         # super().error(reqId, errorCode, errorString)
         if errorCode != 2104 and errorCode != 2106:
             print("Error. Id: ", reqId, " Code: ", errorCode, " Msg: ", errorString)
-            if reqId != -1:
+            if errorCode == 10167 and 'Displaying delayed market data' in errorString:
+                pass
+            elif reqId != -1:
                 self.data_errors_q.put((errorString, reqId))
             if 'pacing violation' in errorString:
                 self.slowdown = True
@@ -280,12 +282,20 @@ class TestApp(TestWrapper, TestClient):
         if price == -1:
             # print("No Price Data currently available")
             pass
+        # Last price
         elif tickType == 4:
             self.price_queue.put((price, reqId))
             # delete this later
             if self.contract_price is None:
                 self.contract_price = price
+        # Previous Close Price
         elif tickType == 9:
+            self.close_price_queue.put((price, reqId))
+        # Delayed Last Price
+        elif tickType == 68:
+            self.price_queue.put((price, reqId))
+        # Delayed Close Price
+        elif tickType == 75:
             self.close_price_queue.put((price, reqId))
 
 
@@ -423,12 +433,18 @@ class TestApp(TestWrapper, TestClient):
     def createContract(self, symbol, secType, currency, exchange, primaryExchange=None,
                        right=None, strike=None, expiry=None):
         contract = Contract()
-        contract.symbol = symbol
+        if type(symbol) is list:
+            # Foreign stocks
+            print(symbol[0], symbol[1])
+            contract.symbol = symbol[0]
+            contract.currency = symbol[1]
+        else:
+            contract.symbol = symbol
+            contract.currency = currency
+            if primaryExchange:
+                contract.primaryExchange = primaryExchange
         contract.secType = secType
-        contract.currency = currency
         contract.exchange = exchange
-        if primaryExchange:
-            contract.primaryExchange = primaryExchange
         if right:
             contract.right = right
         if strike:
@@ -501,7 +517,7 @@ class TestApp(TestWrapper, TestClient):
             self.reqMarketDataType(2)
 
 
-    def getFinancialData(self, contract, data_type):
+    def getFinStatements(self, contract, data_type):
         self.reqFundamentalData(self.nextValidOrderId, contract, data_type, [])
         self.reqId_map[self.nextValidOrderId] = contract.symbol
         self.nextValidOrderId += 1

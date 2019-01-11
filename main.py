@@ -24,13 +24,13 @@ SAVE_FILE = 'save_from_sell.txt'
 Alpha within Factors
 """
 def alphaInFactors(app, tickers, input_f):
-    start = time.time()
+
     if tickers is None:
         print("Error: Must provide file of tickers by '-i' option")
         return
 
     # Remove me later!
-    # tickers = tickers[:25]
+    tickers = tickers[:80]
 
     # TODO: remove this functionality
     # tickers, df_cache = loadCacheData(tickers, input_f, 'alpha_in_factor')
@@ -39,65 +39,8 @@ def alphaInFactors(app, tickers, input_f):
     issue_tickers = {}
     prices = []
 
-    # Max number of requests that can be made per second for reqmktdata = 100
-    tickers_chunked = chunkTickers(tickers, 100)
-
-    # Request price data for all symbols
-    for chunk in tickers_chunked:
-        for ticker in chunk:
-            print(ticker)
-            contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
-            app.getPrice(contract)
-        time.sleep(1)
-
-    # Process Price data
-    ticker_data, issue_tickers = processQueue(app.price_queue, tickers, app, q2=app.close_price_queue)
-
-    # Request fundamental data
-    tickers_chunked = chunkTickers(tickers, 2)
-    for chunk in tickers_chunked:
-        if app.slowdown:
-            print('Taking 10 second nap to hoepfully fix pacing violation')
-            time.sleep(10)
-            app.slowdown = False
-        for ticker in chunk:
-            print(ticker)
-            # Get data
-            contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
-            app.getFinancialData(contract, "ReportsFinStatements")
-        time.sleep(1)
-
-    # Process Fundamental data
-    fund_ticker_data, data_issue_tickers = processQueue(app.fundamental_data_q, tickers, app)
-
-    # Re-request fundamental data for any tickers that gave
-    # us a pacing error
-    try_agains = []
-    for key, val in data_issue_tickers.items():
-        if 'pacing violation' in val:
-            try_agains.append(key)
-    if try_agains:
-        print('Retrying some tickers due to pacing violations')
-        tickers_chunked = chunkTickers(try_agains, 2)
-        for chunk in tickers_chunked:
-            if app.slowdown:
-                print('Taking 10 second nap to hoepfully fix pacing violation')
-                time.sleep(10)
-                app.slowdown = False
-            for ticker in chunk:
-                print(ticker)
-                contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
-                app.getFinancialData(contract, "ReportsFinStatements")
-            time.sleep(1)
-        try_again_data, try_again_issues = processQueue(app.fundamental_data_q, try_agains, app)
-
-        # Update our two lists
-        for key, val in try_again_data.items():
-            fund_ticker_data[key] = val
-            del data_issue_tickers[key]
-        for key, val in try_again_issues.items():
-            if val != data_issue_tickers[key]:
-                data_issue_tickers[key] = val
+    ticker_data, issue_tickers = getPriceData(app, tickers)
+    fund_ticker_data, data_issue_tickers = getFundamentalData(app, tickers)
 
     # Create our dataframe with price and fundamental data
     symbols = []
@@ -105,7 +48,7 @@ def alphaInFactors(app, tickers, input_f):
     datas = []
     for key, val in ticker_data.items():
         symbols.append(key)
-        prices.append(ticker_data[key])
+        prices.append(val)
         if key in fund_ticker_data:
             datas.append(fund_ticker_data[key])
         else:
@@ -177,10 +120,11 @@ def alphaInFactors(app, tickers, input_f):
             cutoff = 1
         df = df[:-cutoff]
 
-
     df = df.sort_values('Value Score', ascending=False)
     df = df.reset_index(drop=True,)
     print('Final Results:')
+    with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
+        print(df)
     print(df)
 
 
@@ -188,79 +132,62 @@ def alphaInFactors(app, tickers, input_f):
     print(issue_tickers)
     print('Tickers missing fundamental data: (%s)' % len(data_issue_tickers))
     print(data_issue_tickers)
-    print("Time")
-    print(time.time()-start)
     return
 
 
 """
 Ratio Calculator
     - smooth out, add comments, proof read, README usage and algo sections, etc
-    - multithread mkt data and fundamental data requests (10 threads)
     - Sketchy Accounting detection: Use Beneish's M-Score or Montier's C-Score (see gmtresearch.com)
     - Bankruptcy Risk: Altman Z-Score
+    - Tobins Q, other scores that GW investors use
     - Create a final row in dataframe for averages
 """
 def ratios(app, tickers):
-    mkt_caps = []
-    firm_vals = []
-    enterprise_vals = []
-    p_es = []
-    ev_ebitdas = []
-    p_bvs = []
-    ev_ss = []
-    ev_fcfs = []
-    # tickers = tickers[14:]
-    for ticker in tickers:
-        print(ticker)
 
-        # Handle Foreign Stocks
-        if '$' in ticker:
-            ticker, currency = ticker.split('$')
-            contract = app.createContract(ticker, "STK", currency, "SMART")
+    ticker_data, issue_tickers = getPriceData(app, tickers)
+    fund_ticker_data, data_issue_tickers = getFundamentalData(app, tickers)
+
+    # Create our dataframe with price and fundamental data
+    symbols = []
+    prices = []
+    datas = []
+    for key, val in ticker_data.items():
+        symbols.append(key)
+        prices.append(val)
+        if key in fund_ticker_data:
+            datas.append(fund_ticker_data[key])
         else:
-            contract = app.createContract(ticker, "STK", "USD", "SMART")
+            datas.append(None)
+    data = {'Symbol': symbols, 'Price': prices, 'Data': datas, 'Market Cap': None, 'Firm Value': None,
+            'Enterprise Value': None, 'P/E': None, 'EV/EBITDA': None,
+            'P/B': None, 'EV/S': None, 'EV/FCF': None}
+    df = pandas.DataFrame(data=data).dropna(subset=['Price', 'Data'])
 
-        # Get data
-        app.getPrice(contract)
-        waitForData(app, 'price')
-        app.getFinancialData(contract, "ReportsFinStatements")
-        waitForData(app, 'fundamental')
-        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(app.fundamental_data, quarterly=True)
+    # Loop through dataframe and update specific values
+    for i, row in df.iterrows():
+        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(row['Data'], quarterly=True)
 
         # Numerators
-        mkt_cap, firm_val, ev = Ratios.getCompanyValues(app.contract_price, qtr1)
+        df.at[i, 'Market Cap'], df.at[i, 'Firm Value'], ev = Ratios.getCompanyValues(row['Price'], qtr1)
+        df.at[i, 'Enterprise Value'] = ev
 
-        # P/E
-        p_e = Ratios.getP_E(app.contract_price, qtr1, qtr2, qtr3, qtr4)
+        df.at[i, 'P/E'] = Ratios.getP_E(row['Price'], qtr1, qtr2, qtr3, qtr4)
+        df.at[i, 'EV/EBITDA'] = Ratios.getEV_EBITDA(ev, qtr1, qtr2, qtr3, qtr4)
+        df.at[i, 'EV/S']  = Ratios.getEV_S(ev, qtr1, qtr2, qtr3, qtr4)
+        df.at[i, 'EV/FCF']  = Ratios.getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4)
+        df.at[i, 'P/B'] = Ratios.getP_B(row['Price'], qtr1)
 
-        # EV/EBITDA
-        ev_ebitda = Ratios.getEV_EBITDA(ev, qtr1, qtr2, qtr3, qtr4)
-
-        # P/B
-        p_b = Ratios.getP_B(app.contract_price, qtr1)
-
-        # EV/S
-        ev_s = Ratios.getEV_S(ev, qtr1, qtr2, qtr3, qtr4)
-
-        # EV/FCF
-        ev_fcf = Ratios.getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4)
-
-        mkt_caps.append(mkt_cap)
-        firm_vals.append(firm_val)
-        enterprise_vals.append(ev)
-        p_es.append(p_e)
-        ev_ebitdas.append(ev_ebitda)
-        p_bvs.append(p_b)
-        ev_ss.append(ev_s)
-        ev_fcfs.append(ev_fcf)
-        app.resetData()
-
-    data = {'Symbol': tickers, 'Market Cap': mkt_caps, 'Firm Value': firm_vals,
-            'Enterprise Value': enterprise_vals, 'P/E': p_es, 'EV/EBITDA': ev_ebitdas,
-            'P/B': p_bvs, 'EV/S': ev_ss, 'EV/FCF': ev_fcfs}
-    df = pandas.DataFrame(data=data)
+    print('Results:')
+    with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
+        print(df)
     print(df)
+
+    print('Tickers missing price data: (%s)' % len(issue_tickers))
+    print(issue_tickers)
+    print('Tickers missing fundamental data: (%s)' % len(data_issue_tickers))
+    print(data_issue_tickers)
+    return
 
 
 """
@@ -290,7 +217,7 @@ def warrants(app, ticker, warrants_out):
     # get underlying price and div yield
     contract = app.createContract(ticker, "STK", "USD", "SMART")
     app.getPrice(contract)
-    app.getFinancialData(contract, "ReportsFinStatements")
+    app.getFinStatements(contract, "ReportsFinStatements")
 
     waitForData(app, 'price')
     underlying_price = float(app.contract_price)
@@ -368,7 +295,7 @@ def factorSort(app, tickers, end, rank, input_f):
             contract = app.createContract(ticker, "STK", currency, "SMART")
         else:
             contract = app.createContract(ticker, "STK", "USD", "SMART")
-        app.getFinancialData(contract, "ReportsFinStatements")
+        app.getFinStatements(contract, "ReportsFinStatements")
 
         waitForData(app, 'fundamental')
 
@@ -576,6 +503,79 @@ def processQueue(q, tickers, app, q2=None):
     return data_map, issues
 
 
+'''
+TODO: update with comments
+'''
+def getPriceData(app, tickers):
+    # Max number of requests that can be made per second for reqmktdata = 100
+    tickers_chunked = chunkTickers(tickers, 100)
+
+    # Request price data for all symbols
+    for chunk in tickers_chunked:
+        for ticker in chunk:
+            print(ticker)
+            contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
+            app.getPrice(contract)
+        time.sleep(1)
+
+    # Process Price data
+    ticker_data, issue_tickers = processQueue(app.price_queue, tickers, app, q2=app.close_price_queue)
+    return ticker_data, issue_tickers
+
+
+'''
+TODO: update with comments
+'''
+def getFundamentalData(app, tickers):
+    # 2 req/s seem to avoid pacing errors
+    tickers_chunked = chunkTickers(tickers, 2)
+
+    # Request fundamental data
+    for chunk in tickers_chunked:
+        if app.slowdown:
+            print('Taking 10 second nap to hoepfully fix pacing violation')
+            time.sleep(10)
+            app.slowdown = False
+        for ticker in chunk:
+            print(ticker)
+            contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
+            app.getFinStatements(contract, "ReportsFinStatements")
+        time.sleep(1)
+
+    # Process Fundamental data
+    fund_ticker_data, data_issue_tickers = processQueue(app.fundamental_data_q, tickers, app)
+
+    # Re-request fundamental data for any tickers that gave
+    # us a pacing error
+    try_agains = []
+    for key, val in data_issue_tickers.items():
+        if 'pacing violation' in val:
+            try_agains.append(key)
+    if try_agains:
+        print('Retrying some tickers due to pacing violations')
+        tickers_chunked = chunkTickers(try_agains, 2)
+        for chunk in tickers_chunked:
+            if app.slowdown:
+                print('Taking 10 second nap to hoepfully fix pacing violation')
+                time.sleep(10)
+                app.slowdown = False
+            for ticker in chunk:
+                print(ticker)
+                contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
+                app.getFinStatements(contract, "ReportsFinStatements")
+            time.sleep(1)
+        try_again_data, try_again_issues = processQueue(app.fundamental_data_q, try_agains, app)
+
+        # Update our two lists
+        for key, val in try_again_data.items():
+            fund_ticker_data[key] = val
+            del data_issue_tickers[key]
+        for key, val in try_again_issues.items():
+            if val != data_issue_tickers[key]:
+                data_issue_tickers[key] = val
+    return fund_ticker_data, data_issue_tickers
+
+
 """
 TODO: update with comments
 """
@@ -594,6 +594,10 @@ def loadTickers(ticker_file):
             tickers[i] = ticker.replace('.', ' ')
         if '-' in ticker:
             tickers[i] = ticker.replace('-', ' ')
+
+    # Handle Foreign Stocks
+    tickers = [t.split('$') if '$' in t else t for t in tickers]
+
     return tickers
 
 
@@ -674,6 +678,8 @@ def main(args):
     print('ORDERS:')
     print(app.orders_df)
 
+    start = time.time()
+
     if args.clear:
         clear(app)
 
@@ -721,27 +727,14 @@ def main(args):
         '''
         Temporary Option to help debug/test the API
         '''
-        tickers = loadTickers('data/sp500.txt')
-        tickers = tickers[27:]
-        for i, t in enumerate(tickers):
-            print(i, t)
-            contract = app.createContract(t, "STK", "USD", "SMART", "ISLAND")
-            app.getFinancialData(contract, "ReportsFinStatements")
-            start = time.time()
-            while True:
-                if app.fundamental_data is not None:
-                    break
-                if (time.time() - start) > 5:
-                    app.resetData()
-                    break
-            if app.fundamental_data:
-                print('parse quarter')
-                app.parseFinancials(app.fundamental_data, quarterly=True)
-                print('parse annual')
-                app.parseFinancials(app.fundamental_data)
-                app.resetData()
+        print(tickers)
+        ticker_data, issue_tickers = getPriceData(app, tickers)
+        print(ticker_data)
+        print(issue_tickers)
 
 
+    print("Time")
+    print(time.time()-start)
     print('Shutting down!')
     app.disconnect()
 
@@ -775,8 +768,6 @@ if __name__ == '__main__':
 # TODO
 '''
 - Current:
-    - Speed up fundamental data request for quicker factor sort/alpha within factor
-        - Need a dict of reqId and its corresponding fundamental data for multithreaded approach
     - DCF impl
     - Backtester
         - follow logic of open sourced one
@@ -789,7 +780,7 @@ if __name__ == '__main__':
     - Everything should be bulletproof i.e. no mid run crashes - handle errors, retry/sleep when necessary, bad ticker list
     - Move positions and orders to command line option
     - Add to README how long sp500 takes for each alpha in factors (and other algos if applicable)
-        - Explain reqfundamentaldata takes up lots of time
+        - Explain reqfundamentaldata takes up lots of time (2 req/s)
     - Remove cache data functionality. Have option to save dataframe as pickle output but thats it
     - Better organize Ratios and Algorithm files. E.g. calcNOA should be in same file as calcP_E
         - Also give the files better names - fundamental calculations
@@ -805,7 +796,6 @@ if __name__ == '__main__':
         - when order placed and successfully executed, save to file or sqllite db
           so when we sell, we know how many to sell and multiple algo's don't get
           mixed up
-    - More elegant parseFinancials function
     - Set up sql lite db to store fundamental data?
         - Need to update every 3 months and gets over 60 request per min limit
     - Hook in tableu or kibana for data visualizations
