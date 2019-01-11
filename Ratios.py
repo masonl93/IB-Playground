@@ -114,7 +114,7 @@ def getEV_EBITDA(ev, qtr1, qtr2, qtr3, qtr4):
             ebitda += qtr4['operating_income']
             if 'depreciation/amortization' in qtr4:
                 ebitda += qtr4['depreciation/amortization']
-            elif 'depreciation/depletion' in qtr1:
+            elif 'depreciation/depletion' in qtr4:
                 ebitda += qtr4['depreciation/depletion']
             elif 'amortization' in qtr4:
                 ebitda += qtr4['amortization']
@@ -131,16 +131,23 @@ Input:
     price: Stock's price as float
     qtr1: dict containing the key:
         - total_equity
-        - redeemable_preferred andf preferred if present
+        - total_common_shares_outstanding
+        - redeemable_preferred_stock
+        - preferred_stock_non_redeemable
 '''
 def getP_B(price, qtr1):
-    bv = qtr1['total_equity']
-    if 'redeemable_preferred' in qtr1:
-        bv = bv - qtr1['redeemable_preferred']
-    if 'preferred' in qtr1:
-        bv = bv - qtr1['preferred']
-    bv_per_share = bv/float(qtr1['shares'])
-    return price/bv_per_share
+    bv = 0
+    if qtr1 and 'total_equity' in qtr1 and 'total_common_shares_outstanding' in qtr1:
+        bv = qtr1['total_equity']
+        if 'redeemable_preferred_stock' in qtr1:
+            bv = bv - qtr1['redeemable_preferred_stock']
+        if 'preferred_stock_non_redeemable' in qtr1:
+            bv = bv - qtr1['preferred_stock_non_redeemable']
+        bv_per_share = bv/float(qtr1['total_common_shares_outstanding'])
+    if bv_per_share <= 0:
+        return None
+    else:
+        return price/bv_per_share
 
 
 '''
