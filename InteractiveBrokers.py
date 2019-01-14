@@ -72,23 +72,23 @@ class TestApp(TestWrapper, TestClient):
     def resetData(self):
         # Historical Data
         self.hist_data_q = queue.Queue()
-        self.hist_data_df = None
+        self.hist_data_dict_q = {}
 
-        # Fundamental
-        self.fundamental_data = None
+        # Fundamental Data
         self.fundamental_data_q = queue.Queue()
-        self.debt2equity = None
-        self.contract_price = None
+        self.slowdown = False
+
+        # Price Data
         self.price_queue = queue.Queue()
         self.close_price_queue = queue.Queue()
-        self.reqId_map = {}
         self.contract_yield = 0
+
+        # Dict to map reqId w/ Symbols
+        self.reqId_map = {}
 
         # Contract Details
         self.contract_details = []
         self.contract_details_flag = None
-
-        self.slowdown = False
 
 
     ### Wrapper Functions ###
@@ -180,7 +180,7 @@ class TestApp(TestWrapper, TestClient):
 
     @iswrapper
     def historicalData(self, reqId:int, bar):
-        self.hist_data_q.put(bar)
+        self.hist_data_dict_q[reqId].put(bar)
         # print("HistoricalData. ", reqId, " Date:", bar.date, "Open:", bar.open,
         #       "High:", bar.high, "Low:", bar.low, "Close:", bar.close, "Volume:", bar.volume,
         #       "Count:", bar.barCount, "WAP:", bar.average)
@@ -192,12 +192,13 @@ class TestApp(TestWrapper, TestClient):
         # print("HistoricalDataEnd ", reqId, "from", start, "to", end)
         dates = []
         prices = []
-        while not self.hist_data_q.empty():
-            bar = self.hist_data_q.get()
+        while not self.hist_data_dict_q[reqId].empty():
+            bar = self.hist_data_dict_q[reqId].get()
             dates.append(bar.date)
             prices.append(bar.close)
         data = {'date': dates, 'price': prices}
-        self.hist_data_df = pandas.DataFrame(data=data)
+        df = pandas.DataFrame(data=data)
+        self.hist_data_q.put((df, reqId))
 
 
     @iswrapper
@@ -285,9 +286,6 @@ class TestApp(TestWrapper, TestClient):
         # Last price
         elif tickType == 4:
             self.price_queue.put((price, reqId))
-            # delete this later
-            if self.contract_price is None:
-                self.contract_price = price
         # Previous Close Price
         elif tickType == 9:
             self.close_price_queue.put((price, reqId))
@@ -314,8 +312,6 @@ class TestApp(TestWrapper, TestClient):
         for val in value.split(';'):
             if 'QTOTD2EQ' in val:
                 self.debt2equity = val.split('=')[1]
-            # if 'NPRICE' in val:
-            #     self.contract_price = float(val.split('=')[1])
             if 'YIELD' in val:
                 self.contract_yield = float(val.split('=')[1])/100
         if ';' in value:
@@ -391,6 +387,8 @@ class TestApp(TestWrapper, TestClient):
         queryTime = datetime.datetime.today().strftime("%Y%m%d %H:%M:%S")
         self.reqHistoricalData(self.nextValidOrderId, contract, queryTime,
                                duration, "1 day", "MIDPOINT", 1, 1, False, [])
+        self.reqId_map[self.nextValidOrderId] = contract.symbol
+        self.hist_data_dict_q[self.nextValidOrderId] = queue.Queue()
         self.nextValidOrderId += 1
 
 

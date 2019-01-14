@@ -30,7 +30,7 @@ def alphaInFactors(app, tickers, input_f):
         return
 
     # Remove me later!
-    tickers = tickers[:80]
+    # tickers = tickers[:80]
 
     # TODO: remove this functionality
     # tickers, df_cache = loadCacheData(tickers, input_f, 'alpha_in_factor')
@@ -96,21 +96,21 @@ def alphaInFactors(app, tickers, input_f):
 
     # Value Traps
     # Growth (eps change), Earnings quality (change in NOA), and Leverage (debt to equity) calculated above
-    # Calculating momentum here
+    # Getting historical data for calculating Momentum: trailing 6 months return
+    hist_data, hist_issue_tickers = getHistData(app, list(df['Symbol'].values), "6 M")
+
+    # Update df with momentum values
     for i, row in df.iterrows():
-        # Momentum - trailing 6 months return
-        contract = app.createContract(row['Symbol'], "STK", "USD", "SMART", "ISLAND")
-        # TODO: Batch request this - fix how we store hist data
-        app.getHistoricalData(contract, "6 M")
-        waitForData(app, 'hist')
-        df.at[i, 'Momentum'] = algo.calcTotalReturn(app.hist_data_df.iloc[0]['price'], row['Price'], row['Dividend'])
-        app.resetData()
+        if row['Symbol'] in hist_data:
+            df.at[i, 'Momentum'] = algo.calcTotalReturn(hist_data[row['Symbol']].iloc[0]['price'], row['Price'], row['Dividend'])
+        else:
+            df.at[i, 'Momentum'] = None
 
     # Sort and Remove Bottom Deciles
     columns = ['Momentum', 'Debt to Equity', 'EPS Growth', 'Change in NOA']
     for column in columns:
         if df[column].dtype == 'object':
-            df = df[df[column] != 'Error']
+            df = df[df[column] != None]
         if column == 'Momentum' or column == 'EPS Growth':
             df = df.sort_values(column, ascending=False)
         else:
@@ -121,17 +121,19 @@ def alphaInFactors(app, tickers, input_f):
         df = df[:-cutoff]
 
     df = df.sort_values('Value Score', ascending=False)
+    df = df.drop(columns=['Data'])
     df = df.reset_index(drop=True,)
     print('Final Results:')
     with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
         print(df)
     print(df)
 
-
     print('Tickers missing price data: (%s)' % len(issue_tickers))
     print(issue_tickers)
     print('Tickers missing fundamental data: (%s)' % len(data_issue_tickers))
     print(data_issue_tickers)
+    print('Tickers missing historical data: (%s)' % len(hist_issue_tickers))
+    print(hist_issue_tickers)
     return
 
 
@@ -238,7 +240,7 @@ def warrants(app, tickers, warrants_out):
             prices = []
             for vol in vols:
                 # TODO: remove the repetitive prints here
-                print(strike, app.contract_price, risk, vol,
+                print(strike, underlying_price, risk, vol,
                                 expiry, div, shares_out, warrants_out,
                                 warrants_per_share)
                 bs = BlackScholes(strike, underlying_price, risk, vol,
@@ -468,7 +470,7 @@ def processQueue(q, tickers, app, q2=None):
         if q.empty():
             # Once our queue is empty and we have processed all tickers
             # we can break out of this loop
-            if (len(data_map) + len(issues) == len(tickers)):
+            if (len(data_map) + len(issues) >= len(tickers)):
                 break
             elif q2 is not None:
                 # Live price data queue is empty but haven't processed all tickers
@@ -575,6 +577,27 @@ def getFundamentalData(app, tickers):
             if val != data_issue_tickers[key]:
                 data_issue_tickers[key] = val
     return fund_ticker_data, data_issue_tickers
+
+
+'''
+TODO: update with comments
+'''
+def getHistData(app, tickers, duration):
+    # Max number of requests that can be made per second for reqHistoricalData = 50
+    # Doing 40/sec just to be safe
+    tickers_chunked = chunkTickers(tickers, 40)
+
+    # Request price data for all symbols
+    for chunk in tickers_chunked:
+        for ticker in chunk:
+            print(ticker)
+            contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
+            app.getHistoricalData(contract, duration)
+        time.sleep(1)
+
+    # Process Price data
+    ticker_data, issue_tickers = processQueue(app.hist_data_q, tickers, app)
+    return ticker_data, issue_tickers
 
 
 """
@@ -728,10 +751,10 @@ def main(args):
         '''
         Temporary Option to help debug/test the API
         '''
-        print(tickers)
-        ticker_data, issue_tickers = getPriceData(app, tickers)
-        print(ticker_data)
-        print(issue_tickers)
+        # tickers = tickers[:300]
+        data, err = getHistData(app, tickers, "6 M")
+        print(len(data))
+        print(err)
 
 
     print("Time")
