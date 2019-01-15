@@ -315,9 +315,8 @@ def factorSort(app, tickers, rank, input_f):
 
 """
 MA Cross
-    - histData limits: 60 req/10min?
 """
-def movingAvgCross(app, tickers, start, buy):
+def movingAvgCross(app, tickers, buy):
     if tickers is None:
         print("Error: Must provide file of tickers by '-i' option")
         return
@@ -326,33 +325,33 @@ def movingAvgCross(app, tickers, start, buy):
         start_index = tickers.index(start) + 1
         tickers = tickers[start_index:]
 
-    contract = app.createContract(None, "STK", "USD", "SMART", "ISLAND")
-
+    hist_data, hist_issue_tickers = getHistData(app, tickers, "1 Y")
     for ticker in tickers:
-        contract.symbol = ticker
-
+        # Ensure we got hist data for this ticker
+        if ticker not in hist_data:
+            continue
         # Only process if no open orders with this ticker
         if app.orders_df.empty or not app.orders_df['symbol'].str.contains(ticker).any():
-            app.getHistoricalData(contract, "1 Y")
-
-            print("Symbol: " + ticker)
-            waitForData(app, 'hist')
             # Golden Cross and not in portfolio -> buy
-            if algo.movingAvgCross(app.hist_data_df) and not app.portfolioCheck(ticker):
+            if algo.movingAvgCross(hist_data[ticker]) and not app.portfolioCheck(ticker):
                 print('Placing Buy Order for: ' + ticker)
                 if buy:
-                    amt = app.calcOrderSize(float(app.hist_data_df.tail(1)['price']), 1000)
+                    amt = app.calcOrderSize(float(hist_data[ticker].tail(1)['price']), 1000)
+                    contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
                     order = ib.Order()
                     order.action = "BUY"
                     order.orderType = "MKT"
                     order.totalQuantity = amt
                     app.place_order(contract, order)
             # Death cross and in portfolio -> sell
-            elif (app.portfolioCheck(ticker) and not algo.movingAvgCross(app.hist_data_df)):
+            elif (app.portfolioCheck(ticker) and not algo.movingAvgCross(hist_data[ticker])):
                 print('Placing Sell Order for: ' + ticker)
                 if buy:
                     app.sellPosition(ticker, 'STK')
-            app.resetData()
+
+    print('Completed MA Cross Algo')
+    print('Tickers missing historical data: (%s)' % len(hist_issue_tickers))
+    print(hist_issue_tickers)
 
 
 """
@@ -561,6 +560,7 @@ Wait for Data
         0: Data is ready
         1: Reached timeout
 """
+# TODO: remove this!
 def waitForData(app, data, timeout=5):
     start = time.time()
     while True:
@@ -621,7 +621,7 @@ def main(args):
 
     if args.moving_avg:
         print('Performing Moving Avg Cross')
-        movingAvgCross(app, tickers, args.start, args.buy)
+        movingAvgCross(app, tickers, args.buy)
         print("Completed MA Cross Daily Calculations")
 
     if args.factor:
@@ -682,7 +682,6 @@ if __name__ == '__main__':
     parser.add_argument('--factor_alpha', help='Alpha within Factors',action='store_true')
     # Options
     parser.add_argument('-i', '--input', help='Input File of Tickers', default=None)
-    parser.add_argument('-s', '--start', help='Ticker to start from (for Moving Avg Cross)', default=None)
     parser.add_argument('-r', '--rank', help='Rank Factors (for Factor)', action='store_true')
     parser.add_argument('-p', '--port', help='Port of TWS (default=7497)', default=7497, type=int)
     parser.add_argument('-t', '--ticker', help='Underlying Ticker for warrant valuation', default=None)
@@ -696,15 +695,9 @@ if __name__ == '__main__':
 # TODO
 '''
 - Current:
-    - DCF impl
-    - Backtester
-        - follow logic of open sourced one
-        - Only do if we can get sufficient data to use
     - tests
     - Reorg IB code to match the ib_threaded gist
         - https://gist.github.com/erdewit/0c01c754defe7cca129b949600be2e52
-    - WWOWS - incorporate accounting ratios, earnings quality composite, value factor composites
-        - Instead of shorting the bottom deciles, do put options?
     - Everything should be bulletproof i.e. no mid run crashes - handle errors, retry/sleep when necessary, bad ticker list
     - Move positions and orders to command line option
     - Add to README how long sp500 takes for each alpha in factors (and other algos if applicable)
@@ -718,18 +711,17 @@ if __name__ == '__main__':
 - Enhancements
     - use more threads
     - Include example outputs in README usage section
-    - set stop loss mechanism
-    - setup limit orders
+    - setup limit orders and set stop loss mechanism
     - argparse make certain options dependant on others
-    - each algo should keep track of its own positions
-        - when order placed and successfully executed, save to file or sqllite db
-          so when we sell, we know how many to sell and multiple algo's don't get
-          mixed up
-    - Set up sql lite db to store fundamental data?
-        - Need to update every 3 months and gets over 60 request per min limit
     - Hook in tableu or kibana for data visualizations
     - Set up on Jupyter? Only challenge might be dealing with IB
     - Add code layout, explanation to README
+    - DCF impl
+    - Backtester
+        - follow logic of open sourced one
+        - Only do if we can get sufficient data to use
+    - WWOWS - incorporate accounting ratios, earnings quality composite, value factor composites
+        - Instead of shorting the bottom deciles, do put options?
 
 
 - Possible Strategies:
