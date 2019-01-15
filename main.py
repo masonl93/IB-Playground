@@ -321,10 +321,6 @@ def movingAvgCross(app, tickers, buy):
         print("Error: Must provide file of tickers by '-i' option")
         return
 
-    if start is not None:
-        start_index = tickers.index(start) + 1
-        tickers = tickers[start_index:]
-
     hist_data, hist_issue_tickers = getHistData(app, tickers, "1 Y")
     for ticker in tickers:
         # Ensure we got hist data for this ticker
