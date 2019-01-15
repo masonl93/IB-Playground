@@ -355,13 +355,24 @@ Cache Data
 
     Saves a dataframe to file in pickle format for use on a later run.
 """
-def cacheData(df, input_f, algo):
-    results_file = input_f + '.pickle.' + algo
-    df.to_pickle(results_file)
+def cacheData(df, output_f):
+    df.to_pickle(output_f)
 
 
 """
-TODO: update with comments
+Process Queue
+
+    Processes a data queue from IB class
+
+    Input:
+        q: the main queue to process
+        tickers: list of tickers
+        app: Needed to reference IB.reqId_map to link up
+             a reqId to a ticker
+        q2: (optional) secondary queue to process in the case
+             that a ticker is missing from q. This can be useful
+             for reqMktData when there are no trades today so we
+             want to just use previous day close price, so use q2
 """
 def processQueue(q, tickers, app, q2=None):
     data_map = {}
@@ -408,7 +419,14 @@ def processQueue(q, tickers, app, q2=None):
 
 
 '''
-TODO: update with comments
+Get Price Data
+
+    Gets price data for a given list of tickers
+    Tries to do max requests per sec w/o causing any errors
+
+    Output:
+        ticker_data: dict w/ tickers as keys and prices as values
+        issue_tickers: dict w/ tickers as keys and errors as values
 '''
 def getPriceData(app, tickers):
     # Max number of requests that can be made per second for reqmktdata = 100
@@ -428,7 +446,17 @@ def getPriceData(app, tickers):
 
 
 '''
-TODO: update with comments
+Get Fundamental Data
+
+    Gets fundamental data for a given list of tickers
+    Tries to do max requests per sec w/o causing any errors
+    If we face a pacing error, we try to slow down and attempt
+    to try again since these are not real errors and can most
+    of the time be resolved
+
+    Output:
+        fund_ticker_data: dict w/ tickers as keys and xml fundamental data as values
+        data_issue_tickers: dict w/ tickers as keys and errors as values
 '''
 def getFundamentalData(app, tickers):
     # 2 req/s seem to avoid pacing errors
@@ -481,7 +509,15 @@ def getFundamentalData(app, tickers):
 
 
 '''
-TODO: update with comments
+Get Historical Data
+
+    Gets historical data for a given list of tickers
+    Tries to do max requests per sec w/o causing any errors
+    Duration should match format of IB.reqHistoricalData
+
+    Output:
+        ticker_data: dict w/ tickers as keys and dataframe of hist data as values
+        issue_tickers: dict w/ tickers as keys and errors as values
 '''
 def getHistData(app, tickers, duration):
     # Max number of requests that can be made per second for reqHistoricalData = 50
@@ -502,12 +538,27 @@ def getHistData(app, tickers, duration):
 
 
 """
-TODO: update with comments
+Chunk Tickers
+
+    Given a list tickers, split into sublists of length n
+    This is used as different IB functions can only take
+    so many request per second before throwing an error
 """
 def chunkTickers(tickers, n):
     return [tickers[i * n:(i + 1) * n] for i in range((len(tickers) + n - 1) // n )]
 
 
+'''
+Load Tickers
+
+    Load tickers into a list from a file where each line has a ticker
+
+    ex:
+    AAPL
+    AMZN
+    TSLA
+    BOL$EUR     # Use '$' delimiter for foreign stocks and the currency after it
+'''
 def loadTickers(ticker_file):
     with open(ticker_file) as f:
         tickers = [line.rstrip('\n') for line in f]
@@ -526,6 +577,9 @@ def loadTickers(ticker_file):
     return tickers
 
 
+'''
+Clear all positions that aren't in SAVE_FILE
+'''
 def clear(app):
     resp = input("\nAre you sure you want to clear your positions?\n" +
                  "Press 'y' to continue with selling positions or any other key to cancel\n")
@@ -534,74 +588,18 @@ def clear(app):
         app.sellAllPositions(SAVE_FILE)
 
 
-"""
-Wait for Data
-
-    A custom loop with a timeout and some checks
-
-    Input:
-        app: TestApp connected to IB
-        data: str denoting which data to wait for worker thread to update
-            'price': app.contract_price
-            'portfolio': app.positions_df
-            'orders': app.orders_df
-            'hist': app.hist_data_df
-            'fundamental': app.fundamental_data
-            'contract': app.contract_details_flag
-        timeout: How long to wait for the data before giving up
-
-    Output: Int
-        -2: Data Error
-        -1: App has been disconnected
-        0: Data is ready
-        1: Reached timeout
-"""
-# TODO: remove this!
-def waitForData(app, data, timeout=5):
-    start = time.time()
-    while True:
-        if data == 'price':
-            app_data = app.contract_price
-        elif data == 'portfolio':
-            app_data = app.positions_df
-        elif data == 'orders':
-            app_data = app.orders_df
-        elif data == 'hist':
-            app_data = app.hist_data_df
-        elif data == 'fundamental':
-            app_data = app.fundamental_data
-        elif data == 'contract':
-            app_data = app.contract_details_flag
-        elif data == 'debt2equity':
-            app_data = app.debt2equity
-
-        if app_data is not None:
-            return 0
-        if time.time()-start > timeout:
-            print('TIMEOUT: waiting for data')
-            return 1
-        if app.disconnected:
-            print("DISCONNECTED")
-            # Check for thread errors
-            if not app.thread_errors_q.empty():
-                exception = app.thread_errors_q.get()
-                print('THREAD EXCEPTION:')
-                print(exception)
-            return -1
-        # if app.data_errors:
-        #     return -2
-
-
 def main(args):
     app = ib.TestApp("127.0.0.1", args.port, clientId=1)
     print("serverVersion:%s connectionTime:%s" % (app.serverVersion(),
                                                   app.twsConnectionTime()))
-    waitForData(app, 'portfolio')
     print('POSITIONS:')
+    while app.positions_df is None:
+        pass
     print(app.positions_df)
 
-    waitForData(app, 'orders')
     print('ORDERS:')
+    while app.orders_df is None:
+        pass
     print(app.orders_df)
 
     start = time.time()
