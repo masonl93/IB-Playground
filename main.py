@@ -32,9 +32,6 @@ def alphaInFactors(app, tickers, input_f):
     # Remove me later!
     # tickers = tickers[:80]
 
-    # TODO: remove this functionality
-    # tickers, df_cache = loadCacheData(tickers, input_f, 'alpha_in_factor')
-
     ticker_data = {}
     issue_tickers = {}
     prices = []
@@ -180,6 +177,7 @@ def ratios(app, tickers):
         df.at[i, 'EV/FCF']  = Ratios.getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4)
         df.at[i, 'P/B'] = Ratios.getP_B(row['Price'], qtr1)
 
+    df = df.drop(columns=['Data'])
     print('Results:')
     with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
         print(df)
@@ -260,131 +258,58 @@ def warrants(app, tickers, warrants_out):
 
 """
 Factors
-    - proof read code and add comments
-    - try using quarterly reports? Depends on when we would rebalance?
-    - finish going through microcap list?
-    - ROIC Calculation
-        - Stronger NIBCL calculation to include everything neccessary
-        - excess cash -> dynamic required cash value. If operating losses,
-          then require 5% of sales. If large operating profits, then require 1 to 2%.
-        - http://news.morningstar.com/classroom2/course.asp?docId=145095&page=9
-        - Aimia ROIC calc example:
-            - https://www.aimia.com/wp-content/uploads/2018/11/Aimia_Q3-2018-Highlights-FINAL.pdf
 """
-def factorSort(app, tickers, end, rank, input_f):
+def factorSort(app, tickers, rank, input_f):
     if tickers is None:
         print("Error: Must provide file of tickers by '-i' option")
         return
 
-    if end and end < len(tickers):
-        tickers = tickers[0:end]
-
-    if input_f:
-        tickers, df_cache = loadCacheData(tickers, input_f, 'factors')
-
-    noas = []
-    debts = []
-    roics = []
-    debt_to_equities = []
-
-    factors = Factors()
-
+    fund_ticker_data, data_issue_tickers = getFundamentalData(app, tickers)
+    datas = []
     for ticker in tickers:
-        print("Ticker: " + str(ticker))
-
-        # Initate requests for data
-        if '$' in ticker:
-            ticker, currency = ticker.split('$')
-            contract = app.createContract(ticker, "STK", currency, "SMART")
+        if type(ticker) is list and ticker[0] in fund_ticker_data:
+            # Foreign stock
+            datas.append(fund_ticker_data[ticker[0]])
+        elif ticker in fund_ticker_data:
+            datas.append(fund_ticker_data[ticker])
         else:
-            contract = app.createContract(ticker, "STK", "USD", "SMART")
-        app.getFinStatements(contract, "ReportsFinStatements")
+            datas.append(None)
 
-        waitForData(app, 'fundamental')
+    data = {'Symbol': tickers, 'Data': datas, 'Change in NOA': None, '1yr Debt Change': None,
+            'Debt to Equity': None, 'ROIC': None}
+    df = pandas.DataFrame(data=data).dropna(subset=['Data'])
 
-        latest_val, prev_val = app.parseFinancials(app.fundamental_data)
-        if latest_val is None:
-            change_noa = "Error"
-            debt_change = "Error"
-            roic = "Error"
-            debt2equity = "Error"
-        else:
-            # Net Operating Assets
-            noa = algo.calcNOA(latest_val)
-            noa_prev = algo.calcNOA(prev_val)
-            if noa is None or noa_prev is None:
-                change_noa = "Error"
-            else:
-                change_noa = (noa - noa_prev)/noa_prev
+    for i, row in df.iterrows():
+        print(row['Symbol'])
+        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(row['Data'], quarterly=True)
+        current_annual, prev_annual = app.parseFinancials(row['Data'])
+        df.at[i, 'Change in NOA'] = Ratios.calcChangeInNOA(current_annual, prev_annual)
+        df.at[i, 'Debt to Equity'] = Ratios.calcDebtToEquity(qtr1)
+        df.at[i, 'ROIC'] = Ratios.calcROIC(qtr1, qtr2, qtr3, qtr4)
+        df.at[i, '1yr Debt Change'] = Ratios.calcDebtChange(current_annual, prev_annual)
 
-            # 1 year debt change
-            if 'total_debt' in latest_val and 'total_debt' in prev_val:
-                debt_change = algo.calcDebtChange(latest_val['total_debt'], prev_val['total_debt'])
-            else:
-                debt_change = "Error"
-
-            # ROIC
-            roic = algo.calcROIC(latest_val)
-            if roic is None:
-                roic = "Error"
-
-            # Debt to Equity Ratio
-            debt2equity = algo.calcDebtToEquity(latest_val)
-            if debt2equity is None:
-                debt2equity = "Error"
-
-        # Append values to lists which we will insert into our dataframe
-        debt_to_equities.append(debt2equity)
-        noas.append(change_noa)
-        debts.append(debt_change)
-        roics.append(roic)
-        app.resetData()
-
-    data = {'symbol': tickers, 'noa_change': noas, 'debt_change': debts,
-            'debt_to_equity': debt_to_equities, 'ROIC': roics}
-    df = pandas.DataFrame(data=data)
-
-    if df_cache.empty:
-        print(df)
-    else:
-        frames = [df_cache, df]
-        df = pandas.concat(frames)
-        df.reset_index(drop=True, inplace=True)
-        print(df)
-
-    if input_f:
-        cacheData(df, input_f, 'factors')
+    df = df.drop(columns=['Data'])
+    print(df)
+    print('Tickers missing fundamental data: (%s)' % len(data_issue_tickers))
+    print(data_issue_tickers)
 
     if rank:
-        print('Ranked Results - Top Decile for each Factor:')
-
-        # debt to equity
-        df = df[df.debt_to_equity != 'Error']
-        df = df.sort_values('debt_to_equity')
-        cutoff = int(df.shape[0]/10)
-        df = df[:-cutoff]
-
-        # 1yr debt change
-        df = df[df.debt_change != 'Divide by Zero']
-        df = df.sort_values('debt_change')
-        cutoff = int(df.shape[0]/10)
-        df = df[:-cutoff]
-
-        # NOA
-        df = df[df.noa_change != 'Error']
-        df = df.sort_values('noa_change')
-        cutoff = int(df.shape[0]/10)
-        df = df[:-cutoff]
-
-        # ROIC
-        df = df[df.ROIC != 'Error']
-        df = df.sort_values('ROIC', ascending=False)
-        cutoff = int(df.shape[0]/10)
-        df = df[:-cutoff]
+        print('Ranked Results - Remove Lowest Decile for each Factor:')
+        columns = ['Change in NOA', 'Debt to Equity', 'ROIC', '1yr Debt Change']
+        for column in columns:
+            if df[column].dtype == 'object':
+                df = df[df[column] != None]
+            if column == 'ROIC':
+                df = df.sort_values(column, ascending=False)
+            else:
+                df = df.sort_values(column)
+            cutoff = int(df.shape[0]/10)
+            if cutoff == 0:
+                cutoff = 1
+            df = df[:-cutoff]
 
         # Getting AVG
-        df['debt_to_equity'] = pandas.to_numeric(df['debt_to_equity'])  # Needed to convert 0's to floats
-        df.loc[-1] = ['Averages', df['noa_change'].mean(), df['debt_change'].mean(), df['debt_to_equity'].mean(), df['ROIC'].mean()]
+        df.loc[-1] = ['Averages', df['Change in NOA'].mean(), df['1yr Debt Change'].mean(), df['Debt to Equity'].mean(), df['ROIC'].mean()]
         print(df.reset_index(drop=True,))
 
 
@@ -428,25 +353,6 @@ def movingAvgCross(app, tickers, start, buy):
                 if buy:
                     app.sellPosition(ticker, 'STK')
             app.resetData()
-
-
-"""
-Load Cache Data
-
-    Useful for long lists of tickers. Since TWS API imposes limits on certain
-    requests, it can be helpful to do smaller runs and cache results from
-    previous runs so we don't need to query the API again. One should delete
-    the cached data file after a couple days as the data gets stale
-"""
-def loadCacheData(tickers, input_f, algo):
-    results_file = input_f + '.pickle.' + algo
-    df_cache = pandas.DataFrame()
-    previous_results_file = pathlib.Path(results_file)
-    if previous_results_file.is_file():
-        df_cache = pandas.read_pickle(results_file)
-        tickers_to_skip = df_cache['Symbol'].tolist()
-        tickers = [x for x in tickers if x not in tickers_to_skip]
-    return tickers, df_cache
 
 
 """
@@ -516,7 +422,7 @@ def getPriceData(app, tickers):
     # Request price data for all symbols
     for chunk in tickers_chunked:
         for ticker in chunk:
-            print(ticker)
+            print('Price Data Req: ' + str(ticker))
             contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
             app.getPrice(contract)
         time.sleep(1)
@@ -540,7 +446,7 @@ def getFundamentalData(app, tickers):
             time.sleep(10)
             app.slowdown = False
         for ticker in chunk:
-            print(ticker)
+            print('Fundamental Data Req: ' + str(ticker))
             contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
             app.getFinStatements(contract, "ReportsFinStatements")
         time.sleep(1)
@@ -590,7 +496,7 @@ def getHistData(app, tickers, duration):
     # Request price data for all symbols
     for chunk in tickers_chunked:
         for ticker in chunk:
-            print(ticker)
+            print('Hist Data Req: ' + str(ticker))
             contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
             app.getHistoricalData(contract, duration)
         time.sleep(1)
@@ -720,7 +626,7 @@ def main(args):
 
     if args.factor:
         print('Factor Sort')
-        factorSort(app, tickers, args.end, args.rank, args.input)
+        factorSort(app, tickers, args.rank, args.input)
         print('Factor Sort Completed')
 
     if args.futures:
@@ -777,8 +683,6 @@ if __name__ == '__main__':
     # Options
     parser.add_argument('-i', '--input', help='Input File of Tickers', default=None)
     parser.add_argument('-s', '--start', help='Ticker to start from (for Moving Avg Cross)', default=None)
-    parser.add_argument('-e', '--end', help='Index of last ticker to process. Useful for ' +
-                                            'large number of tickers (for Factor)', default=None, type=int)
     parser.add_argument('-r', '--rank', help='Rank Factors (for Factor)', action='store_true')
     parser.add_argument('-p', '--port', help='Port of TWS (default=7497)', default=7497, type=int)
     parser.add_argument('-t', '--ticker', help='Underlying Ticker for warrant valuation', default=None)
@@ -805,9 +709,10 @@ if __name__ == '__main__':
     - Move positions and orders to command line option
     - Add to README how long sp500 takes for each alpha in factors (and other algos if applicable)
         - Explain reqfundamentaldata takes up lots of time (2 req/s)
-    - Remove cache data functionality. Have option to save dataframe as pickle output but thats it
+    - Remove cache data functionality. Have option to save dataframe as pickle output but thats it.
     - Better organize Ratios and Algorithm files. E.g. calcNOA should be in same file as calcP_E
         - Also give the files better names - fundamental calculations
+        - Create IB folder which contains IB.py, coaCodes, contractSamples, etc
 
 
 - Enhancements

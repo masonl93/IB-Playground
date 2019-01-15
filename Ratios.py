@@ -365,3 +365,106 @@ def calcDebtToEquity(data):
         return (data['total_liabilities']/data['total_equity'])
     else:
         return None
+
+
+def calcDebtChange(annual, prev_annual):
+    '''
+    Calculates the change between two periods of debt
+
+    Input:
+        Two reports as dicts w/ keys:
+            - total_debt
+    '''
+    if annual and annual['total_debt'] and prev_annual and prev_annual['total_debt']:
+        # Checking for divide by zero
+        if prev_annual['total_debt'] != 0:
+            return ((annual['total_debt'] - prev_annual['total_debt'])/prev_annual['total_debt'])
+        elif annual['total_debt'] == 0:
+            return 0.0
+    return None
+
+
+def calcROIC(qtr1, qtr2, qtr3, qtr4):
+    '''
+    Calculating ROIC
+
+    ROIC = NOPAT/avg(IC)
+    NOPAT = operating_income * (1-tax_rate)
+    IC = total_long_term_debt + current_port_of_lt_debt/capital_leases +
+         notes_payable/short_term_debt + minority_interest + total_equity - cash
+
+    Input:
+        qtr1, qtr2, qtr3, qtr4: dict containing the keys:
+            - operating_income
+            - net_income_before_taxes
+            - net_income_after_taxes
+            - total_long_term_debt
+            - current_port_of_lt_debt/capital_leases
+            - notes_payable/short_term_debt
+            - minority_interest
+            - total_equity
+            - cash_and_short_term_investments or cash&equivalents or cash
+    '''
+    ic1 = 0
+    ic2 = 0
+    nopat = 0
+    if qtr1 and qtr2 and qtr1['operating_income'] and qtr1['net_income_before_taxes'] and qtr1['net_income_after_taxes']:
+        # Net Operating Profit after Taxes for TTM
+        tax_rate = (qtr1['net_income_before_taxes'] - qtr1['net_income_after_taxes']) / qtr1['net_income_before_taxes']
+        nopat = qtr1['operating_income'] * (1 - tax_rate)
+
+        if qtr2 and qtr2['operating_income'] and qtr2['net_income_before_taxes'] and qtr2['net_income_after_taxes']:
+            tax_rate = (qtr2['net_income_before_taxes'] - qtr2['net_income_after_taxes']) / qtr2['net_income_before_taxes']
+            nopat += qtr2['operating_income'] * (1 - tax_rate)
+
+        if qtr3 and qtr3['operating_income'] and qtr3['net_income_before_taxes'] and qtr3['net_income_after_taxes']:
+            tax_rate = (qtr3['net_income_before_taxes'] - qtr3['net_income_after_taxes']) / qtr3['net_income_before_taxes']
+            nopat += qtr3['operating_income'] * (1 - tax_rate)
+
+        if qtr4 and qtr4['operating_income'] and qtr4['net_income_before_taxes'] and qtr4['net_income_after_taxes']:
+            tax_rate = (qtr4['net_income_before_taxes'] - qtr4['net_income_after_taxes']) / qtr4['net_income_before_taxes']
+            nopat += qtr4['operating_income'] * (1 - tax_rate)
+
+        # Invested Capital last qtr
+        if 'total_long_term_debt' in qtr1:
+            ic1 += qtr1['total_long_term_debt']
+        if 'current_port_of_lt_debt/capital_leases' in qtr1:
+            ic1 += qtr1['current_port_of_lt_debt/capital_leases']
+        if 'notes_payable/short_term_debt' in qtr1:
+            ic1 += qtr1['notes_payable/short_term_debt']
+        if 'minority_interest' in qtr1:
+            ic1 += qtr1['minority_interest']
+        if 'total_equity' in qtr1:
+            ic1 += qtr1['total_equity']
+        if 'cash_and_short_term_investments' in qtr1:
+            ic1 -= qtr1['cash_and_short_term_investments']
+        elif 'cash&equivalents' in qtr1:
+            ic1 -= qtr1['cash&equivalents']
+        elif 'cash' in qtr1:
+            ic1 -= qtr1['cash']
+
+        # Invested Capital two qtr ago
+        if 'total_long_term_debt' in qtr2:
+            ic2 += qtr2['total_long_term_debt']
+        if 'current_port_of_lt_debt/capital_leases' in qtr2:
+            ic2 += qtr2['current_port_of_lt_debt/capital_leases']
+        if 'notes_payable/short_term_debt' in qtr2:
+            ic2 += qtr2['notes_payable/short_term_debt']
+        if 'minority_interest' in qtr2:
+            ic2 += qtr2['minority_interest']
+        if 'total_equity' in qtr2:
+            ic2 += qtr2['total_equity']
+        if 'cash_and_short_term_investments' in qtr2:
+            ic2 -= qtr2['cash_and_short_term_investments']
+        elif 'cash&equivalents' in qtr2:
+            ic2 -= qtr2['cash&equivalents']
+        elif 'cash' in qtr2:
+            ic2 -= qtr2['cash']
+
+        # Average Invested Capital over last 2 qtrs
+        ic = (ic1 + ic2) / 2
+
+        # Ensure we don't have an operating loss and negative invested capital
+        if (ic < 0 and nopat >= 0) or ic > 0:
+            return nopat/ic
+    return None
