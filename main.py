@@ -136,7 +136,6 @@ def alphaInFactors(app, tickers, input_f):
 
 """
 Ratio Calculator
-    - README usage and algo sections, etc
     - Sketchy Accounting detection: Use Beneish's M-Score or Montier's C-Score (see gmtresearch.com)
     - Bankruptcy Risk: Altman Z-Score
     - Tobins Q, other scores that GW investors use
@@ -550,14 +549,6 @@ def chunkTickers(tickers, n):
 
 '''
 Load Tickers
-
-    Load tickers into a list from a file where each line has a ticker
-
-    ex:
-    AAPL
-    AMZN
-    TSLA
-    BOL$EUR     # Use '$' delimiter for foreign stocks and the currency after it
 '''
 def loadTickers(ticker_file):
     with open(ticker_file) as f:
@@ -694,8 +685,6 @@ if __name__ == '__main__':
         - https://gist.github.com/erdewit/0c01c754defe7cca129b949600be2e52
     - Everything should be bulletproof i.e. no mid run crashes - handle errors, retry/sleep when necessary, bad ticker list
     - Move positions and orders to command line option
-    - Add to README how long sp500 takes for each alpha in factors (and other algos if applicable)
-        - Explain reqfundamentaldata takes up lots of time (2 req/s)
     - Remove cache data functionality. Have option to save dataframe as pickle output but thats it.
     - Better organize Ratios and Algorithm files. E.g. calcNOA should be in same file as calcP_E
         - Also give the files better names - fundamental calculations
