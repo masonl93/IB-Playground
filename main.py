@@ -15,15 +15,11 @@ from ContractSamples import ContractSamples
 from Black_Scholes import BlackScholes
 
 
-# Constants
-SAVE_FILE = 'save_from_sell.txt'
-
-
 
 """
 Alpha within Factors
 """
-def alphaInFactors(app, tickers, input_f):
+def alphaInFactors(app, tickers, input_f, out_f):
 
     if tickers is None:
         print("Error: Must provide file of tickers by '-i' option")
@@ -124,6 +120,8 @@ def alphaInFactors(app, tickers, input_f):
     with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
         print(df)
     print(df)
+    if out_f:
+        saveResults(df, out_f)
 
     print('Tickers missing price data: (%s)' % len(issue_tickers))
     print(issue_tickers)
@@ -136,12 +134,8 @@ def alphaInFactors(app, tickers, input_f):
 
 """
 Ratio Calculator
-    - Sketchy Accounting detection: Use Beneish's M-Score or Montier's C-Score (see gmtresearch.com)
-    - Bankruptcy Risk: Altman Z-Score
-    - Tobins Q, other scores that GW investors use
-    - Create a final row in dataframe for averages
 """
-def ratios(app, tickers):
+def ratios(app, tickers, out_f):
 
     ticker_data, issue_tickers = getPriceData(app, tickers)
     fund_ticker_data, data_issue_tickers = getFundamentalData(app, tickers)
@@ -181,6 +175,8 @@ def ratios(app, tickers):
     with pandas.option_context('display.max_rows', None, 'display.max_columns', None):
         print(df)
     print(df)
+    if out_f:
+        saveResults(df, out_f)
 
     print('Tickers missing price data: (%s)' % len(issue_tickers))
     print(issue_tickers)
@@ -191,11 +187,7 @@ def ratios(app, tickers):
 
 """
 BS warrants
-    - any todos from old repo?
-    - add readme to this repo readme
-    - proper tests
-    - Use yield of T-bill closest to expiry date as risk value
-    - add support for list/input file of tickers
+    - TODO: add readme to this repo readme?
 """
 def warrants(app, tickers, warrants_out):
     if tickers is None:
@@ -258,7 +250,7 @@ def warrants(app, tickers, warrants_out):
 """
 Factors
 """
-def factorSort(app, tickers, rank, input_f):
+def factorSort(app, tickers, rank, input_f, out_f):
     if tickers is None:
         print("Error: Must provide file of tickers by '-i' option")
         return
@@ -289,6 +281,8 @@ def factorSort(app, tickers, rank, input_f):
 
     df = df.drop(columns=['Data'])
     print(df)
+    if out_f:
+        saveResults(df, out_f)
     print('Tickers missing fundamental data: (%s)' % len(data_issue_tickers))
     print(data_issue_tickers)
 
@@ -310,6 +304,9 @@ def factorSort(app, tickers, rank, input_f):
         # Getting AVG
         df.loc[-1] = ['Averages', df['Change in NOA'].mean(), df['1yr Debt Change'].mean(), df['Debt to Equity'].mean(), df['ROIC'].mean()]
         print(df.reset_index(drop=True,))
+        if out_f:
+            saveResults(df, out_f + '_ranked')
+
 
 
 """
@@ -350,11 +347,11 @@ def movingAvgCross(app, tickers, buy):
 
 
 """
-Cache Data
+Save Results
 
-    Saves a dataframe to file in pickle format for use on a later run.
+    Saves a dataframe to file in pickle format for use on a later.
 """
-def cacheData(df, output_f):
+def saveResults(df, output_f):
     df.to_pickle(output_f)
 
 
@@ -572,6 +569,7 @@ def loadTickers(ticker_file):
 Clear all positions that aren't in SAVE_FILE
 '''
 def clear(app):
+    SAVE_FILE = 'save_from_sell.txt'
     resp = input("\nAre you sure you want to clear your positions?\n" +
                  "Press 'y' to continue with selling positions or any other key to cancel\n")
     if str(resp) == 'y':
@@ -611,7 +609,7 @@ def main(args):
 
     if args.factor:
         print('Factor Sort')
-        factorSort(app, tickers, args.rank, args.input)
+        factorSort(app, tickers, args.rank, args.input, args.output)
         print('Factor Sort Completed')
 
     if args.futures:
@@ -630,12 +628,12 @@ def main(args):
 
     if args.ratios:
         print('Calculating Ratios')
-        ratios(app, tickers)
+        ratios(app, tickers, args.output)
         print('Calculating Ratios Completed')
 
     if args.factor_alpha:
         print('Performing Alpha within Factors')
-        alphaInFactors(app, tickers, args.input)
+        alphaInFactors(app, tickers, args.input, args.output)
         print('Alpha within Factors Completed')
 
     if args.test:
@@ -673,6 +671,7 @@ if __name__ == '__main__':
     parser.add_argument('-o', '--warrants_out', help='Number of warrants outstanding (in millions)', default=None, type=float)
     parser.add_argument('--buy', help='Actually Buy/Sell for an alorithm, instead of a dry run', action='store_true')
     parser.add_argument('--test', action='store_true')
+    parser.add_argument('--output', help='Output file to save to', default=None)
     main(parser.parse_args())
 
 
@@ -683,48 +682,40 @@ if __name__ == '__main__':
     - tests
     - Reorg IB code to match the ib_threaded gist
         - https://gist.github.com/erdewit/0c01c754defe7cca129b949600be2e52
-    - Everything should be bulletproof i.e. no mid run crashes - handle errors, retry/sleep when necessary, bad ticker list
     - Move positions and orders to command line option
-    - Remove cache data functionality. Have option to save dataframe as pickle output but thats it.
     - Better organize Ratios and Algorithm files. E.g. calcNOA should be in same file as calcP_E
         - Also give the files better names - fundamental calculations
         - Create IB folder which contains IB.py, coaCodes, contractSamples, etc
+        - Add code layout explanation to README
+        - explain tools/ dir
 
 
-- Enhancements
+- Enhancements/Improvements
     - use more threads
     - Include example outputs in README usage section
     - setup limit orders and set stop loss mechanism
     - argparse make certain options dependant on others
     - Hook in tableu or kibana for data visualizations
     - Set up on Jupyter? Only challenge might be dealing with IB
-    - Add code layout, explanation to README
     - DCF impl
     - Backtester
         - follow logic of open sourced one
         - Only do if we can get sufficient data to use
     - WWOWS - incorporate accounting ratios, earnings quality composite, value factor composites
         - Instead of shorting the bottom deciles, do put options?
-
-
-- Possible Strategies:
-        (https://www.investopedia.com/articles/active-trading/101014/basics-algorithmic-trading-concepts-and-examples.asp)
-    - Arbitrage
-        - OTC stocks tough since don't have foreign mkt data subscriptions
-    - ML
-        - not on stock data but rather on the market participants (e.g. volume, ask/bid spread)
-        - weighting different factors in a multi-factor model - instead of linear weighting, could use
-          non-linear relationships from ML
-    - Taleb strategies? Barbell, etc
-    - Put-call parity (https://www.investopedia.com/articles/optioninvestor/05/011905.asp)
-    - long dated option switch - when a later date option becomes a better deal automatically buy it
-      and sell the one expiring sooner, valued by BS
-    - Relative valuation screener
-        - Use screener to find similar companies to do a relative valuation on. Something similar to Aswath's
-          videos of finding mismatches i.e. ROE over the median but book value under the median would be cheap.
-          Can apply to all the various multiples and their drivers
-    - Ideas from TWS API group: https://groups.io/g/twsapi/topics
-        - https://groups.io/g/twsapi/topic/can_algorithmic_trading_be/28672441
+    - Ratios
+        - Sketchy Accounting detection: Use Beneish's M-Score or Montier's C-Score (see gmtresearch.com)
+        - Bankruptcy Risk: Altman Z-Score
+        - Tobins Q, ROOIC, other scores that GW investors use
+        - Create a final row in dataframe for averages
+    - Warrants
+        - add support for list/input file of tickers
+    - Other strategies/algos
+        - Arbitrage
+        - ML
+        - Taleb strategies
+        - Ideas from TWS API group: https://groups.io/g/twsapi/topics
+            - https://groups.io/g/twsapi/topic/can_algorithmic_trading_be/28672441
 
 - Notes
     - Collapse all: ctrl-k ctrl-0, open all: ctrl-k ctrl-j

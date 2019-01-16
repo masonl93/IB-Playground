@@ -48,13 +48,18 @@ This is to value DSKE warrants, and since we provided the number of warrants out
 
 Simple Moving Average Cross Example:  
 `$ python main.py --moving_avg -i data/sp500.txt`  
-Include the '--buy' option to actually execute the trades i.e. buy or sell on crosses.
+Include the '--buy' option to actually execute the trades i.e. buy or sell on crosses.  
+
+Save dataframe results (in pickle format) by using '--output' option and a file name.
 
 Selling all Positions:
 1. Create a file 'save_from_sell.txt' with positions that you don't want to delete, formatted with ticker and type per line. For example:  
 `AAPL,STK`  
 2. Run script with clear option:  
-`$ python main.py --clear`
+`$ python main.py --clear`  
+
+Run tests (from root dir):  
+`$ pytest`
 
 
 ## Algorithms
