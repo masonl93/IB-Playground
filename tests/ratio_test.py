@@ -61,8 +61,9 @@ class Test_GetP_E(object):
 
     def test_getP_E_Neg(self, setup):
         qtr1, qtr2, qtr3, qtr4 = setup
-        qtr1['diluted_eps_excluding_extraord_items'] = -5
-        assert Ratios.getP_E(24, qtr1, qtr2, qtr3, qtr4) == None
+        neg_qtr1 = dict(qtr1)
+        neg_qtr1['diluted_eps_excluding_extraord_items'] = -5
+        assert Ratios.getP_E(24, neg_qtr1, qtr2, qtr3, qtr4) == None
 
     def test_getP_E_Mixed(self, setup):
         qtr1, qtr2, qtr3, qtr4 = setup
@@ -70,3 +71,131 @@ class Test_GetP_E(object):
         assert Ratios.getP_E(12, qtr1, qtr2, qtr3, qtr4) == 4
 
 
+class Test_GetEV_EBITDA(object):
+    @pytest.fixture
+    def setup(self):
+        qtr1 = {'operating_income': 5,
+                'depreciation/amortization': 3,
+                'depreciation/depletion': 2,
+                'amortization': 1}
+        qtr2 = qtr1
+        qtr3 = qtr1
+        qtr4 = qtr1
+        return qtr1, qtr2, qtr3, qtr4
+
+    def test_getEV_EBITDA_None(self):
+        assert Ratios.getEV_EBITDA(None, None, None, None, None) == None
+
+    def test_getEV_EBITDA(self, setup):
+        qtr1, qtr2, qtr3, qtr4 = setup
+        assert Ratios.getEV_EBITDA(100, qtr1, qtr2, qtr3, qtr4) == 3.125
+
+    def test_getEV_EBITDA_Mixed(self, setup):
+        qtr1, qtr2, qtr3, qtr4 = setup
+        qtr1_mod = dict(qtr1)
+        qtr2_mod = dict(qtr2)
+        del qtr1_mod['depreciation/amortization']
+        del qtr2_mod['depreciation/amortization']
+        del qtr2_mod['depreciation/depletion']
+        assert round(Ratios.getEV_EBITDA(100, qtr1_mod, qtr2_mod, qtr3, qtr4), 3) == 3.448
+
+    def test_getEV_EBITDA_Neg(self, setup):
+        qtr1, qtr2, qtr3, qtr4 = setup
+        qtr1_mod = dict(qtr1)
+        qtr1_mod['operating_income'] = -30
+        assert Ratios.getEV_EBITDA(100, qtr1_mod, qtr2, qtr3, qtr4) == None
+
+    def test_getEV_EBITDA_MixedNone(self, setup):
+        qtr1, qtr2 = setup[0:2]
+        assert Ratios.getEV_EBITDA(100, qtr1, qtr2, None, None) == 6.25
+
+
+class Test_GetP_B(object):
+    @pytest.fixture
+    def setup(self):
+        data = {'total_equity': 300,
+                'total_common_shares_outstanding': 100,
+                'redeemable_preferred_stock': 30,
+                'preferred_stock_non_redeemable': 20}
+        return data
+
+    def test_getP_B_None(self):
+        assert Ratios.getP_B(10, None) == None
+
+    def test_getP_B(self, setup):
+        data = setup
+        assert Ratios.getP_B(10, data) == 4
+
+    def test_getP_B_Neg(self, setup):
+        data = setup
+        data['total_equity'] = -120
+        assert Ratios.getP_B(10, data) == None
+
+    def test_getP_B_Mixed(self, setup):
+        data = setup
+        del data['redeemable_preferred_stock']
+        del data['preferred_stock_non_redeemable']
+        data['total_equity'] = 500
+        assert Ratios.getP_B(10, data) == 2
+
+
+class Test_GetEV_S(object):
+    @pytest.fixture
+    def setup(self):
+        qtr1 = {'total_revenue': 500}
+        qtr2 = qtr1
+        qtr3 = qtr1
+        qtr4 = qtr1
+        return qtr1, qtr2, qtr3, qtr4
+
+    def test_getEV_S_None(self):
+        assert Ratios.getEV_S(None, None, None, None, None) == None
+
+    def test_getEV_S(self, setup):
+        qtr1, qtr2, qtr3, qtr4 = setup
+        assert Ratios.getEV_S(100, qtr1, qtr2, qtr3, qtr4) == 0.05
+
+    def test_getEV_S_Neg(self, setup):
+        qtr1, qtr2, qtr3, qtr4 = setup
+        neg_qtr1 = dict(qtr1)
+        neg_qtr1['total_revenue'] = -1600
+        assert Ratios.getEV_S(100, neg_qtr1, qtr2, qtr3, qtr4) == None
+
+    def test_getEV_S_Mixed(self, setup):
+        qtr1, qtr2, qtr3, qtr4 = setup
+        qtr3 = None
+        qtr2 = None
+        assert Ratios.getEV_S(100, qtr1, qtr2, qtr3, qtr4) == 0.1
+
+
+class Test_GetEV_FCF(object):
+    @pytest.fixture
+    def setup(self):
+        qtr1 = {'net_income': 100,
+                'depreciation/depletion': 40,
+                'amortization': 20,
+                'total_cash_dividends_paid': 15,
+                'capital_expenditures': 30}
+        qtr2 = qtr1
+        qtr3 = qtr1
+        qtr4 = qtr1
+        return qtr1, qtr2, qtr3, qtr4
+
+    def test_getEV_FCF_None(self):
+        assert Ratios.getEV_FCF(None, None, None, None, None) == None
+
+    def test_getEV_FCF(self, setup):
+        qtr1, qtr2, qtr3, qtr4 = setup
+        assert Ratios.getEV_FCF(920, qtr1, qtr2, qtr3, qtr4) == 2
+
+    def test_getEV_FCF_Neg(self, setup):
+        qtr1, qtr2, qtr3, qtr4 = setup
+        neg_qtr1 = dict(qtr1)
+        neg_qtr1['net_income'] = -500
+        assert Ratios.getEV_FCF(920, neg_qtr1, qtr2, qtr3, qtr4) == None
+
+    def test_getEV_FCF_Mixed(self, setup):
+        qtr1, qtr2, qtr3, qtr4 = setup
+        qtr3 = None
+        qtr2 = None
+        assert Ratios.getEV_FCF(920, qtr1, qtr2, qtr3, qtr4) == 4

@@ -136,7 +136,7 @@ Input:
         - preferred_stock_non_redeemable
 '''
 def getP_B(price, qtr1):
-    bv = 0
+    bv_per_share = 0
     if qtr1 and 'total_equity' in qtr1 and 'total_common_shares_outstanding' in qtr1:
         bv = qtr1['total_equity']
         if 'redeemable_preferred_stock' in qtr1:
@@ -187,7 +187,7 @@ Input:
         - total_cash_dividends_paid
         - capital_expenditures
 
-cash flow = net_income + depreciation/depletion (TODO: add other non cash expenses)
+cash flow = net_income + depreciation/depletion + amortization (TODO: add other non cash expenses)
 fcf = cash flow - capex - dividends (TODO: subtract preferred dividends also)
 '''
 def getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4):
