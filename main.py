@@ -205,18 +205,17 @@ def warrants(app, tickers, warrants_out):
     fund_ticker_data, data_issue_tickers = getFundamentalData(app, tickers)
 
     for key, val in ticker_data.items():
-        # find the warrant
-        app.getContractDetails(key, "WAR", exchange='SMART', currency='USD')
+        # Find the warrant
+        contract_details = app.getContractDetails(key, "WAR", exchange='SMART', currency='USD')
         underlying_price = float(val)
-        # TODO: contract yield never will be updated, need to actually get this figure
-        div = app.contract_yield
+        # Get dividend yield
+        contract = app.createContract(key, "STK", "USD", "SMART", "ISLAND")
+        div = app.getYield(contract)
+        # Find share count from financials
         qtr1 = app.parseFinancials(fund_ticker_data[key], quarterly=True)[0]
         shares_out = qtr1['total_common_shares_outstanding']
 
-        # Wait on contract details
-        while not app.contract_details_flag:
-            pass
-        for c in app.contract_details:
+        for c in contract_details:
             contract = c.contract
             strike = contract.strike
             # right = contract.right
@@ -228,10 +227,6 @@ def warrants(app, tickers, warrants_out):
 
             prices = []
             for vol in vols:
-                # TODO: remove the repetitive prints here
-                print(strike, underlying_price, risk, vol,
-                                expiry, div, shares_out, warrants_out,
-                                warrants_per_share)
                 bs = BlackScholes(strike, underlying_price, risk, vol,
                                 expiry, div, shares_out, warrants_out,
                                 warrants_per_share)
@@ -312,7 +307,7 @@ def factorSort(app, tickers, rank, input_f, out_f):
 """
 MA Cross
 """
-def movingAvgCross(app, tickers, buy):
+def movingAvgCross(app, positions, orders, tickers, buy):
     if tickers is None:
         print("Error: Must provide file of tickers by '-i' option")
         return
@@ -323,9 +318,9 @@ def movingAvgCross(app, tickers, buy):
         if ticker not in hist_data:
             continue
         # Only process if no open orders with this ticker
-        if app.orders_df.empty or not app.orders_df['symbol'].str.contains(ticker).any():
+        if orders.empty or not orders['symbol'].str.contains(ticker).any():
             # Golden Cross and not in portfolio -> buy
-            if algo.movingAvgCross(hist_data[ticker]) and not app.portfolioCheck(ticker):
+            if algo.movingAvgCross(hist_data[ticker]) and not app.portfolioCheck(ticker, positions):
                 print('Placing Buy Order for: ' + ticker)
                 if buy:
                     amt = app.calcOrderSize(float(hist_data[ticker].tail(1)['price']), 1000)
@@ -336,7 +331,7 @@ def movingAvgCross(app, tickers, buy):
                     order.totalQuantity = amt
                     app.place_order(contract, order)
             # Death cross and in portfolio -> sell
-            elif (app.portfolioCheck(ticker) and not algo.movingAvgCross(hist_data[ticker])):
+            elif (app.portfolioCheck(ticker, positions) and not algo.movingAvgCross(hist_data[ticker])):
                 print('Placing Sell Order for: ' + ticker)
                 if buy:
                     app.sellPosition(ticker, 'STK')
@@ -568,33 +563,33 @@ def loadTickers(ticker_file):
 '''
 Clear all positions that aren't in SAVE_FILE
 '''
-def clear(app):
+def clear(app, positions, orders):
     SAVE_FILE = 'save_from_sell.txt'
     resp = input("\nAre you sure you want to clear your positions?\n" +
                  "Press 'y' to continue with selling positions or any other key to cancel\n")
     if str(resp) == 'y':
         print('Selling all Positions')
-        app.sellAllPositions(SAVE_FILE)
+        app.sellAllPositions(positions, orders, SAVE_FILE)
 
 
 def main(args):
-    app = ib.TestApp("127.0.0.1", args.port, clientId=1)
-    print("serverVersion:%s connectionTime:%s" % (app.serverVersion(),
-                                                  app.twsConnectionTime()))
+    app = ib.App("127.0.0.1", args.port, clientId=1)
+    print("serverVersion:%s connectionTime:%s" % (app.client.serverVersion(),
+                                                  app.client.twsConnectionTime()))
+    account = app.getAccounts()
+    print('Accounts:', account)
+    positions = app.getPositions(account)
     print('POSITIONS:')
-    while app.positions_df is None:
-        pass
-    print(app.positions_df)
+    print(positions)
 
+    orders = app.getOrders()
     print('ORDERS:')
-    while app.orders_df is None:
-        pass
-    print(app.orders_df)
+    print(orders)
 
     start = time.time()
 
     if args.clear:
-        clear(app)
+        clear(app, positions, orders)
 
     tickers = None
     if args.input:
@@ -604,7 +599,7 @@ def main(args):
 
     if args.moving_avg:
         print('Performing Moving Avg Cross')
-        movingAvgCross(app, tickers, args.buy)
+        movingAvgCross(app, positions, orders, tickers, args.buy)
         print("Completed MA Cross Daily Calculations")
 
     if args.factor:
@@ -640,17 +635,21 @@ def main(args):
         '''
         Temporary Option to help debug/test the API
         '''
-        # tickers = tickers[:300]
-        data, err = getHistData(app, tickers, "6 M")
+        tickers = tickers[:80]
+        # for t in tickers:
+        #     print(t)
+        #     contract = app.createContract(t, "STK", "USD", "SMART", "ISLAND")
+        #     print(app.getYield(contract))
+        data, err = getPriceData(app, tickers)
         print(len(data))
+        print(data['MMM'])
         print(err)
 
 
     print("Time")
     print(time.time()-start)
     print('Shutting down!')
-    app.disconnect()
-
+    app.client.disconnect()
 
 
 if __name__ == '__main__':
