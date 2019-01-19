@@ -679,8 +679,6 @@ if __name__ == '__main__':
 '''
 - Current:
     - tests
-    - Reorg IB code to match the ib_threaded gist
-        - https://gist.github.com/erdewit/0c01c754defe7cca129b949600be2e52
     - Move positions and orders to command line option
     - Better organize Ratios and Algorithm files. E.g. calcNOA should be in same file as calcP_E
         - Also give the files better names - fundamental calculations
@@ -690,7 +688,6 @@ if __name__ == '__main__':
 
 
 - Enhancements/Improvements
-    - use more threads
     - Include example outputs in README usage section
     - setup limit orders and set stop loss mechanism
     - argparse make certain options dependant on others

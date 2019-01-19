@@ -181,58 +181,30 @@ Calculates TTM EV/FCF Ratio
 Input:
     ev: Stock's enterprise value
     qtr1, qtr2, qtr3, qtr4: dict containing the key:
-        - net_income
-        - depreciation/depletion
-        - amortization
-        - total_cash_dividends_paid
+        - cash_from_operating_activities
         - capital_expenditures
 
-cash flow = net_income + depreciation/depletion + amortization (TODO: add other non cash expenses)
-fcf = cash flow - capex - dividends (TODO: subtract preferred dividends also)
+free cash flow = cash_from_operating_activities - capital_expenditures
 '''
 def getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4):
     ttm_fcf = 0
     if ev:
-        if qtr1 and 'net_income' in qtr1:
-            ttm_fcf += qtr1['net_income']
-            if 'depreciation/depletion' in qtr1:
-                ttm_fcf += qtr1['depreciation/depletion']
-            if 'amortization' in qtr1:
-                ttm_fcf += qtr1['amortization']
+        if qtr1 and 'cash_from_operating_activities' in qtr1:
+            ttm_fcf += qtr1['cash_from_operating_activities']
             if 'capital_expenditures' in qtr1:
-                ttm_fcf -= qtr1['capital_expenditures']
-            if 'total_cash_dividends_paid' in qtr1:
-                ttm_fcf -= qtr1['total_cash_dividends_paid']
-        if qtr2 and 'net_income' in qtr2:
-            ttm_fcf += qtr2['net_income']
-            if 'depreciation/depletion' in qtr2:
-                ttm_fcf += qtr2['depreciation/depletion']
-            if 'amortization' in qtr2:
-                ttm_fcf += qtr2['amortization']
+                ttm_fcf += qtr1['capital_expenditures']
+        if qtr2 and 'cash_from_operating_activities' in qtr2:
+            ttm_fcf += qtr2['cash_from_operating_activities']
             if 'capital_expenditures' in qtr2:
-                ttm_fcf -= qtr2['capital_expenditures']
-            if 'total_cash_dividends_paid' in qtr2:
-                ttm_fcf -= qtr2['total_cash_dividends_paid']
-        if qtr3 and 'net_income' in qtr3:
-            ttm_fcf += qtr3['net_income']
-            if 'depreciation/depletion' in qtr3:
-                ttm_fcf += qtr3['depreciation/depletion']
-            if 'amortization' in qtr3:
-                ttm_fcf += qtr3['amortization']
+                ttm_fcf += qtr2['capital_expenditures']
+        if qtr3 and 'cash_from_operating_activities' in qtr3:
+            ttm_fcf += qtr3['cash_from_operating_activities']
             if 'capital_expenditures' in qtr3:
-                ttm_fcf -= qtr3['capital_expenditures']
-            if 'total_cash_dividends_paid' in qtr3:
-                ttm_fcf -= qtr3['total_cash_dividends_paid']
-        if qtr4 and 'net_income' in qtr4:
-            ttm_fcf += qtr4['net_income']
-            if 'depreciation/depletion' in qtr4:
-                ttm_fcf += qtr4['depreciation/depletion']
-            if 'amortization' in qtr4:
-                ttm_fcf += qtr4['amortization']
+                ttm_fcf += qtr3['capital_expenditures']
+        if qtr4 and 'cash_from_operating_activities' in qtr4:
+            ttm_fcf += qtr4['cash_from_operating_activities']
             if 'capital_expenditures' in qtr4:
-                ttm_fcf -= qtr4['capital_expenditures']
-            if 'total_cash_dividends_paid' in qtr4:
-                ttm_fcf -= qtr4['total_cash_dividends_paid']
+                ttm_fcf += qtr4['capital_expenditures']
     if ttm_fcf <= 0:
         return None
     else:

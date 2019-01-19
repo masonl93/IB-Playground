@@ -171,11 +171,8 @@ class Test_GetEV_S(object):
 class Test_GetEV_FCF(object):
     @pytest.fixture
     def setup(self):
-        qtr1 = {'net_income': 100,
-                'depreciation/depletion': 40,
-                'amortization': 20,
-                'total_cash_dividends_paid': 15,
-                'capital_expenditures': 30}
+        qtr1 = {'cash_from_operating_activities': 50,
+                'capital_expenditures': -20}
         qtr2 = qtr1
         qtr3 = qtr1
         qtr4 = qtr1
@@ -186,16 +183,16 @@ class Test_GetEV_FCF(object):
 
     def test_getEV_FCF(self, setup):
         qtr1, qtr2, qtr3, qtr4 = setup
-        assert Ratios.getEV_FCF(920, qtr1, qtr2, qtr3, qtr4) == 2
+        assert Ratios.getEV_FCF(600, qtr1, qtr2, qtr3, qtr4) == 5
 
     def test_getEV_FCF_Neg(self, setup):
         qtr1, qtr2, qtr3, qtr4 = setup
         neg_qtr1 = dict(qtr1)
-        neg_qtr1['net_income'] = -500
-        assert Ratios.getEV_FCF(920, neg_qtr1, qtr2, qtr3, qtr4) == None
+        neg_qtr1['cash_from_operating_activities'] = -200
+        assert Ratios.getEV_FCF(600, neg_qtr1, qtr2, qtr3, qtr4) == None
 
     def test_getEV_FCF_Mixed(self, setup):
         qtr1, qtr2, qtr3, qtr4 = setup
         qtr3 = None
         qtr2 = None
-        assert Ratios.getEV_FCF(920, qtr1, qtr2, qtr3, qtr4) == 4
+        assert Ratios.getEV_FCF(600, qtr1, qtr2, qtr3, qtr4) == 10
