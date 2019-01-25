@@ -334,7 +334,7 @@ def movingAvgCross(app, positions, orders, tickers, buy):
             elif (app.portfolioCheck(ticker, positions) and not algo.movingAvgCross(hist_data[ticker])):
                 print('Placing Sell Order for: ' + ticker)
                 if buy:
-                    app.sellPosition(ticker, 'STK')
+                    app.sellPosition(ticker, 'STK', orders, positions)
 
     print('Completed MA Cross Algo')
     print('Tickers missing historical data: (%s)' % len(hist_issue_tickers))
@@ -560,18 +560,6 @@ def loadTickers(ticker_file):
     return tickers
 
 
-'''
-Clear all positions that aren't in SAVE_FILE
-'''
-def clear(app, positions, orders):
-    SAVE_FILE = 'save_from_sell.txt'
-    resp = input("\nAre you sure you want to clear your positions?\n" +
-                 "Press 'y' to continue with selling positions or any other key to cancel\n")
-    if str(resp) == 'y':
-        print('Selling all Positions')
-        app.sellAllPositions(positions, orders, SAVE_FILE)
-
-
 def main(args):
     app = ib.App("127.0.0.1", args.port, clientId=1)
     print("serverVersion:%s connectionTime:%s" % (app.client.serverVersion(),
@@ -587,9 +575,6 @@ def main(args):
     print(orders)
 
     start = time.time()
-
-    if args.clear:
-        clear(app, positions, orders)
 
     tickers = None
     if args.input:
@@ -655,7 +640,6 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='IB Algo Trader')
     # Functions
-    parser.add_argument('--clear', help='Clear Positions (save positions from "save_from_sell.txt" file)', action='store_true')
     parser.add_argument('--moving_avg', help='Moving Average Cross', action='store_true')
     parser.add_argument('--factor', help='Factors', action='store_true')
     parser.add_argument('--ratios', help='Calculate Ratios for all tickers', action='store_true')
@@ -685,6 +669,9 @@ if __name__ == '__main__':
         - Create IB folder which contains IB.py, coaCodes, contractSamples, etc
         - Add code layout explanation to README
         - explain tools/ dir
+    - shift-alt-f: python format file
+    - Utilize df.rank() for value comp score?
+        - Assigns P/E 100, when lowest P/E, etc
 
 
 - Enhancements/Improvements
@@ -694,6 +681,7 @@ if __name__ == '__main__':
     - Hook in tableu or kibana for data visualizations
     - Set up on Jupyter? Only challenge might be dealing with IB
     - DCF impl
+    - Function to sell all positions - use for reseting paper acct.
     - Backtester
         - follow logic of open sourced one
         - Only do if we can get sufficient data to use

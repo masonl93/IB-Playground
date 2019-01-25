@@ -143,8 +143,8 @@ class App:
         return self.getDFOrders(orders)
 
 
-    def sellPosition(self, ticker, secType, orders):
-        pos = self.client.getPosDetails(ticker, secType)
+    def sellPosition(self, ticker, secType, orders, positions):
+        pos = self.getPosDetails(ticker, secType, positions)
         if pos.shape[0] > 1:
             print('Multiple matching positions, defaulting to first record')
             pos = pos.head(0)
@@ -408,34 +408,14 @@ class App:
         Returns a dataframe of position details given a ticker and security type
         '''
         matching_ticker_df = positions[positions['symbol'].str.match("^%s$" % ticker)]
-        return matching_ticker_df[matching_ticker_df['secType'].str.match("^STK$")]
+        return matching_ticker_df[matching_ticker_df['secType'].str.match("^" + secType + "$")]
 
 
     def duplicateOrder(self, ticker, secType, order, orders):
-        return ((orders['symbol'] == ticker) & (orders['secType'] == secType) & (orders['action'] == order.action) & (orders['quantity'] == order.totalQuantity) & (orders['status'] == 'PreSubmitted')).any()
-
-
-    def sellAllPositions(self, positions, orders, save_f=None):
-        save_tickers = {}
-        throttle_count = 0
-        if save_f:
-            with open(save_f, 'r') as f:
-                save_tickers_list = [line.rstrip('\n') for line in f]
-            for ticker in save_tickers_list:
-                symbol, secType = ticker.split(',')
-                save_tickers[symbol] = secType
-            for _ind, row in positions.iterrows():
-                if not (row['symbol'] in save_tickers.keys() and save_tickers[row['symbol']] == row['secType']):
-                    self.sellPosition(row['symbol'], row['secType'], orders)
-                    throttle_count += 1
-                    if throttle_count % 50 == 0:
-                        time.sleep(1)
+        if not orders.empty:
+            return ((orders['symbol'] == ticker) & (orders['secType'] == secType) & (orders['action'] == order.action) & (orders['quantity'] == order.totalQuantity) & (orders['status'] == 'PreSubmitted')).any()
         else:
-            for _ind, row in positions.iterrows():
-                self.sellPosition(row['symbol'], row['secType'], orders)
-                throttle_count += 1
-                if throttle_count % 50 == 0:
-                    time.sleep(1)
+            return False
 
 
     def parseFinancials(self, data, quarterly=False):
