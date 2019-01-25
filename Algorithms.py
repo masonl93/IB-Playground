@@ -1,7 +1,6 @@
 import pandas
 
 
-
 def movingAvgCross(df):
     '''
 
@@ -56,10 +55,12 @@ def compositeValueRank(df):
         for i, row in df_missing.iterrows():
             df.at[i, 'P/E Score'] = 50
         for i, row in df_good.iterrows():
-            df.at[i, 'P/E Score'] = 100 - pandas.qcut(df_good['P/E'], 100, labels=False)[i]
+            df.at[i, 'P/E Score'] = 100 - \
+                pandas.qcut(df_good['P/E'], 100, labels=False)[i]
     else:
         for i, row in df.iterrows():
-            df.at[i, 'P/E Score'] = 100 - pandas.qcut(df['P/E'], 100, labels=False)[i]
+            df.at[i, 'P/E Score'] = 100 - \
+                pandas.qcut(df['P/E'], 100, labels=False)[i]
 
     # EV/EBITDA Score
     if df['EV/EBITDA'].dtype == 'object':
@@ -68,10 +69,12 @@ def compositeValueRank(df):
         for i, row in df_missing.iterrows():
             df.at[i, 'EV/EBITDA Score'] = 50
         for i, row in df_good.iterrows():
-            df.at[i, 'EV/EBITDA Score'] = 100 - pandas.qcut(df_good['EV/EBITDA'], 100, labels=False)[i]
+            df.at[i, 'EV/EBITDA Score'] = 100 - \
+                pandas.qcut(df_good['EV/EBITDA'], 100, labels=False)[i]
     else:
         for i, row in df.iterrows():
-            df.at[i, 'EV/EBITDA Score'] = 100 - pandas.qcut(df['EV/EBITDA'], 100, labels=False)[i]
+            df.at[i, 'EV/EBITDA Score'] = 100 - \
+                pandas.qcut(df['EV/EBITDA'], 100, labels=False)[i]
 
     # EV/S Score
     if df['EV/S'].dtype == 'object':
@@ -80,11 +83,12 @@ def compositeValueRank(df):
         for i, row in df_missing.iterrows():
             df.at[i, 'EV/S Score'] = 50
         for i, row in df_good.iterrows():
-            df.at[i, 'EV/S Score'] = 100 - pandas.qcut(df_good['EV/S'], 100, labels=False)[i]
+            df.at[i, 'EV/S Score'] = 100 - \
+                pandas.qcut(df_good['EV/S'], 100, labels=False)[i]
     else:
         for i, row in df.iterrows():
-            df.at[i, 'EV/S Score'] = 100 - pandas.qcut(df['EV/S'], 100, labels=False)[i]
-
+            df.at[i, 'EV/S Score'] = 100 - \
+                pandas.qcut(df['EV/S'], 100, labels=False)[i]
 
     # EV/FCF Score
     if df['EV/FCF'].dtype == 'object':
@@ -93,14 +97,17 @@ def compositeValueRank(df):
         for i, row in df_missing.iterrows():
             df.at[i, 'EV/FCF Score'] = 50
         for i, row in df_good.iterrows():
-            df.at[i, 'EV/FCF Score'] = 100 - pandas.qcut(df_good['EV/FCF'], 100, labels=False)[i]
+            df.at[i, 'EV/FCF Score'] = 100 - \
+                pandas.qcut(df_good['EV/FCF'], 100, labels=False)[i]
     else:
         for i, row in df.iterrows():
-            df.at[i, 'EV/FCF Score'] = 100 - pandas.qcut(df['EV/FCF'], 100, labels=False)[i]
+            df.at[i, 'EV/FCF Score'] = 100 - \
+                pandas.qcut(df['EV/FCF'], 100, labels=False)[i]
 
     # Value Score
     for i, row in df.iterrows():
-        df.at[i, 'Value Score'] = (row['P/E Score'] + row['EV/EBITDA Score'] + row['EV/S Score'] + row['EV/FCF Score'])/4
+        df.at[i, 'Value Score'] = (
+            row['P/E Score'] + row['EV/EBITDA Score'] + row['EV/S Score'] + row['EV/FCF Score'])/4
 
     df = df.sort_values('Value Score', ascending=False)
     return df

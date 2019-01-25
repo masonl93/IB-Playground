@@ -19,7 +19,6 @@ import coaCodes
 from ContractSamples import ContractSamples
 
 
-
 class App:
     def __init__(self, ip_addr='127.0.0.1', port=7497, clientId=1):
 
@@ -32,7 +31,8 @@ class App:
 
         def error(reqId, errorCode: int, errorString: str):
             if errorCode != 2104 and errorCode != 2106:
-                print("Error. Id: ", reqId, " Code: ", errorCode, " Msg: ", errorString)
+                print("Error. Id: ", reqId, " Code: ",
+                      errorCode, " Msg: ", errorString)
                 if errorCode == 10167 and 'Displaying delayed market data' in errorString:
                     pass
                 elif reqId != -1:
@@ -61,19 +61,16 @@ class App:
         # Once we get a reqID, we know we can start
         self._reqId = q.get()
 
-
     def wrap(self, method):
         def f(wrapper, *args):
             return method(*args)
         name = method.__name__.split('.')[-1]
         setattr(self.wrapper.__class__, name, f)
 
-
     def getReqId(self):
         reqId = self._reqId
         self._reqId += 1
         return reqId
-
 
     def resetData(self):
         # Historical Data
@@ -94,7 +91,6 @@ class App:
         # Errors
         self.data_errors_q = queue.Queue()
 
-
     ### Client Functions (with wrapper methods as nested functions) ###
 
     def getAccounts(self):
@@ -106,7 +102,6 @@ class App:
         self.wrap(managedAccounts)
         self.client.reqManagedAccts()
         return q.get()
-
 
     def getPositions(self, account):
 
@@ -125,7 +120,6 @@ class App:
         q.get()
         return self.getDFPositions(positions)
 
-
     def getOrders(self):
 
         def openOrder(orderId, contract, order, orderState):
@@ -142,7 +136,6 @@ class App:
         q.get()
         return self.getDFOrders(orders)
 
-
     def sellPosition(self, ticker, secType, orders, positions):
         pos = self.getPosDetails(ticker, secType, positions)
         if pos.shape[0] > 1:
@@ -158,7 +151,6 @@ class App:
                 print('Placing SELL order for: ' + ticker)
                 self.place_order(contract, order)
 
-
     def getHistoricalData(self, contract, duration):
         '''
         Requests historical daily prices
@@ -166,7 +158,7 @@ class App:
           Input:
             duration: Duration string e.g. "1 Y", "6 M", "3 D", etc
         '''
-        def historicalData(reqId:int, bar):
+        def historicalData(reqId: int, bar):
             self.hist_data_dict_q[reqId].put(bar)
 
         def historicalDataEnd(reqId: int, start: str, end: str):
@@ -185,17 +177,16 @@ class App:
         queryTime = datetime.datetime.today().strftime("%Y%m%d %H:%M:%S")
         reqId = self.getReqId()
         self.client.reqHistoricalData(reqId, contract, queryTime,
-                               duration, "1 day", "MIDPOINT", 1, 1, False, [])
+                                      duration, "1 day", "MIDPOINT", 1, 1, False, [])
         self.reqId_map[reqId] = contract.symbol
         self.hist_data_dict_q[reqId] = queue.Queue()
-
 
     def getPrice(self, contract):
         '''
         Requests last trade price
         '''
         def tickPrice(reqId, tickType, price: float,
-                    attrib):
+                      attrib):
             if price == -1:
                 # print("No Price Data currently available")
                 pass
@@ -222,14 +213,11 @@ class App:
             # Go back to live/frozen
             self.client.reqMarketDataType(2)
 
-
     def findContracts(self, sybmol):
         self.client.reqMatchingSymbols(self.getReqId(), sybmol)
 
-
     def place_order(self, contract, order):
         self.client.placeOrder(self.getReqId(), contract, order)
-
 
     def getContractDetails(self, symbol, secType, currency=None, exchange=None):
 
@@ -254,7 +242,6 @@ class App:
         q.get()
         return contract_details
 
-
     def getYield(self, contract, data_type=3):
 
         def tickString(reqId, tickType, value: str):
@@ -273,7 +260,8 @@ class App:
         # MarketDataTypeEnum.DELAYED
         if contract.currency != 'USD':
             self.client.reqMarketDataType(data_type)
-        self.client.reqMktData(self.getReqId(), contract, "258", False, False, [])
+        self.client.reqMktData(self.getReqId(), contract,
+                               "258", False, False, [])
         if contract.currency != 'USD':
             # Go back to live/frozen
             self.client.reqMarketDataType(2)
@@ -282,7 +270,6 @@ class App:
             return div[0]
         else:
             return 0
-
 
     def getFinStatements(self, contract, data_type):
 
@@ -295,9 +282,7 @@ class App:
         self.client.reqFundamentalData(reqId, contract, data_type, [])
         self.reqId_map[reqId] = contract.symbol
 
-
     ### Client Functions End ###
-
 
     ### HELPER FUNCTIONS ###
 
@@ -318,7 +303,6 @@ class App:
                 'pos': sizes, 'avg_cost': avg_costs}
         return pandas.DataFrame(data=data)
 
-
     def getDFOrders(self, orders):
         symbols = []
         types = []
@@ -335,7 +319,6 @@ class App:
         data = {'symbol': symbols, 'secType': types, 'action': actions,
                 'quantity': quantities, 'status': status}
         return pandas.DataFrame(data=data)
-
 
     def createContract(self, symbol, secType, currency, exchange, primaryExchange=None,
                        right=None, strike=None, expiry=None):
@@ -360,7 +343,6 @@ class App:
             contract.lastTradeDateOrContractMonth = expiry
         return contract
 
-
     def createOptionContract(self, symbol, currency, exchange):
         contract = Contract()
         contract.symbol = symbol
@@ -373,17 +355,17 @@ class App:
         contract.multiplier = "100"
         return contract
 
-
     def portfolioCheck(self, ticker, positions):
         '''
         Output: Boolean
             True if ticker is in portfolio, is a stock, and position is > 0
             False otherwise
         '''
-        matching_ticker_df = positions[positions['symbol'].str.match("^%s$" % ticker)]
-        matching_type_df = matching_ticker_df[matching_ticker_df['secType'].str.match("^STK$")]
+        matching_ticker_df = positions[positions['symbol'].str.match(
+            "^%s$" % ticker)]
+        matching_type_df = matching_ticker_df[matching_ticker_df['secType'].str.match(
+            "^STK$")]
         return ((matching_type_df['pos'] > 0).any())
-
 
     def calcOrderSize(self, price, size):
         '''
@@ -402,21 +384,19 @@ class App:
         else:
             return int(size/price)
 
-
     def getPosDetails(self, ticker, secType, positions):
         '''
         Returns a dataframe of position details given a ticker and security type
         '''
-        matching_ticker_df = positions[positions['symbol'].str.match("^%s$" % ticker)]
+        matching_ticker_df = positions[positions['symbol'].str.match(
+            "^%s$" % ticker)]
         return matching_ticker_df[matching_ticker_df['secType'].str.match("^" + secType + "$")]
-
 
     def duplicateOrder(self, ticker, secType, order, orders):
         if not orders.empty:
             return ((orders['symbol'] == ticker) & (orders['secType'] == secType) & (orders['action'] == order.action) & (orders['quantity'] == order.totalQuantity) & (orders['status'] == 'PreSubmitted')).any()
         else:
             return False
-
 
     def parseFinancials(self, data, quarterly=False):
         accepted_reports = ["10-K", "10-Q", "Interim Report", "ARS"]
@@ -449,7 +429,8 @@ class App:
                         # print(item['@Type'])   ---- this is either INC, BAL, or CAS
                         for i in item['lineItem']:
                             try:
-                                parsed[coaCodes.coaCode_map[i['@coaCode']]] = float(i['#text'])
+                                parsed[coaCodes.coaCode_map[i['@coaCode']]] = float(
+                                    i['#text'])
                             except KeyError:
                                 print('Could not find coaCode!!!')
                                 print(i['@coaCode'])
@@ -469,7 +450,8 @@ class App:
             # only one annual report
             if type(annuals) != list:
                 if annuals['Statement'][0]['FPHeader']['Source']['#text'] in accepted_reports:
-                    annuals = [annuals]  # making it a list to work in the for loop below
+                    # making it a list to work in the for loop below
+                    annuals = [annuals]
                 else:
                     # No annual reports that are of accepted type
                     return current_annual, prev_annual
@@ -481,7 +463,8 @@ class App:
                         # print(item['@Type'])   ---- this is either INC, BAL, or CAS
                         for i in item['lineItem']:
                             try:
-                                parsed[coaCodes.coaCode_map[i['@coaCode']]] = float(i['#text'])
+                                parsed[coaCodes.coaCode_map[i['@coaCode']]] = float(
+                                    i['#text'])
                             except KeyError:
                                 print('Could not find coaCode!!!')
                                 print(i['@coaCode'])

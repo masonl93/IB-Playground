@@ -6,22 +6,21 @@ retrieved from TestApp.parseFinancials()
 '''
 
 
-
-'''
-Calculates Market Cap, Firm Value, and Enterprise Value
-
-Input:
-    price: Stock's price as float
-    data: dict containing any of the keys:
-        - total_common_shares_outstanding
-        - total_debt
-        - minority_interest
-        - cash&equivalents
-        - cash
-
-    TODO: Include preferred equity as a debt, associate company at market value as cash
-'''
 def getCompanyValues(price, data):
+    '''
+    Calculates Market Cap, Firm Value, and Enterprise Value
+
+    Input:
+        price: Stock's price as float
+        data: dict containing any of the keys:
+            - total_common_shares_outstanding
+            - total_debt
+            - minority_interest
+            - cash&equivalents
+            - cash
+
+        TODO: Include preferred equity as a debt, associate company at market value as cash
+    '''
     mkt_cap = None
     firm_val = None
     ev = None
@@ -46,15 +45,15 @@ def getCompanyValues(price, data):
     return mkt_cap, firm_val, ev
 
 
-'''
-Calculates TTM P/E Ratio
-
-Input:
-    price: Stock's price as float
-    qtr1, qtr2, qtr3, qtr4: dict containing the key:
-        - diluted_eps_excluding_extraord_items
-'''
 def getP_E(price, qtr1, qtr2, qtr3, qtr4):
+    '''
+    Calculates TTM P/E Ratio
+
+    Input:
+        price: Stock's price as float
+        qtr1, qtr2, qtr3, qtr4: dict containing the key:
+            - diluted_eps_excluding_extraord_items
+    '''
     ttm_eps = 0
     if qtr1 and 'diluted_eps_excluding_extraord_items' in qtr1:
         ttm_eps += qtr1['diluted_eps_excluding_extraord_items']
@@ -71,18 +70,18 @@ def getP_E(price, qtr1, qtr2, qtr3, qtr4):
         return price/ttm_eps
 
 
-'''
-Calculates TTM EV/EBITDA Ratio
-
-Input:
-    ev: Stock's enterprise value
-    qtr1, qtr2, qtr3, qtr4: dict containing the keys:
-        - operating_income
-        - depreciation/amortization
-        - depreciation/depletion
-        - amortization
-'''
 def getEV_EBITDA(ev, qtr1, qtr2, qtr3, qtr4):
+    '''
+    Calculates TTM EV/EBITDA Ratio
+
+    Input:
+        ev: Stock's enterprise value
+        qtr1, qtr2, qtr3, qtr4: dict containing the keys:
+            - operating_income
+            - depreciation/amortization
+            - depreciation/depletion
+            - amortization
+    '''
     ebitda = 0
     if ev:
         # EBITDA
@@ -124,18 +123,18 @@ def getEV_EBITDA(ev, qtr1, qtr2, qtr3, qtr4):
         return ev / ebitda
 
 
-'''
-Calculates P/B Ratio
-
-Input:
-    price: Stock's price as float
-    qtr1: dict containing the key:
-        - total_equity
-        - total_common_shares_outstanding
-        - redeemable_preferred_stock
-        - preferred_stock_non_redeemable
-'''
 def getP_B(price, qtr1):
+    '''
+    Calculates P/B Ratio
+
+    Input:
+        price: Stock's price as float
+        qtr1: dict containing the key:
+            - total_equity
+            - total_common_shares_outstanding
+            - redeemable_preferred_stock
+            - preferred_stock_non_redeemable
+    '''
     bv_per_share = 0
     if qtr1 and 'total_equity' in qtr1 and 'total_common_shares_outstanding' in qtr1:
         bv = qtr1['total_equity']
@@ -150,15 +149,15 @@ def getP_B(price, qtr1):
         return price/bv_per_share
 
 
-'''
-Calculates TTM EV/Sales Ratio
-
-Input:
-    ev: Stock's enterprise value
-    qtr1, qtr2, qtr3, qtr4: dict containing the key:
-        - total_revenue
-'''
 def getEV_S(ev, qtr1, qtr2, qtr3, qtr4):
+    '''
+    Calculates TTM EV/Sales Ratio
+
+    Input:
+        ev: Stock's enterprise value
+        qtr1, qtr2, qtr3, qtr4: dict containing the key:
+            - total_revenue
+    '''
     ttm_rev = 0
     if ev:
         if qtr1 and 'total_revenue' in qtr1:
@@ -175,18 +174,18 @@ def getEV_S(ev, qtr1, qtr2, qtr3, qtr4):
         return ev / ttm_rev
 
 
-'''
-Calculates TTM EV/FCF Ratio
-
-Input:
-    ev: Stock's enterprise value
-    qtr1, qtr2, qtr3, qtr4: dict containing the key:
-        - cash_from_operating_activities
-        - capital_expenditures
-
-free cash flow = cash_from_operating_activities - capital_expenditures
-'''
 def getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4):
+    '''
+    Calculates TTM EV/FCF Ratio
+
+    Input:
+        ev: Stock's enterprise value
+        qtr1, qtr2, qtr3, qtr4: dict containing the key:
+            - cash_from_operating_activities
+            - capital_expenditures
+
+    free cash flow = cash_from_operating_activities - capital_expenditures
+    '''
     ttm_fcf = 0
     if ev:
         if qtr1 and 'cash_from_operating_activities' in qtr1:
@@ -211,19 +210,19 @@ def getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4):
         return ev / ttm_fcf
 
 
-'''
-Calculates how much dividends per share were paid out
-
-qtr3 and qtr4 default to None since this function can
-be used to calculate last 2 quarters dividend
-payout for total return over 6 months or 12 months
-if last two args are provided
-
-Input:
-    qtr1, qtr2, qtr3, qtr4: dict containing the key:
-        - dps_common_stock_primary_issue
-'''
 def getDivPayout(qtr1, qtr2, qtr3=None, qtr4=None):
+    '''
+    Calculates how much dividends per share were paid out
+
+    qtr3 and qtr4 default to None since this function can
+    be used to calculate last 2 quarters dividend
+    payout for total return over 6 months or 12 months
+    if last two args are provided
+
+    Input:
+        qtr1, qtr2, qtr3, qtr4: dict containing the key:
+            - dps_common_stock_primary_issue
+    '''
     div = 0
     if qtr1 and 'dps_common_stock_primary_issue' in qtr1:
         div += qtr1['dps_common_stock_primary_issue']
@@ -232,7 +231,7 @@ def getDivPayout(qtr1, qtr2, qtr3=None, qtr4=None):
     if qtr3 and 'dps_common_stock_primary_issue' in qtr3:
         div += qtr3['dps_common_stock_primary_issue']
     if qtr4 and 'dps_common_stock_primary_issue' in qtr4:
-         div += qtr4['dps_common_stock_primary_issue']
+        div += qtr4['dps_common_stock_primary_issue']
     return div
 
 
@@ -304,16 +303,16 @@ def calcChangeInNOA(annual, prev_annual):
     return None
 
 
-'''
-Calculate the 1 year growth of EPS
-
-Input:
-    Current and previous annual reports: dicts w/ keys:
-        - diluted_eps_excluding_extraord_items
-'''
 def calcOneYearGrowth(annual, prev_annual):
+    '''
+    Calculate the 1 year growth of EPS
+
+    Input:
+        Current and previous annual reports: dicts w/ keys:
+            - diluted_eps_excluding_extraord_items
+    '''
     if (annual and 'diluted_eps_excluding_extraord_items' in annual
-         and prev_annual and 'diluted_eps_excluding_extraord_items' in prev_annual):
+            and prev_annual and 'diluted_eps_excluding_extraord_items' in prev_annual):
         eps = annual['diluted_eps_excluding_extraord_items']
         prev_eps = prev_annual['diluted_eps_excluding_extraord_items']
         return ((eps - prev_eps)/abs(prev_eps))
@@ -382,19 +381,23 @@ def calcROIC(qtr1, qtr2, qtr3, qtr4):
     nopat = 0
     if qtr1 and qtr2 and qtr1['operating_income'] and qtr1['net_income_before_taxes'] and qtr1['net_income_after_taxes']:
         # Net Operating Profit after Taxes for TTM
-        tax_rate = (qtr1['net_income_before_taxes'] - qtr1['net_income_after_taxes']) / qtr1['net_income_before_taxes']
+        tax_rate = (qtr1['net_income_before_taxes'] -
+                    qtr1['net_income_after_taxes']) / qtr1['net_income_before_taxes']
         nopat = qtr1['operating_income'] * (1 - tax_rate)
 
         if qtr2 and qtr2['operating_income'] and qtr2['net_income_before_taxes'] and qtr2['net_income_after_taxes']:
-            tax_rate = (qtr2['net_income_before_taxes'] - qtr2['net_income_after_taxes']) / qtr2['net_income_before_taxes']
+            tax_rate = (qtr2['net_income_before_taxes'] -
+                        qtr2['net_income_after_taxes']) / qtr2['net_income_before_taxes']
             nopat += qtr2['operating_income'] * (1 - tax_rate)
 
         if qtr3 and qtr3['operating_income'] and qtr3['net_income_before_taxes'] and qtr3['net_income_after_taxes']:
-            tax_rate = (qtr3['net_income_before_taxes'] - qtr3['net_income_after_taxes']) / qtr3['net_income_before_taxes']
+            tax_rate = (qtr3['net_income_before_taxes'] -
+                        qtr3['net_income_after_taxes']) / qtr3['net_income_before_taxes']
             nopat += qtr3['operating_income'] * (1 - tax_rate)
 
         if qtr4 and qtr4['operating_income'] and qtr4['net_income_before_taxes'] and qtr4['net_income_after_taxes']:
-            tax_rate = (qtr4['net_income_before_taxes'] - qtr4['net_income_after_taxes']) / qtr4['net_income_before_taxes']
+            tax_rate = (qtr4['net_income_before_taxes'] -
+                        qtr4['net_income_after_taxes']) / qtr4['net_income_before_taxes']
             nopat += qtr4['operating_income'] * (1 - tax_rate)
 
         # Invested Capital last qtr

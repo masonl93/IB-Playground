@@ -15,11 +15,10 @@ from ContractSamples import ContractSamples
 from Black_Scholes import BlackScholes
 
 
-
-"""
-Alpha within Factors
-"""
 def alphaInFactors(app, tickers, input_f, out_f):
+    """
+    Alpha within Factors
+    """
 
     if tickers is None:
         print("Error: Must provide file of tickers by '-i' option")
@@ -47,7 +46,7 @@ def alphaInFactors(app, tickers, input_f, out_f):
         else:
             datas.append(None)
     data = {'Symbol': symbols, 'Price': prices, 'Data': datas, 'Market Cap': None, 'Enterprise Value': None,
-            'Dividend': None, 'Momentum': None, 'Change in NOA': None, 'EPS Growth': None,'P/E': None, 'EV/EBITDA': None,
+            'Dividend': None, 'Momentum': None, 'Change in NOA': None, 'EPS Growth': None, 'P/E': None, 'EV/EBITDA': None,
             'EV/S': None, 'EV/FCF': None, 'Debt to Equity': None}
     df = pandas.DataFrame(data=data).dropna(subset=['Price', 'Data'])
     print("Price Data:")
@@ -55,23 +54,27 @@ def alphaInFactors(app, tickers, input_f, out_f):
 
     # Loop through dataframe and update specific values
     for i, row in df.iterrows():
-        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(row['Data'], quarterly=True)
+        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(
+            row['Data'], quarterly=True)
         # Getting annual reports also
         current_annual, prev_annual = app.parseFinancials(row['Data'])
 
         df.at[i, 'Dividend'] = Ratios.getDivPayout(qtr1, qtr2)
 
         # Numerators
-        df.at[i, 'Market Cap'], ev = Ratios.getCompanyValues(row['Price'], qtr1)[::2]
+        df.at[i, 'Market Cap'], ev = Ratios.getCompanyValues(row['Price'], qtr1)[
+            ::2]
         df.at[i, 'Enterprise Value'] = ev
 
         df.at[i, 'P/E'] = Ratios.getP_E(row['Price'], qtr1, qtr2, qtr3, qtr4)
         df.at[i, 'EV/EBITDA'] = Ratios.getEV_EBITDA(ev, qtr1, qtr2, qtr3, qtr4)
-        df.at[i, 'EV/S']  = Ratios.getEV_S(ev, qtr1, qtr2, qtr3, qtr4)
-        df.at[i, 'EV/FCF']  = Ratios.getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4)
+        df.at[i, 'EV/S'] = Ratios.getEV_S(ev, qtr1, qtr2, qtr3, qtr4)
+        df.at[i, 'EV/FCF'] = Ratios.getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4)
 
-        df.at[i, 'Change in NOA'] = Ratios.calcChangeInNOA(current_annual, prev_annual)
-        df.at[i, 'EPS Growth'] = Ratios.calcOneYearGrowth(current_annual, prev_annual)
+        df.at[i, 'Change in NOA'] = Ratios.calcChangeInNOA(
+            current_annual, prev_annual)
+        df.at[i, 'EPS Growth'] = Ratios.calcOneYearGrowth(
+            current_annual, prev_annual)
         df.at[i, 'Debt to Equity'] = Ratios.calcDebtToEquity(qtr1)
 
     # Drop rows where we don't have market cap or EV
@@ -90,12 +93,14 @@ def alphaInFactors(app, tickers, input_f, out_f):
     # Value Traps
     # Growth (eps change), Earnings quality (change in NOA), and Leverage (debt to equity) calculated above
     # Getting historical data for calculating Momentum: trailing 6 months return
-    hist_data, hist_issue_tickers = getHistData(app, list(df['Symbol'].values), "6 M")
+    hist_data, hist_issue_tickers = getHistData(
+        app, list(df['Symbol'].values), "6 M")
 
     # Update df with momentum values
     for i, row in df.iterrows():
         if row['Symbol'] in hist_data:
-            df.at[i, 'Momentum'] = algo.calcTotalReturn(hist_data[row['Symbol']].iloc[0]['price'], row['Price'], row['Dividend'])
+            df.at[i, 'Momentum'] = algo.calcTotalReturn(
+                hist_data[row['Symbol']].iloc[0]['price'], row['Price'], row['Dividend'])
         else:
             df.at[i, 'Momentum'] = None
 
@@ -132,10 +137,10 @@ def alphaInFactors(app, tickers, input_f, out_f):
     return
 
 
-"""
-Ratio Calculator
-"""
 def ratios(app, tickers, out_f):
+    """
+    Ratio Calculator
+    """
 
     ticker_data, issue_tickers = getPriceData(app, tickers)
     fund_ticker_data, data_issue_tickers = getFundamentalData(app, tickers)
@@ -158,16 +163,18 @@ def ratios(app, tickers, out_f):
 
     # Loop through dataframe and update specific values
     for i, row in df.iterrows():
-        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(row['Data'], quarterly=True)
+        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(
+            row['Data'], quarterly=True)
 
         # Numerators
-        df.at[i, 'Market Cap'], df.at[i, 'Firm Value'], ev = Ratios.getCompanyValues(row['Price'], qtr1)
+        df.at[i, 'Market Cap'], df.at[i, 'Firm Value'], ev = Ratios.getCompanyValues(
+            row['Price'], qtr1)
         df.at[i, 'Enterprise Value'] = ev
 
         df.at[i, 'P/E'] = Ratios.getP_E(row['Price'], qtr1, qtr2, qtr3, qtr4)
         df.at[i, 'EV/EBITDA'] = Ratios.getEV_EBITDA(ev, qtr1, qtr2, qtr3, qtr4)
-        df.at[i, 'EV/S']  = Ratios.getEV_S(ev, qtr1, qtr2, qtr3, qtr4)
-        df.at[i, 'EV/FCF']  = Ratios.getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4)
+        df.at[i, 'EV/S'] = Ratios.getEV_S(ev, qtr1, qtr2, qtr3, qtr4)
+        df.at[i, 'EV/FCF'] = Ratios.getEV_FCF(ev, qtr1, qtr2, qtr3, qtr4)
         df.at[i, 'P/B'] = Ratios.getP_B(row['Price'], qtr1)
 
     df = df.drop(columns=['Data'])
@@ -185,11 +192,12 @@ def ratios(app, tickers, out_f):
     return
 
 
-"""
-BS warrants
-    - TODO: add readme to this repo readme?
-"""
 def warrants(app, tickers, warrants_out):
+    """
+    BS warrants
+        - TODO: add readme to this repo readme?
+    """
+
     if tickers is None:
         print('Error: Must provide ticker for warrant valuation')
         return
@@ -206,7 +214,8 @@ def warrants(app, tickers, warrants_out):
 
     for key, val in ticker_data.items():
         # Find the warrant
-        contract_details = app.getContractDetails(key, "WAR", exchange='SMART', currency='USD')
+        contract_details = app.getContractDetails(
+            key, "WAR", exchange='SMART', currency='USD')
         underlying_price = float(val)
         # Get dividend yield
         contract = app.createContract(key, "STK", "USD", "SMART", "ISLAND")
@@ -220,7 +229,8 @@ def warrants(app, tickers, warrants_out):
             strike = contract.strike
             # right = contract.right
             warrants_per_share = (1/float(contract.multiplier))
-            expiry = datetime.datetime.strptime(contract.lastTradeDateOrContractMonth, '%Y%m%d').strftime('%m-%d-%Y')
+            expiry = datetime.datetime.strptime(
+                contract.lastTradeDateOrContractMonth, '%Y%m%d').strftime('%m-%d-%Y')
 
             # TODO: Get this from t-bill near expiry date?
             risk = .03
@@ -228,8 +238,8 @@ def warrants(app, tickers, warrants_out):
             prices = []
             for vol in vols:
                 bs = BlackScholes(strike, underlying_price, risk, vol,
-                                expiry, div, shares_out, warrants_out,
-                                warrants_per_share)
+                                  expiry, div, shares_out, warrants_out,
+                                  warrants_per_share)
                 prices.append('$' + str(round(bs.price_euro_call(), 5)))
             header = ('%s %s' % (str(strike), expiry))
             data[header] = prices
@@ -242,10 +252,11 @@ def warrants(app, tickers, warrants_out):
     print(data_issue_tickers)
 
 
-"""
-Factors
-"""
 def factorSort(app, tickers, rank, input_f, out_f):
+    """
+    Factors
+    """
+
     if tickers is None:
         print("Error: Must provide file of tickers by '-i' option")
         return
@@ -267,12 +278,15 @@ def factorSort(app, tickers, rank, input_f, out_f):
 
     for i, row in df.iterrows():
         print(row['Symbol'])
-        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(row['Data'], quarterly=True)
+        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(
+            row['Data'], quarterly=True)
         current_annual, prev_annual = app.parseFinancials(row['Data'])
-        df.at[i, 'Change in NOA'] = Ratios.calcChangeInNOA(current_annual, prev_annual)
+        df.at[i, 'Change in NOA'] = Ratios.calcChangeInNOA(
+            current_annual, prev_annual)
         df.at[i, 'Debt to Equity'] = Ratios.calcDebtToEquity(qtr1)
         df.at[i, 'ROIC'] = Ratios.calcROIC(qtr1, qtr2, qtr3, qtr4)
-        df.at[i, '1yr Debt Change'] = Ratios.calcDebtChange(current_annual, prev_annual)
+        df.at[i, '1yr Debt Change'] = Ratios.calcDebtChange(
+            current_annual, prev_annual)
 
     df = df.drop(columns=['Data'])
     print(df)
@@ -283,7 +297,8 @@ def factorSort(app, tickers, rank, input_f, out_f):
 
     if rank:
         print('Ranked Results - Remove Lowest Decile for each Factor:')
-        columns = ['Change in NOA', 'Debt to Equity', 'ROIC', '1yr Debt Change']
+        columns = ['Change in NOA', 'Debt to Equity',
+                   'ROIC', '1yr Debt Change']
         for column in columns:
             if df[column].dtype == 'object':
                 df = df[df[column] != None]
@@ -297,17 +312,18 @@ def factorSort(app, tickers, rank, input_f, out_f):
             df = df[:-cutoff]
 
         # Getting AVG
-        df.loc[-1] = ['Averages', df['Change in NOA'].mean(), df['1yr Debt Change'].mean(), df['Debt to Equity'].mean(), df['ROIC'].mean()]
+        df.loc[-1] = ['Averages', df['Change in NOA'].mean(), df['1yr Debt Change'].mean(),
+                      df['Debt to Equity'].mean(), df['ROIC'].mean()]
         print(df.reset_index(drop=True,))
         if out_f:
             saveResults(df, out_f + '_ranked')
 
 
-
-"""
-MA Cross
-"""
 def movingAvgCross(app, positions, orders, tickers, buy):
+    """
+    MA Cross
+    """
+
     if tickers is None:
         print("Error: Must provide file of tickers by '-i' option")
         return
@@ -323,8 +339,10 @@ def movingAvgCross(app, positions, orders, tickers, buy):
             if algo.movingAvgCross(hist_data[ticker]) and not app.portfolioCheck(ticker, positions):
                 print('Placing Buy Order for: ' + ticker)
                 if buy:
-                    amt = app.calcOrderSize(float(hist_data[ticker].tail(1)['price']), 1000)
-                    contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
+                    amt = app.calcOrderSize(
+                        float(hist_data[ticker].tail(1)['price']), 1000)
+                    contract = app.createContract(
+                        ticker, "STK", "USD", "SMART", "ISLAND")
                     order = ib.Order()
                     order.action = "BUY"
                     order.orderType = "MKT"
@@ -341,31 +359,32 @@ def movingAvgCross(app, positions, orders, tickers, buy):
     print(hist_issue_tickers)
 
 
-"""
-Save Results
-
-    Saves a dataframe to file in pickle format for use on a later.
-"""
 def saveResults(df, output_f):
+    """
+    Save Results
+
+        Saves a dataframe to file in pickle format for use on a later.
+    """
     df.to_pickle(output_f)
 
 
-"""
-Process Queue
-
-    Processes a data queue from IB class
-
-    Input:
-        q: the main queue to process
-        tickers: list of tickers
-        app: Needed to reference IB.reqId_map to link up
-             a reqId to a ticker
-        q2: (optional) secondary queue to process in the case
-             that a ticker is missing from q. This can be useful
-             for reqMktData when there are no trades today so we
-             want to just use previous day close price, so use q2
-"""
 def processQueue(q, tickers, app, q2=None):
+    """
+    Process Queue
+
+        Processes a data queue from IB class
+
+        Input:
+            q: the main queue to process
+            tickers: list of tickers
+            app: Needed to reference IB.reqId_map to link up
+                a reqId to a ticker
+            q2: (optional) secondary queue to process in the case
+                that a ticker is missing from q. This can be useful
+                for reqMktData when there are no trades today so we
+                want to just use previous day close price, so use q2
+    """
+
     data_map = {}
     issues = {}
 
@@ -409,17 +428,17 @@ def processQueue(q, tickers, app, q2=None):
     return data_map, issues
 
 
-'''
-Get Price Data
-
-    Gets price data for a given list of tickers
-    Tries to do max requests per sec w/o causing any errors
-
-    Output:
-        ticker_data: dict w/ tickers as keys and prices as values
-        issue_tickers: dict w/ tickers as keys and errors as values
-'''
 def getPriceData(app, tickers):
+    '''
+    Get Price Data
+
+        Gets price data for a given list of tickers
+        Tries to do max requests per sec w/o causing any errors
+
+        Output:
+            ticker_data: dict w/ tickers as keys and prices as values
+            issue_tickers: dict w/ tickers as keys and errors as values
+    '''
     # Max number of requests that can be made per second for reqmktdata = 100
     tickers_chunked = chunkTickers(tickers, 100)
 
@@ -427,29 +446,31 @@ def getPriceData(app, tickers):
     for chunk in tickers_chunked:
         for ticker in chunk:
             print('Price Data Req: ' + str(ticker))
-            contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
+            contract = app.createContract(
+                ticker, "STK", "USD", "SMART", "ISLAND")
             app.getPrice(contract)
         time.sleep(1)
 
     # Process Price data
-    ticker_data, issue_tickers = processQueue(app.price_queue, tickers, app, q2=app.close_price_queue)
+    ticker_data, issue_tickers = processQueue(
+        app.price_queue, tickers, app, q2=app.close_price_queue)
     return ticker_data, issue_tickers
 
 
-'''
-Get Fundamental Data
-
-    Gets fundamental data for a given list of tickers
-    Tries to do max requests per sec w/o causing any errors
-    If we face a pacing error, we try to slow down and attempt
-    to try again since these are not real errors and can most
-    of the time be resolved
-
-    Output:
-        fund_ticker_data: dict w/ tickers as keys and xml fundamental data as values
-        data_issue_tickers: dict w/ tickers as keys and errors as values
-'''
 def getFundamentalData(app, tickers):
+    '''
+    Get Fundamental Data
+
+        Gets fundamental data for a given list of tickers
+        Tries to do max requests per sec w/o causing any errors
+        If we face a pacing error, we try to slow down and attempt
+        to try again since these are not real errors and can most
+        of the time be resolved
+
+        Output:
+            fund_ticker_data: dict w/ tickers as keys and xml fundamental data as values
+            data_issue_tickers: dict w/ tickers as keys and errors as values
+    '''
     # 2 req/s seem to avoid pacing errors
     tickers_chunked = chunkTickers(tickers, 2)
 
@@ -461,12 +482,14 @@ def getFundamentalData(app, tickers):
             app.slowdown = False
         for ticker in chunk:
             print('Fundamental Data Req: ' + str(ticker))
-            contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
+            contract = app.createContract(
+                ticker, "STK", "USD", "SMART", "ISLAND")
             app.getFinStatements(contract, "ReportsFinStatements")
         time.sleep(1)
 
     # Process Fundamental data
-    fund_ticker_data, data_issue_tickers = processQueue(app.fundamental_data_q, tickers, app)
+    fund_ticker_data, data_issue_tickers = processQueue(
+        app.fundamental_data_q, tickers, app)
 
     # Re-request fundamental data for any tickers that gave
     # us a pacing error
@@ -484,10 +507,12 @@ def getFundamentalData(app, tickers):
                 app.slowdown = False
             for ticker in chunk:
                 print(ticker)
-                contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
+                contract = app.createContract(
+                    ticker, "STK", "USD", "SMART", "ISLAND")
                 app.getFinStatements(contract, "ReportsFinStatements")
             time.sleep(1)
-        try_again_data, try_again_issues = processQueue(app.fundamental_data_q, try_agains, app)
+        try_again_data, try_again_issues = processQueue(
+            app.fundamental_data_q, try_agains, app)
 
         # Update our two lists
         for key, val in try_again_data.items():
@@ -499,18 +524,18 @@ def getFundamentalData(app, tickers):
     return fund_ticker_data, data_issue_tickers
 
 
-'''
-Get Historical Data
-
-    Gets historical data for a given list of tickers
-    Tries to do max requests per sec w/o causing any errors
-    Duration should match format of IB.reqHistoricalData
-
-    Output:
-        ticker_data: dict w/ tickers as keys and dataframe of hist data as values
-        issue_tickers: dict w/ tickers as keys and errors as values
-'''
 def getHistData(app, tickers, duration):
+    '''
+    Get Historical Data
+
+        Gets historical data for a given list of tickers
+        Tries to do max requests per sec w/o causing any errors
+        Duration should match format of IB.reqHistoricalData
+
+        Output:
+            ticker_data: dict w/ tickers as keys and dataframe of hist data as values
+            issue_tickers: dict w/ tickers as keys and errors as values
+    '''
     # Max number of requests that can be made per second for reqHistoricalData = 50
     # Doing 40/sec just to be safe
     tickers_chunked = chunkTickers(tickers, 40)
@@ -519,7 +544,8 @@ def getHistData(app, tickers, duration):
     for chunk in tickers_chunked:
         for ticker in chunk:
             print('Hist Data Req: ' + str(ticker))
-            contract = app.createContract(ticker, "STK", "USD", "SMART", "ISLAND")
+            contract = app.createContract(
+                ticker, "STK", "USD", "SMART", "ISLAND")
             app.getHistoricalData(contract, duration)
         time.sleep(1)
 
@@ -528,21 +554,22 @@ def getHistData(app, tickers, duration):
     return ticker_data, issue_tickers
 
 
-"""
-Chunk Tickers
-
-    Given a list tickers, split into sublists of length n
-    This is used as different IB functions can only take
-    so many request per second before throwing an error
-"""
 def chunkTickers(tickers, n):
-    return [tickers[i * n:(i + 1) * n] for i in range((len(tickers) + n - 1) // n )]
+    """
+    Chunk Tickers
+
+        Given a list tickers, split into sublists of length n
+        This is used as different IB functions can only take
+        so many request per second before throwing an error
+    """
+    return [tickers[i * n:(i + 1) * n] for i in range((len(tickers) + n - 1) // n)]
 
 
-'''
-Load Tickers
-'''
 def loadTickers(ticker_file):
+    '''
+    Load Tickers
+    '''
+
     with open(ticker_file) as f:
         tickers = [line.rstrip('\n') for line in f]
 
@@ -630,7 +657,6 @@ def main(args):
         print(data['MMM'])
         print(err)
 
-
     print("Time")
     print(time.time()-start)
     print('Shutting down!')
@@ -640,23 +666,33 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='IB Algo Trader')
     # Functions
-    parser.add_argument('--moving_avg', help='Moving Average Cross', action='store_true')
+    parser.add_argument(
+        '--moving_avg', help='Moving Average Cross', action='store_true')
     parser.add_argument('--factor', help='Factors', action='store_true')
-    parser.add_argument('--ratios', help='Calculate Ratios for all tickers', action='store_true')
-    parser.add_argument('--warrants', help='Warrants Valuation', action='store_true')
-    parser.add_argument('--futures', help='',action='store_true')
-    parser.add_argument('--factor_alpha', help='Alpha within Factors',action='store_true')
+    parser.add_argument(
+        '--ratios', help='Calculate Ratios for all tickers', action='store_true')
+    parser.add_argument(
+        '--warrants', help='Warrants Valuation', action='store_true')
+    parser.add_argument('--futures', help='', action='store_true')
+    parser.add_argument(
+        '--factor_alpha', help='Alpha within Factors', action='store_true')
     # Options
-    parser.add_argument('-i', '--input', help='Input File of Tickers', default=None)
-    parser.add_argument('-r', '--rank', help='Rank Factors (for Factor)', action='store_true')
-    parser.add_argument('-p', '--port', help='Port of TWS (default=7497)', default=7497, type=int)
-    parser.add_argument('-t', '--ticker', help='Underlying Ticker for warrant valuation', default=None)
-    parser.add_argument('-o', '--warrants_out', help='Number of warrants outstanding (in millions)', default=None, type=float)
-    parser.add_argument('--buy', help='Actually Buy/Sell for an alorithm, instead of a dry run', action='store_true')
+    parser.add_argument(
+        '-i', '--input', help='Input File of Tickers', default=None)
+    parser.add_argument(
+        '-r', '--rank', help='Rank Factors (for Factor)', action='store_true')
+    parser.add_argument(
+        '-p', '--port', help='Port of TWS (default=7497)', default=7497, type=int)
+    parser.add_argument(
+        '-t', '--ticker', help='Underlying Ticker for warrant valuation', default=None)
+    parser.add_argument('-o', '--warrants_out',
+                        help='Number of warrants outstanding (in millions)', default=None, type=float)
+    parser.add_argument(
+        '--buy', help='Actually Buy/Sell for an alorithm, instead of a dry run', action='store_true')
     parser.add_argument('--test', action='store_true')
-    parser.add_argument('--output', help='Output file to save to', default=None)
+    parser.add_argument(
+        '--output', help='Output file to save to', default=None)
     main(parser.parse_args())
-
 
 
 # TODO
@@ -669,7 +705,6 @@ if __name__ == '__main__':
         - Create IB folder which contains IB.py, coaCodes, contractSamples, etc
         - Add code layout explanation to README
         - explain tools/ dir
-    - shift-alt-f: python format file
     - Utilize df.rank() for value comp score?
         - Assigns P/E 100, when lowest P/E, etc
 
