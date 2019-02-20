@@ -196,3 +196,30 @@ class Test_GetEV_FCF(object):
         qtr3 = None
         qtr2 = None
         assert Ratios.getEV_FCF(600, qtr1, qtr2, qtr3, qtr4) == 10
+
+
+class Test_GetDivPayout(object):
+    @pytest.fixture
+    def setup(self):
+        qtr1 = {'dps_common_stock_primary_issue': .24}
+        qtr2 = qtr1
+        qtr3 = qtr1
+        qtr4 = qtr1
+        return qtr1, qtr2, qtr3, qtr4
+
+    def test_getDivPayout_None(self):
+        assert Ratios.getDivPayout(None, None, None, None) == 0
+
+    def test_getDivPayout(self, setup):
+        qtr1, qtr2, qtr3, qtr4 = setup
+        assert Ratios.getDivPayout(qtr1, qtr2) == .48
+
+    def test_getDivPayout_Year(self, setup):
+        qtr1, qtr2, qtr3, qtr4 = setup
+        assert Ratios.getDivPayout(qtr1, qtr2, qtr3, qtr4) == .96
+
+    def test_getDivPayout_Mixed(self, setup):
+        qtr1, qtr2, qtr3, qtr4 = setup
+        qtr1 = None
+        qtr3 = None
+        assert Ratios.getDivPayout(qtr1, qtr2, qtr3, qtr4) == .48

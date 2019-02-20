@@ -729,6 +729,10 @@ if __name__ == '__main__':
         - Create a final row in dataframe for averages
     - Warrants
         - add support for list/input file of tickers
+        - Add in capped model (most warrants have a price cap i.e. not unlimited upside)
+            - https://www.radford.com/relativetsr/etrade/wm/COWebModel.asp
+    - Cost Management Tool
+        - Calculate costs of commisions and taxes to help get better picture of after tax returns
     - Other strategies/algos
         - Arbitrage
         - ML
