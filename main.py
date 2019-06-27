@@ -193,10 +193,6 @@ def ratios(app, tickers, out_f):
 
 
 def warrants(app, tickers, warrants_out):
-    """
-    BS warrants
-        - TODO: add readme to this repo readme?
-    """
 
     if tickers is None:
         print('Error: Must provide ticker for warrant valuation')
@@ -360,31 +356,36 @@ def movingAvgCross(app, positions, orders, tickers, buy):
 
 
 def saveResults(df, output_f):
-    """
-    Save Results
+    """ Save Results
 
-        Saves a dataframe to file in pickle format for use on a later.
+    Saves a dataframe to file in pickle format for use on a later.
+
+    Arguments:
+        df {Dataframe} -- dataframe we want to save
+        output_f {str} -- File to save pickle to
     """
     df.to_pickle(output_f)
 
 
 def processQueue(q, tickers, app, q2=None):
+    """ Process Queue
+
+    Processes a data queue from IB class
+
+    Arguments:
+        q {queue} -- the main queue to process
+        tickers {list} -- list of strings of tickers
+        app {ib.App} -- ib App object. Needed to reference IB.reqId_map
+                        to link up a reqId to a ticker
+        q2 {queue} -- (optional) secondary queue to process in the case
+                       that a ticker is missing from q. This can be useful
+                       for reqMktData when there are no trades today so we
+                       want to just use previous day close price, so use q2
+
+    Returns:
+        dict -- tickers as keys and data as values
+        dict -- tickers as keys and errors as values (if any occured)
     """
-    Process Queue
-
-        Processes a data queue from IB class
-
-        Input:
-            q: the main queue to process
-            tickers: list of tickers
-            app: Needed to reference IB.reqId_map to link up
-                a reqId to a ticker
-            q2: (optional) secondary queue to process in the case
-                that a ticker is missing from q. This can be useful
-                for reqMktData when there are no trades today so we
-                want to just use previous day close price, so use q2
-    """
-
     data_map = {}
     issues = {}
 
@@ -429,16 +430,19 @@ def processQueue(q, tickers, app, q2=None):
 
 
 def getPriceData(app, tickers):
-    '''
-    Get Price Data
+    """ Get Price Data
 
-        Gets price data for a given list of tickers
-        Tries to do max requests per sec w/o causing any errors
+    Gets price data for a given list of tickers
+    Tries to do max requests per sec w/o causing any errors
 
-        Output:
-            ticker_data: dict w/ tickers as keys and prices as values
-            issue_tickers: dict w/ tickers as keys and errors as values
-    '''
+    Arguments:
+        app {ib.App} -- ib App object
+        tickers {list} -- list of strings of tickers
+
+    Returns:
+        dict -- tickers as keys and xml fundamental data as values
+        dict -- tickers as keys and errors as values (if any occured)
+    """
     # Max number of requests that can be made per second for reqmktdata = 100
     tickers_chunked = chunkTickers(tickers, 100)
 
@@ -458,19 +462,22 @@ def getPriceData(app, tickers):
 
 
 def getFundamentalData(app, tickers):
-    '''
-    Get Fundamental Data
+    """ Get Fundamental Data
 
-        Gets fundamental data for a given list of tickers
-        Tries to do max requests per sec w/o causing any errors
-        If we face a pacing error, we try to slow down and attempt
-        to try again since these are not real errors and can most
-        of the time be resolved
+    Gets fundamental data for a given list of tickers
+    Tries to do max requests per sec w/o causing any errors
+    If we face a pacing error, we try to slow down and attempt
+    to try again since these are not real errors and can most
+    of the time be resolved
 
-        Output:
-            fund_ticker_data: dict w/ tickers as keys and xml fundamental data as values
-            data_issue_tickers: dict w/ tickers as keys and errors as values
-    '''
+    Arguments:
+        app {ib.App} -- ib App object
+        tickers {list} -- list of strings of tickers
+
+    Returns:
+        dict -- tickers as keys and xml fundamental data as values
+        dict -- tickers as keys and errors as values (if any occured)
+    """
     # 2 req/s seem to avoid pacing errors
     tickers_chunked = chunkTickers(tickers, 2)
 
@@ -525,17 +532,21 @@ def getFundamentalData(app, tickers):
 
 
 def getHistData(app, tickers, duration):
-    '''
-    Get Historical Data
+    """Get Historical Data
 
-        Gets historical data for a given list of tickers
-        Tries to do max requests per sec w/o causing any errors
-        Duration should match format of IB.reqHistoricalData
+    Gets historical data for a given list of tickers
+    Tries to do max requests per sec w/o causing any errors
+    Duration should match format of IB.reqHistoricalData
 
-        Output:
-            ticker_data: dict w/ tickers as keys and dataframe of hist data as values
-            issue_tickers: dict w/ tickers as keys and errors as values
-    '''
+    Arguments:
+        app {ib.App} -- ib App object
+        tickers {list} -- list of strings of tickers
+        duration {str} -- Duration string e.g. "1 Y", "6 M", "3 D", etc
+
+    Returns:
+        dict -- tickers as keys and dataframe of hist data as values
+        dict -- tickers as keys and errors as values (if any occured)
+    """
     # Max number of requests that can be made per second for reqHistoricalData = 50
     # Doing 40/sec just to be safe
     tickers_chunked = chunkTickers(tickers, 40)
@@ -555,21 +566,31 @@ def getHistData(app, tickers, duration):
 
 
 def chunkTickers(tickers, n):
-    """
-    Chunk Tickers
+    """ Chunk Tickers
 
-        Given a list tickers, split into sublists of length n
-        This is used as different IB functions can only take
-        so many request per second before throwing an error
+    Given a list tickers, split into sublists of length n
+    This is used as different IB functions can only take
+    so many request per second before throwing an error
+
+    Arguments:
+        tickers {list} -- list of str of tickers
+        n {int} -- how long each sublist should be
+
+    Returns:
+        list -- list of sublists containing tickers
     """
     return [tickers[i * n:(i + 1) * n] for i in range((len(tickers) + n - 1) // n)]
 
 
 def loadTickers(ticker_file):
-    '''
-    Load Tickers
-    '''
+    """Load Tickers from file
 
+    Arguments:
+        ticker_file {str} -- file name
+
+    Returns:
+        list -- list of strings for each ticker
+    """
     with open(ticker_file) as f:
         tickers = [line.rstrip('\n') for line in f]
 
@@ -682,7 +703,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '-r', '--rank', help='Rank Factors (for Factor)', action='store_true')
     parser.add_argument(
-        '-p', '--port', help='Port of TWS (default=7497)', default=7497, type=int)
+        '-p', '--port', help='Port of TWS (default=7497). IB Gateway default is 4002', default=7497, type=int)
     parser.add_argument(
         '-t', '--ticker', help='Underlying Ticker for warrant valuation', default=None)
     parser.add_argument('-o', '--warrants_out',

@@ -1,15 +1,20 @@
 # IB-Playground
 A platform to automate trading through Interactive Brokers using their python API. The project has built in algorithms (see below) that can be used or modified as desired.
 
-- [IB-Playground](#ib-playground)
-  - [Setup](#setup)
-  - [Usage](#usage)
-  - [Algorithms](#algorithms)
-    - [Alpha within Factors](#alpha-within-factors)
-    - [Factor Rankings](#factor-rankings)
-    - [Ratios](#ratios)
-    - [Moving Average Cross](#moving-average-cross)
-  - [Performance](#performance)
+- [IB-Playground](#IB-Playground)
+  - [Setup](#Setup)
+  - [Usage](#Usage)
+  - [Algorithms](#Algorithms)
+    - [Alpha within Factors](#Alpha-within-Factors)
+    - [Factor Rankings](#Factor-Rankings)
+    - [Ratios](#Ratios)
+    - [Moving Average Cross](#Moving-Average-Cross)
+    - [Warrants/Black Scholes](#WarrantsBlack-Scholes)
+      - [Assumptions:](#Assumptions)
+      - [Influences on Warrant Prices](#Influences-on-Warrant-Prices)
+      - [Limitations](#Limitations)
+      - [Resources:](#Resources)
+  - [Performance](#Performance)
 
 
 ## Setup
@@ -108,8 +113,43 @@ Calculate numerous ratios for given stocks that can be used for relative valuati
 5. EV/FCF (Enterprise Value / Free Cash Flow)
 
 ### Moving Average Cross
-Given a list of stocks, buy shares when the 50-day moving average crosses the 200-day moving average (golden cross) and sell the shares when 200-day moving average crosses the 50-day moving average (death cross). This is a classic, albeit mostly useless, technical analysis algorithm and was a starting point on this project to get familiarity with IB's APIs.
+Given a list of stocks, buy shares when the 50-day moving average crosses the 200-day moving average (golden cross) and sell the shares when 200-day moving average crosses the 50-day moving average (death cross). This is a classic, albeit mostly useless, technical analysis algorithm and was a starting point on this project to get familiarity with IB's APIs.  
 
+### Warrants/Black Scholes
+While there are numerous Black Scholes calculators all over online, they are mostly geared towards pricing options. As these calculators are option focused, they very rarely account for share dilution that comes with most warrrants. This tool addresses this along with being an exercise to help me get a better understanding of the strengths and weaknesses of the formula.
+
+From Peter Bernstein's "Capital Ideas Evolving":  
+
+"Before Eugene Fama set forth the principles of the Efficient Market Hypothesis is 1965, there was no theory to explain why the market is so hard to beat... Before Fischer Black, Myron Scholes and Robert Merton confronted both the valuation and essential nature of derivative securities in the early 1970s, there was no theory of option pricing – there were just rules of thumb and folklore... The academic creators of these models were not taken by surprise by difficulties with empirical testing. The underlying assumptions are artificial in many instances, which means that their straight-forward application to the solution of real-time investment problems is often impossible. The academics knew as well as anyone that the real world is different from what they were deﬁning... They were well aware that their theories were not a finished work. They were building a jumping-off point, a beginning of exploration... That structure is still evolving."  
+
+#### Assumptions:
+- Fixed volatility over option/warrant life
+- No early exercise
+- No jumps in price process for underlying stock  
+
+#### Influences on Warrant Prices
+- Share Price
+- Time to expiration
+- Strike Price
+- Dividends expected (higher than expected dividends lower warrants price and vice versa)
+- Interest Rate expectations or the Risk-Free Rate (increasing interest rate will increase warrant price since we can park more cash in the bank earning higher risk-free returns and purchase the warrants and all still have equivalent exposure to owning underlying shares i.e. gearing)
+- Volatility of shares during the life of the warrant  
+
+#### Limitations
+- Most stocks and FX products don’t have log-normal distribution
+- Typically fat-tailed distributions are observed (see Nassim Nicholas Taleb books)
+- Constant volatility assumed, while implied volatility as observed from the
+market is clearly stochastic
+- Dynamic hedging could be expansive (transaction costs)
+- Share price jumps  
+
+#### Resources:
+- [Khan Academy Black Scholes](https://www.youtube.com/watch?v=pr-u4LCFYEY)
+- [Khan Academy Implied Volatility](https://www.youtube.com/watch?v=VIHldsSmASU)
+- [Khan Academy Normal Distribution](https://www.khanacademy.org/math/statistics-probability/modeling-distributions-of-data/more-on-normal-distributions/v/introduction-to-the-normal-distribution)
+- [Univ of Utah - Practicalities in Using Black-Scholes](http://www.math.utah.edu/~zhu/5760.12f/chapter04.pdf)
+- [Univ of Nebraska-Lincoln - Limitations of the Black-Scholes Model](http://www.math.unl.edu/~sdunbar1/MathematicalFinance/Lessons/BlackScholes/Limitations/limitations.html)
+- [Aswath	Damodaran's Option Pricing: Basics](http://people.stern.nyu.edu/adamodar/pdfiles/acf4E/presentations/optionbasics.pdf)
 
 ## Performance
 Certain algorithms might take somewhere between 5 to 10 minutes to fully run. This is because whenever we are calculating fundamental ratios such as P/E, we need to request financial statements and it seems from my testing that 2 requests per second will not cause any pacing errors. For this reason, running Alpha Within Factors on SP500 will take around 5 minutes. When requesting just price data or historical data, the algorithm will run much faster as those limits are 100 req/s and 50 req/s, respectively.
