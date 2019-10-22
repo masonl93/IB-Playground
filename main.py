@@ -15,6 +15,43 @@ from ContractSamples import ContractSamples
 from Black_Scholes import BlackScholes
 
 
+def short_portfolio(app, tickers, input_f, out_f):
+    tickers = tickers[:5]
+    print(tickers)
+    ticker_data, issue_tickers = getPriceData(app, tickers)
+    fund_ticker_data, data_issue_tickers = getFundamentalData(app, tickers)
+
+    # Create our dataframe with price and fundamental data
+    symbols = []
+    prices = []
+    datas = []
+    for key, val in ticker_data.items():
+        symbols.append(key)
+        prices.append(val)
+        if key in fund_ticker_data:
+            datas.append(fund_ticker_data[key])
+        else:
+            datas.append(None)
+    data = {'Symbol': symbols, 'Price': prices, 'Data': datas, 'Debt to Equity': None, '1yr Debt Change': None}
+    df = pandas.DataFrame(data=data).dropna(subset=['Price', 'Data'])
+    print("Price Data:")
+    print(df)
+
+    for i, row in df.iterrows():
+        qtr1, qtr2, qtr3, qtr4 = app.parseFinancials(
+            row['Data'], quarterly=True)
+        current_annual, prev_annual = app.parseFinancials(row['Data'])
+
+        df.at[i, 'Debt to Equity'] = Ratios.calcDebtToEquity(qtr1)
+        df.at[i, '1yr Debt Change'] = Ratios.calcDebtChange(
+            current_annual, prev_annual)
+
+        pct_change = (qtr1['total_common_shares_outstanding']-qtr4['total_common_shares_outstanding'])/qtr4['total_common_shares_outstanding']
+        print(pct_change)
+
+    print(df)
+
+
 def alphaInFactors(app, tickers, input_f, out_f):
     """
     Alpha within Factors
@@ -664,6 +701,11 @@ def main(args):
         alphaInFactors(app, tickers, args.input, args.output)
         print('Alpha within Factors Completed')
 
+    if args.shorts:
+        print('Performing Short Portfolio')
+        short_portfolio(app, tickers, args.input, args.output)
+        print('Short Portfolio Completed')
+
     if args.test:
         '''
         Temporary Option to help debug/test the API
@@ -697,6 +739,8 @@ if __name__ == '__main__':
     parser.add_argument('--futures', help='', action='store_true')
     parser.add_argument(
         '--factor_alpha', help='Alpha within Factors', action='store_true')
+    parser.add_argument(
+        '--shorts', help='Short Portfolio', action='store_true')
     # Options
     parser.add_argument(
         '-i', '--input', help='Input File of Tickers', default=None)

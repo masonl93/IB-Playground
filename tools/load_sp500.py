@@ -25,7 +25,7 @@ def main():
     open(FILENAME+'.txt', 'w').close()
     with open(FILENAME+'.txt', 'w') as f:
         for ticker in tickers:
-            f.write("%s\n" % ticker)
+            f.write("%s" % ticker)
 
 if __name__ == '__main__':
   main()
